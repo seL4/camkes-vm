@@ -1,0 +1,96 @@
+#
+# Copyright 2014, NICTA
+#
+# This software may be distributed and modified according to the terms of
+# the GNU General Public License version 2. Note that NO WARRANTY is provided.
+# See "LICENSE_GPLv2.txt" for details.
+#
+# @TAG(NICTA_GPL)
+#
+
+menuconfig APP_CAMKES_VM
+    bool "VMM Main Application"
+    default n
+    depends on LIB_SEL4 && (LIB_MUSL_C || LIB_SEL4_C) && LIB_SEL4_VKA &&\
+               LIB_SEL4_VMM && LIB_SEL4_UTILS && LIB_UTILS && LIB_SEL4_SIMPLE && LIB_SEL4_SIMPLE_STABLE && LIB_SEL4_PLAT_SUPPORT
+    help 
+        Main application entry point for seL4 VMM. Should be run as the initial seL4 thread.
+
+config APP_CAMKES_VM_GUEST_RAM
+    int "Amount of RAM to give to guest OS, in megabytes."
+    depends on APP_CAMKES_VM
+    default 80
+    help
+        The amount of ram, in megabytes (in MB, a.k.a 1048576 bytes) to give to the guest OS.
+        GUI desktop environments require more RAM, while minimal console busybox ones would
+        require less.
+
+choice
+    prompt "DMA Support Implementation"
+    depends on APP_CAMKES_VM
+    default APP_CAMKES_VM_GUEST_DMA_IOMMU
+    help
+        Select how hardware DMA support is implemented.
+    config APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE
+        bool "One to one physical address mapping"
+    config APP_CAMKES_VM_GUEST_DMA_IOMMU
+        bool "IOMMU"
+    config APP_CAMKES_VM_GUEST_DMA_NONE
+        bool "None"
+endchoice
+
+choice
+    prompt "Hardware Platform"
+    depends on APP_CAMKES_VM
+    default APP_CAMKES_VM_HARDWARE_NONE
+    help
+        Select what hardware or emulated hardware platform to configure
+        seL4 VMM to run on.
+    config APP_CAMKES_VM_HARDWARE_NONE
+        bool "Simple platform with no hardware"
+endchoice
+
+config APP_CAMKES_VM_MULTIBOOT_KERNEL1
+    string "Multiboot guest kernel for vm0"
+    depends on APP_CAMKES_VM
+    default "new-littlebird-bzimage"
+    help
+        Location of the guest kernel. Should either be a multiboot elf file,
+        or a vmlinuz compressed multiboot elf file. If the latter, make sure
+        APP_CAMKES_VM_COMPRESSED_KERNEL1 is selected. File is assumed to be in
+        'linux' subdirectory in this app
+
+config APP_CAMKES_VM_COMPRESSED_KERNEL1
+    bool "Specified multiboot kernel for vm0 is a compressed vmlinuz"
+    depends on APP_CAMKES_VM
+    default y
+    help
+        Support compressed vmlinuz files. The multiboot kernel will be
+        extracted, and assumed to already contain vmlinux.relocs concaternated
+        to it.  If this is off, then kernel is used as is, and we build and use
+        a separate vmlinux.relocs from given vmlinux file.
+
+config APP_CAMKES_VM_KERNEL1_CMDLINE
+    string "cmdline to append to kernel image name for vm0"
+    depends on APP_CAMKES_VM
+    default "console=ttyS0,115200 console=tty0 root=/dev/mem i8042.nokbd=y i8042.nomux=y i8042.noaux=y pci=nomsi io_delay=udelay noisapnp"
+    help
+        This command line is appended to the kernel name and passed to the guest
+
+config APP_CAMKES_VM_INITRD1_SUPPORT
+    bool "Support For Loading initrd RAM disk for vm0"
+    depends on APP_CAMKES_VM
+    default y
+    help
+        Support for loading initrd RAM disk images. If this option is disabled,
+        the guest kernel itself must be compiled with the initial disk image
+        instead.
+
+config APP_CAMKES_VM_INITRD1_IMG
+    string "Initrd image file name for vm0"
+    depends on APP_CAMKES_VM && APP_CAMKES_VM_INITRD1_SUPPORT
+    default new-littlebird-rootfs.cpio
+    help
+        Initrd file name that will be put ibn the CPIO archive. Any initrd format the guest kernel
+        supports is supported here. The initrd file is assumed to be in 'linux' subdirectory
+        in this app

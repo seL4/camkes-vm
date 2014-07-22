@@ -1,0 +1,17 @@
+#
+# Copyright 2014, NICTA
+#
+# This software may be distributed and modified according to the terms of
+# the GNU General Public License version 2. Note that NO WARRANTY is provided.
+# See "LICENSE_GPLv2.txt" for details.
+#
+# @TAG(NICTA_GPL)
+#
+
+apps-$(CONFIG_APP_CAMKES_VM)    += vm
+
+vm-y     = libsel4 libmuslc libsel4vka libsel4allocman libsel4muslcsys \
+libsel4vspace libsel4utils libpci libcpio libsel4vmm libelf libutils libsel4camkes libsel4sync libsel4debug libsel4muslccamkes libsel4simple libsel4simple-stable libsel4platsupport
+
+
+vm: $(vm-y)

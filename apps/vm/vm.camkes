@@ -1,0 +1,180 @@
+/*
+ * Copyright 2014, NICTA
+ *
+ * This software may be distributed and modified according to the terms of
+ * the GNU General Public License version 2. Note that NO WARRANTY is provided.
+ * See "LICENSE_GPLv2.txt" for details.
+ *
+ * @TAG(NICTA_GPL)
+ */
+
+#include <autoconf.h>
+
+import <std_connector.camkes>;
+
+import "interfaces/VirtIOPort.idl4";
+import "interfaces/InterruptGenerator.idl4";
+import "interfaces/PCIConfig.idl4";
+import "interfaces/Timer.idl4";
+import "interfaces/RTC.idl4";
+
+import "PIC.camkes";
+import "HPET.camkes";
+import "CMOS.camkes";
+import "Serial.camkes";
+
+import "components/Init/Init.camkes";
+import "components/PICEmulator/PICEmulator.camkes";
+import "components/PCIConfigIO/PCIConfigIO.camkes";
+import "components/TimeServer/TimeServer.camkes";
+import "components/PITEmulator/PITEmulator.camkes";
+import "components/RTC/RTC.camkes";
+import "components/RTCEmulator/RTCEmulator.camkes";
+import "components/SerialEmulator/SerialEmulator.camkes";
+import "components/SerialServer/SerialServer.camkes";
+
+component PieceOfHardware {
+    hardware;
+    provides IOPort pci_config_address;
+    provides IOPort pci_config_data;
+};
+
+assembly {
+    composition {
+        /* VM and emulation components */
+        component Init vm0;
+        component PICEmulator IntMan0;
+        component PITEmulator PIT0;
+        component RTCEmulator RTCEmul0;
+        component SerialEmulator SerialEmul0;
+
+        /* Hardware multiplexing components */
+        component SerialServer serial;
+        component PCIConfigIO pci_config;
+        component TimeServer time_server;
+        component RTC rtc;
+
+        /* Hardware components that are not actuall instantiated */
+        component PIC pic;
+        component HPET hpet;
+        component CMOS cmos;
+        component Serial hw_serial;
+        /* Hack to get hardware definitions sensibly in camkes for the cmoment */
+        component PieceOfHardware poh;
+
+        /* Connect all the components to the serial server */
+        connection seL4RPCCall serial_vm0(from vm0.putchar, to serial.vm0);
+        connection seL4RPCCall serial_intman0(from IntMan0.putchar, to serial.vm0);
+        connection seL4RPCCall serial_pit0(from PIT0.putchar, to serial.vm0);
+        connection seL4RPCCall serial_rtcemul0(from RTCEmul0.putchar, to serial.vm0);
+        connection seL4RPCCall serial_serialemul0(from SerialEmul0.putchar, to serial.guest0);
+
+        connection seL4RPCCall serial_pci_config(from pci_config.putchar, to serial.vm0);
+        connection seL4RPCCall serial_time_server(from time_server.putchar, to serial.vm0);
+        connection seL4RPCCall serial_rtc(from rtc.putchar, to serial.vm0);
+
+        /* Connect the emulated serial input to the serial server */
+        connection seL4RPCCall serial_input0(from SerialEmul0.getchar, to serial.guest0_input);
+        connection seL4Asynch serial_input_ready0(from serial.guest0_input_signal, to SerialEmul0.getchar_signal);
+
+        /* Temporarily connect the VM directly to the RTC */
+        connection seL4RPCCall rtctest0(from vm0.rtc, to rtc.rtc);
+
+        /* Connect the emulated serial to the VM */
+        connection seL4RPCCall serial0(from vm0.serial, to SerialEmul0.serialport);
+        
+        /* Connect the emulated serial to the timer server */
+        connection seL4RPCCall serial0_timer0(from SerialEmul0.fifo_timeout, to time_server.timer5);
+        connection seL4RPCCall serial0_timer1(from SerialEmul0.transmit_timer, to time_server.timer6);
+        connection seL4RPCCall serial0_timer2(from SerialEmul0.modem_status_timer, to time_server.timer7);
+        connection seL4Asynch serial0_timer0_interrupt(from time_server.timer5_complete, to SerialEmul0.fifo_timeout_interrupt);
+        connection seL4Asynch serial0_timer1_interrupt(from time_server.timer6_complete, to SerialEmul0.transmit_timer_interrupt);
+        connection seL4Asynch serial0_timer2_interrupt(from time_server.timer7_complete, to SerialEmul0.modem_status_timer_interrupt);
+
+        /* Connect the hardware RTC to the RTC component */
+        connection seL4HardwareIOPort rtc_cmos_address(from rtc.cmos_address, to cmos.cmos_address);
+        connection seL4HardwareIOPort rtc_cmos_data(from rtc.cmos_data, to cmos.cmos_data);
+
+        /* Connect the emulated RTC to the RTC component */
+        connection seL4RPCCall cmosrtc_system0(from RTCEmul0.system_rtc, to rtc.rtc);
+
+        /* Connect the emulated RTC to the VM */
+        connection seL4RPCCall cmosrtc0(from vm0.cmos, to RTCEmul0.cmosport);
+        
+        /* COnnect the serial server to the timer server */
+        connection seL4RPCCall serialserver_timer(from serial.timeout, to time_server.timer8);
+        connection seL4Asynch serialserver_timeout(from time_server.timer8_complete, to serial.timeout_complete);
+
+        /* Connect the emulated RTC to the timer server */
+        connection seL4RPCCall rtc0_timer0(from RTCEmul0.periodic_timer, to time_server.timer1);
+        connection seL4Asynch rtc0_timer0_interrupt(from time_server.timer1_complete, to RTCEmul0.periodic_timer_interrupt);
+        connection seL4RPCCall rtc0_timer1(from RTCEmul0.coalesced_timer, to time_server.timer2);
+        connection seL4Asynch rtc0_timer1_interrupt(from time_server.timer2_complete, to RTCEmul0.coalesced_timer_interrupt);
+        connection seL4RPCCall rtc0_timer2(from RTCEmul0.second_timer, to time_server.timer3);
+        connection seL4Asynch rtc0_timer2_interrupt(from time_server.timer3_complete, to RTCEmul0.second_timer_interrupt);
+        connection seL4RPCCall rtc0_timer3(from RTCEmul0.second_timer2, to time_server.timer4);
+        connection seL4Asynch rtc0_timer3_interrupt(from time_server.timer4_complete, to RTCEmul0.second_timer2_interrupt);
+
+        /* Connect the emulated PIT to the timer server */
+        connection seL4RPCCall pit0_timer(from PIT0.timer, to time_server.timer0);
+        connection seL4Asynch pit0_timer_interrupt(from time_server.timer0_complete, to PIT0.timer_interrupt);
+
+        /* Connect the emulated PIT to the VM */
+        connection seL4RPCCall i8254_0(from vm0.i8254, to PIT0.i8254port);
+
+        /* Connect io ports to pci config space */
+        connection seL4HardwareIOPort config_address_ports(from pci_config.config_address, to poh.pci_config_address);
+        connection seL4HardwareIOPort config_data_ports(from pci_config.config_data, to poh.pci_config_data);
+
+        /* Connect config space to main VM */
+        connection seL4RPCCall pciconfig0(from vm0.pci_config, to pci_config.pci_config);
+
+        /* Connect the PIC emulator to the main VM */
+        connection seL4RPCCall i8259port0(from vm0.i8259, to IntMan0.i8259port);
+        connection seL4RPCCall intmanager0(from vm0.IntManager, to IntMan0.i8259int);
+        connection seL4AsynchBind haveint0(from IntMan0.haveint, to vm0.intready);
+
+        /* Connect the emulated pit to the PIC emulator */
+        connection seL4RPCCall irq0_level_0(from PIT0.pit_irq, to IntMan0.irq0_level);
+        connection seL4Asynch irq0_edge_0(from PIT0.pit_edge_irq, to IntMan0.irq0);
+        /* Connect the emulated rtc to the PIC emulator */
+        connection seL4RPCCall irq8_level_0(from RTCEmul0.rtc_irq, to IntMan0.irq8_level);
+
+        /* Connect the emulated serial to the PIC emulator */
+        connection seL4RPCCall irq4_level_0(from SerialEmul0.serial_irq, to IntMan0.irq4_level);
+        connection seL4Asynch irq4_edge_0(from SerialEmul0.serial_edge_irq, to IntMan0.irq4);
+
+        /* Connect the hardware hpet to the timer driver */
+        connection seL4HardwareMMIO hpet_base(from time_server.hpet, to hpet.hpet);
+        connection seL4HardwareInterrupt hpet_irq(from hpet.irq, to time_server.irq);
+
+        /* Connect the hardware serial to the serial server */
+        connection seL4HardwareIOPort serial_ioport(from serial.serial_port, to hw_serial.serial);
+        connection seL4HardwareInterrupt serial_irq(from hw_serial.serial_irq, to serial.serial_irq);
+    }
+    configuration {
+
+        hpet.hpet_attributes = "0xFED00000:0x1000";
+        hpet.irq_attributes = 16;
+
+        /* Serial port definitions */
+        hw_serial.serial_attributes="0x3f8:3ff";
+        hw_serial.serial_irq_attributes = 4;
+
+        /* PCI config space definitions */
+        poh.pci_config_address_attributes = "0xcf8:cfb";
+        poh.pci_config_data_attributes = "0xcfc:cff";
+
+        vm0.cnode_size_bits = 21;
+        vm0.simple = true;
+
+#ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE
+        // Zone DMA hack
+        vm0.mmio = "0x8000:0x97000";
+#endif
+        vm0.untyped24_pool = 16;
+
+        cmos.cmos_address_attributes = "0x70:70";
+        cmos.cmos_data_attributes = "0x71:71";
+    }
+}

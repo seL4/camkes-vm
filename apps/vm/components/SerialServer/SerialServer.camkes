@@ -1,0 +1,36 @@
+/*
+ * Copyright 2014, NICTA
+ *
+ * This software may be distributed and modified according to the terms of
+ * the GNU General Public License version 2. Note that NO WARRANTY is provided.
+ * See "LICENSE_GPLv2.txt" for details.
+ *
+ * @TAG(NICTA_GPL)
+ */
+
+#include <autoconf.h>
+import "../../interfaces/PutChar.idl4";
+import "../../interfaces/GetChar.idl4";
+import "../../interfaces/Timer.idl4";
+
+component SerialServer {
+    has mutex serial;
+    provides PutChar vm0;
+    provides PutChar guest0;
+    provides PutChar vm1;
+    provides PutChar guest1;
+    provides PutChar vm2;
+    provides PutChar guest2;
+    uses Timer timeout;
+    consumes timer_complete timeout_complete;
+
+    provides GetChar guest0_input;
+    emits CharacterReady guest0_input_signal;
+    provides GetChar guest1_input;
+    emits CharacterReady guest1_input_signal;
+    provides GetChar guest2_input;
+    emits CharacterReady guest2_input_signal;
+
+    uses IOPort serial_port;
+    consumes Irq4 serial_irq;    
+}

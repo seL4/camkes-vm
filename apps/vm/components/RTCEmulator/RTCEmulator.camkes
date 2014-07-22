@@ -1,0 +1,33 @@
+/*
+ * Copyright 2014, NICTA
+ *
+ * This software may be distributed and modified according to the terms of
+ * the GNU General Public License version 2. Note that NO WARRANTY is provided.
+ * See "LICENSE_GPLv2.txt" for details.
+ *
+ * @TAG(NICTA_GPL)
+ */
+
+import "../../interfaces/RTC.idl4";
+import "../../interfaces/VirtIOPort.idl4";
+import "../../interfaces/Timer.idl4";
+import "../../interfaces/LevelInterrupt.idl4";
+import "../../interfaces/PutChar.idl4";
+
+component RTCEmulator {
+    has mutex rtc;
+    uses PutChar putchar;
+    provides VirtIOPort cmosport;
+    uses LevelInterrupt rtc_irq;
+
+    uses RTC system_rtc;
+
+    uses Timer periodic_timer;
+    consumes timer_complete periodic_timer_interrupt;
+    uses Timer coalesced_timer;
+    consumes timer_complete coalesced_timer_interrupt;
+    uses Timer second_timer;
+    consumes timer_complete second_timer_interrupt;
+    uses Timer second_timer2;
+    consumes timer_complete second_timer2_interrupt;
+}

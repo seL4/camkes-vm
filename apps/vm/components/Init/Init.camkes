@@ -1,0 +1,30 @@
+/*
+ * Copyright 2014, NICTA
+ *
+ * This software may be distributed and modified according to the terms of
+ * the GNU General Public License version 2. Note that NO WARRANTY is provided.
+ * See "LICENSE_GPLv2.txt" for details.
+ *
+ * @TAG(NICTA_GPL)
+ */
+
+#include <autoconf.h>
+
+import "../../interfaces/VirtIOPort.idl4";
+import "../../interfaces/InterruptGenerator.idl4";
+import "../../interfaces/RTC.idl4";
+import "../../interfaces/PutChar.idl4";
+
+component Init {
+    control;
+    uses PutChar putchar;
+    has mutex vm_mutex;
+    uses VirtIOPort i8259;
+    uses VirtIOPort i8254;
+    uses VirtIOPort cmos;
+    uses VirtIOPort serial;
+    uses InterruptGenerator IntManager;
+    uses PCIConfig pci_config;
+    uses RTC rtc;
+    consumes HaveInterrupt intready;
+}

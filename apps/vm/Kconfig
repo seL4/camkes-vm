@@ -53,7 +53,7 @@ endchoice
 config APP_CAMKES_VM_MULTIBOOT_KERNEL1
     string "Multiboot guest kernel for vm0"
     depends on APP_CAMKES_VM
-    default "new-littlebird-bzimage"
+    default "bzimage"
     help
         Location of the guest kernel. Should either be a multiboot elf file,
         or a vmlinuz compressed multiboot elf file. If the latter, make sure
@@ -89,7 +89,7 @@ config APP_CAMKES_VM_INITRD1_SUPPORT
 config APP_CAMKES_VM_INITRD1_IMG
     string "Initrd image file name for vm0"
     depends on APP_CAMKES_VM && APP_CAMKES_VM_INITRD1_SUPPORT
-    default new-littlebird-rootfs.cpio
+    default rootfs.cpio
     help
         Initrd file name that will be put ibn the CPIO archive. Any initrd format the guest kernel
         supports is supported here. The initrd file is assumed to be in 'linux' subdirectory

@@ -11,29 +11,19 @@
 #include <autoconf.h>
 import "../../interfaces/Timer.idl4";
 import "../../interfaces/PutChar.idl4";
+#include <configurations/vm.h>
+#include <boost/preprocessor/repeat.hpp>
+
+#define TIMER_DEF(num, iteration, data) \
+    provides Timer timer##iteration; \
+    emits timer_complete BOOST_PP_CAT(timer##iteration, _complete); \
+    /**/
 
 component TimeServer {
     has mutex time_server;
     uses PutChar putchar;
 
-    provides Timer timer0;
-    emits timer_complete timer0_complete;
-    provides Timer timer1;
-    emits timer_complete timer1_complete;
-    provides Timer timer2;
-    emits timer_complete timer2_complete;
-    provides Timer timer3;
-    emits timer_complete timer3_complete;
-    provides Timer timer4;
-    emits timer_complete timer4_complete;
-    provides Timer timer5;
-    emits timer_complete timer5_complete;
-    provides Timer timer6;
-    emits timer_complete timer6_complete;
-    provides Timer timer7;
-    emits timer_complete timer7_complete;
-    provides Timer timer8;
-    emits timer_complete timer8_complete;
+    BOOST_PP_REPEAT(VM_NUM_TIMERS, TIMER_DEF, _)
 
     consumes HPETMSI irq;
     dataport Buf hpet;

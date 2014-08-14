@@ -12,6 +12,8 @@
 #include <stdio.h>
 
 #include <SerialServer.h>
+#include <boost/preprocessor/repeat.hpp>
+#include "vm.h"
 
 /* configuration */
 #define BAUD_RATE 115200
@@ -66,7 +68,7 @@
 #define COLOUR_RESET "\033[0m"
 
 #define GUEST_BUFFER_SIZE 64
-#define NUM_GUESTS 1
+#define MAX_GUESTS 3
 #define GUEST_OUTPUT_BUFFER_SIZE 256
 
 static int last_out = -1;
@@ -74,18 +76,21 @@ static int last_out = -1;
 static int fifo_depth = 1;
 static int fifo_used = 0;
 
-static uint8_t guest_buffers[NUM_GUESTS][GUEST_BUFFER_SIZE];
-static int guest_buffer_start[NUM_GUESTS] = { 0 };
-static int guest_buffer_end[NUM_GUESTS] = { 0 };
+static uint8_t guest_buffers[VM_NUM_GUESTS][GUEST_BUFFER_SIZE];
+static int guest_buffer_start[VM_NUM_GUESTS] = { 0 };
+static int guest_buffer_end[VM_NUM_GUESTS] = { 0 };
 
-static uint8_t output_buffers[NUM_GUESTS * 2][GUEST_OUTPUT_BUFFER_SIZE];
-static int output_buffers_used[NUM_GUESTS * 2] = { 0 };
+static uint8_t output_buffers[VM_NUM_GUESTS * 2][GUEST_OUTPUT_BUFFER_SIZE];
+static int output_buffers_used[VM_NUM_GUESTS * 2] = { 0 };
 
 static int done_output = 0;
 
 static int has_data = 0;
 
-const char *output_colours[NUM_GUESTS * 2] = {
+const char *output_colours[VM_NUM_GUESTS * 2];
+
+/* We predefine output colours for 3 guests */
+const char *all_output_colours[MAX_GUESTS * 2] = {
     /* VMMs */
     COLOUR_R,
     COLOUR_G,
@@ -192,7 +197,7 @@ static void internal_putchar(int b, int c) {
 static int internal_pollchar(int guest, int *out) {
     int ret = 0;
     serial_lock();
-    assert(guest < NUM_GUESTS);
+    assert(guest < VM_NUM_GUESTS);
     if (guest_buffer_start[guest] != guest_buffer_end[guest]) {
         ret = 1;
         *out = guest_buffers[guest][guest_buffer_start[guest]];
@@ -203,18 +208,17 @@ static int internal_pollchar(int guest, int *out) {
     return ret;
 }
 
+#define GUEST_INPUT_SIGNAL_OUTPUT(a , vm, b) BOOST_PP_CAT(guest##vm,_input_signal_emit),
+static void (*guest_input_signal_emit[])(void) = {
+    BOOST_PP_REPEAT(VM_NUM_GUESTS, GUEST_INPUT_SIGNAL_OUTPUT, _)
+};
+
 static void internal_guest_putchar(int guest, int c) {
     if ((guest_buffer_end[guest] + 1) % GUEST_BUFFER_SIZE != guest_buffer_start[guest]) {
         guest_buffers[guest][guest_buffer_end[guest]] = c;
         guest_buffer_end[guest]++;
         guest_buffer_end[guest] %= GUEST_BUFFER_SIZE;
-        switch (guest) {
-        case 0:
-            guest0_input_signal_emit();
-            break;
-        default:
-            assert(!"unknown guest");
-        }
+        guest_input_signal_emit[guest]();
     }
 }
 
@@ -247,7 +251,7 @@ static void handle_char(uint8_t c) {
         if (c == '~') {
             statemachine = 0;
             give_guest_char(c);
-        } else if (c >= '0' && c < '0' + NUM_GUESTS) {
+        } else if (c >= '0' && c < '0' + VM_NUM_GUESTS) {
             last_out = -1;
             int guest = c - '0';
             printf(COLOUR_RESET "\r\nSwitching input to %d\r\n",guest);
@@ -260,17 +264,6 @@ static void handle_char(uint8_t c) {
         }
         break;
     }
-}
-
-void vm0_putchar(int c) {
-    internal_putchar(0, c);
-    if (c == '\n') {
-        internal_putchar(0, '\r');
-    }
-}
-
-void guest0_putchar(int c) {
-    internal_putchar(0 + NUM_GUESTS, c);
 }
 
 /* assume DLAB == 1*/
@@ -384,12 +377,20 @@ static void timer_callback(void *data) {
     } else if (has_data) {
         /* flush everything if no writes since last callback */
         int i;
-        for (i = 0; i < NUM_GUESTS * 2; i++) {
+        for (i = 0; i < VM_NUM_GUESTS * 2; i++) {
             flush_buffer(i);
         }
     }
     timeout_complete_reg_callback(timer_callback, 0);
     serial_unlock();
+}
+
+static void init_colours() {
+    int i;
+    for (i = 0; i < VM_NUM_GUESTS; i++) {
+        output_colours[i] = all_output_colours[i];
+        output_colours[i + VM_NUM_GUESTS] = all_output_colours[i + MAX_GUESTS];
+    }
 }
 
 void pre_init(void) {
@@ -407,6 +408,7 @@ void pre_init(void) {
     enable_interrupt();
     clear_iir(1);
     // all done
+    init_colours();
     set_putchar(serial_putchar);
     serial_irq_reg_callback(serial_irq, 0);
     serial_unlock();
@@ -415,12 +417,23 @@ void pre_init(void) {
     timeout_complete_reg_callback(timer_callback, 0);
 }
 
-int guest0_input_getchar(void) {
-    assert(!"Use poll");
-    return 0;
-}
-
-int guest0_input_pollchar(int *out) {
-    return internal_pollchar(0, out);
-}
-
+/* Generate stub interfaces for each camkes interface */
+#define INTERFACE_OUTPUT(unused1, n, unused2) \
+    void BOOST_PP_CAT(vm##n,_putchar)(int c) { \
+        internal_putchar(n, c); \
+        if (c == '\n') { \
+            internal_putchar(n, '\r'); \
+        } \
+    } \
+    void BOOST_PP_CAT(guest##n,_putchar)(int c) { \
+        internal_putchar(n + VM_NUM_GUESTS, c); \
+    } \
+    int BOOST_PP_CAT(guest##n,_input_getchar)(void) { \
+        assert(!"use poll"); \
+        return 0; \
+    } \
+    int BOOST_PP_CAT(guest##n,_input_pollchar)(int *out) { \
+        return internal_pollchar(n, out); \
+    } \
+    /**/
+BOOST_PP_REPEAT(VM_NUM_GUESTS, INTERFACE_OUTPUT, _)

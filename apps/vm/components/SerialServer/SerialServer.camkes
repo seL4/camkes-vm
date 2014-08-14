@@ -12,24 +12,23 @@
 import "../../interfaces/PutChar.idl4";
 import "../../interfaces/GetChar.idl4";
 import "../../interfaces/Timer.idl4";
+#include <configurations/vm.h>
+#include <boost/preprocessor/repeat.hpp>
+
+#define PER_VM_DEF(num, iteration, data) \
+    provides PutChar vm##iteration; \
+    provides PutChar guest##iteration; \
+    provides GetChar BOOST_PP_CAT(guest##iteration,_input); \
+    emits CharacterReady BOOST_PP_CAT(guest##iteration,_input_signal); \
+    /**/
 
 component SerialServer {
     has mutex serial;
-    provides PutChar vm0;
-    provides PutChar guest0;
-    provides PutChar vm1;
-    provides PutChar guest1;
-    provides PutChar vm2;
-    provides PutChar guest2;
+
+    BOOST_PP_REPEAT(VM_NUM_GUESTS, PER_VM_DEF, _)
+
     uses Timer timeout;
     consumes timer_complete timeout_complete;
-
-    provides GetChar guest0_input;
-    emits CharacterReady guest0_input_signal;
-    provides GetChar guest1_input;
-    emits CharacterReady guest1_input_signal;
-    provides GetChar guest2_input;
-    emits CharacterReady guest2_input_signal;
 
     uses IOPort serial_port;
     consumes Irq4 serial_irq;    

@@ -18,10 +18,10 @@
 #include <sel4/arch/constants.h>
 #include <TimeServer.h>
 #include <platsupport/plat/hpet.h>
+#include "vm.h"
+#include <boost/preprocessor/repeat.hpp>
 
-#define TIMER_IRQ (MSI_MIN + IRQ_OFFSET) //16 + IRQ_OFFSET
-
-#define NUM_CLIENTS 9
+#define TIMER_IRQ (MSI_MIN + IRQ_OFFSET) //24 + IRQ_OFFSET
 
 static pstimer_t *timer = NULL;
 
@@ -37,46 +37,20 @@ typedef struct client_state {
     uint64_t timeout_time;
 } client_state_t;
 
-static client_state_t client_state[NUM_CLIENTS];
-static client_state_t *sorted_clients[NUM_CLIENTS];
+static client_state_t client_state[VM_NUM_TIMERS];
+static client_state_t *sorted_clients[VM_NUM_TIMERS];
 
 static uint64_t current_timeout = 0;
 
 //static uint64_t tsc_frequency = 0;
 
+#define TIMER_COMPLETE_EMIT_OUTPUT(a, vm, b) BOOST_PP_CAT(timer##vm,_complete_emit),
+static void (*timer_complete_emit[])(void) = {
+    BOOST_PP_REPEAT(VM_NUM_TIMERS, TIMER_COMPLETE_EMIT_OUTPUT, _)
+};
+
 static void signal_client(int id) {
-    switch(id) {
-    case 0:
-        timer0_complete_emit();
-        break;
-    case 1:
-        timer1_complete_emit();
-        break;
-    case 2:
-        timer2_complete_emit();
-        break;
-    case 3:
-        timer3_complete_emit();
-        break;
-    case 4:
-        timer4_complete_emit();
-        break;
-    case 5:
-        timer5_complete_emit();
-        break;
-    case 6:
-        timer6_complete_emit();
-        break;
-    case 7:
-        timer7_complete_emit();
-        break;
-    case 8:
-        timer8_complete_emit();
-        break;
-    default:
-        LOG_ERROR("Unknown client %d\n", id);
-        assert(!"unknown client");
-    }
+    timer_complete_emit[id]();
     switch(client_state[id].timer_type) {
     case TIMER_TYPE_OFF:
         assert(!"not possible");
@@ -93,7 +67,7 @@ static void signal_client(int id) {
 }
 
 static void signal_clients(uint64_t current_time) {
-    for (int i = 0; i < NUM_CLIENTS; i++) {
+    for (int i = 0; i < VM_NUM_TIMERS; i++) {
         if (client_state[i].timer_type != TIMER_TYPE_OFF &&
             client_state[i].timeout_time <= current_time) {
             signal_client(i);
@@ -122,7 +96,7 @@ static int client_cmp(const void *a, const void *b) {
 }
 
 static void sort_clients() {
-    qsort(sorted_clients, NUM_CLIENTS, sizeof(client_state_t*), client_cmp);
+    qsort(sorted_clients, VM_NUM_TIMERS, sizeof(client_state_t*), client_cmp);
 }
 
 void reprogram_timer() {
@@ -201,190 +175,31 @@ static uint64_t _time(int id) {
     return ret;
 }
 
-int timer0_oneshot_relative(uint64_t ns) {
-    return _oneshot_relative(0, ns);
-}
+/* Generate stub interfaces for each camkes interface */
+#define INTERFACE_OUTPUT(unused1, n, unused2) \
+    int BOOST_PP_CAT(timer##n, _oneshot_relative)(uint64_t ns) { \
+        return _oneshot_relative(n, ns); \
+    } \
+    int BOOST_PP_CAT(timer##n, _oneshot_absolute)(uint64_t ns) { \
+        return _oneshot_absolute(n, ns); \
+    } \
+    int BOOST_PP_CAT(timer##n, _periodic)(uint64_t ns) { \
+        return _periodic(n, ns); \
+    } \
+    int BOOST_PP_CAT(timer##n, _stop)() { \
+        return _stop(n); \
+    } \
+    uint64_t BOOST_PP_CAT(timer##n, _time)() { \
+        return _time(n); \
+    } \
+    /**/
 
-int timer0_oneshot_absolute(uint64_t ns) {
-    return _oneshot_absolute(0, ns);
-}
-
-int timer0_periodic(uint64_t ns) {
-    return _periodic(0, ns);
-}
-
-int timer0_stop() {
-    return _stop(0);
-}
-
-uint64_t timer0_time() {
-    return _time(0);
-}
-
-int timer1_oneshot_relative(uint64_t ns) {
-    return _oneshot_relative(1, ns);
-}
-
-int timer1_oneshot_absolute(uint64_t ns) {
-    return _oneshot_absolute(1, ns);
-}
-
-int timer1_periodic(uint64_t ns) {
-    return _periodic(1, ns);
-}
-
-int timer1_stop() {
-    return _stop(1);
-}
-
-uint64_t timer1_time() {
-    return _time(1);
-}
-
-int timer2_oneshot_relative(uint64_t ns) {
-    return _oneshot_relative(2, ns);
-}
-
-int timer2_oneshot_absolute(uint64_t ns) {
-    return _oneshot_absolute(2, ns);
-}
-
-int timer2_periodic(uint64_t ns) {
-    return _periodic(2, ns);
-}
-
-int timer2_stop() {
-    return _stop(2);
-}
-
-uint64_t timer2_time() {
-    return _time(2);
-}
-
-int timer3_oneshot_relative(uint64_t ns) {
-    return _oneshot_relative(3, ns);
-}
-
-int timer3_oneshot_absolute(uint64_t ns) {
-    return _oneshot_absolute(3, ns);
-}
-
-int timer3_periodic(uint64_t ns) {
-    return _periodic(3, ns);
-}
-
-int timer3_stop() {
-    return _stop(3);
-}
-
-uint64_t timer3_time() {
-    return _time(3);
-}
-
-int timer4_oneshot_relative(uint64_t ns) {
-    return _oneshot_relative(4, ns);
-}
-
-int timer4_oneshot_absolute(uint64_t ns) {
-    return _oneshot_absolute(4, ns);
-}
-
-int timer4_periodic(uint64_t ns) {
-    return _periodic(4, ns);
-}
-
-int timer4_stop() {
-    return _stop(4);
-}
-
-uint64_t timer4_time() {
-    return _time(4);
-}
-
-int timer5_oneshot_relative(uint64_t ns) {
-    return _oneshot_relative(5, ns);
-}
-
-int timer5_oneshot_absolute(uint64_t ns) {
-    return _oneshot_absolute(5, ns);
-}
-
-int timer5_periodic(uint64_t ns) {
-    return _periodic(5, ns);
-}
-
-int timer5_stop() {
-    return _stop(5);
-}
-
-uint64_t timer5_time() {
-    return _time(5);
-}
-
-int timer6_oneshot_relative(uint64_t ns) {
-    return _oneshot_relative(6, ns);
-}
-
-int timer6_oneshot_absolute(uint64_t ns) {
-    return _oneshot_absolute(6, ns);
-}
-
-int timer6_periodic(uint64_t ns) {
-    return _periodic(6, ns);
-}
-
-int timer6_stop() {
-    return _stop(6);
-}
-
-uint64_t timer6_time() {
-    return _time(6);
-}
-
-int timer7_oneshot_relative(uint64_t ns) {
-    return _oneshot_relative(7, ns);
-}
-
-int timer7_oneshot_absolute(uint64_t ns) {
-    return _oneshot_absolute(7, ns);
-}
-
-int timer7_periodic(uint64_t ns) {
-    return _periodic(7, ns);
-}
-
-int timer7_stop() {
-    return _stop(7);
-}
-
-uint64_t timer7_time() {
-    return _time(7);
-}
-
-int timer8_oneshot_relative(uint64_t ns) {
-    return _oneshot_relative(8, ns);
-}
-
-int timer8_oneshot_absolute(uint64_t ns) {
-    return _oneshot_absolute(8, ns);
-}
-
-int timer8_periodic(uint64_t ns) {
-    return _periodic(8, ns);
-}
-
-int timer8_stop() {
-    return _stop(8);
-}
-
-uint64_t timer8_time() {
-    return _time(8);
-}
+BOOST_PP_REPEAT(VM_NUM_TIMERS, INTERFACE_OUTPUT, _);
 
 void pre_init() {
     time_server_lock();
     set_putchar(putchar_putchar);
-    for (int i = 0; i < NUM_CLIENTS; i++) {
+    for (int i = 0; i < VM_NUM_TIMERS; i++) {
         client_state[i].id = i;
         client_state[i].timer_type = TIMER_TYPE_OFF;
         sorted_clients[i] = &client_state[i];

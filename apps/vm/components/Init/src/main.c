@@ -31,6 +31,8 @@
 #include "vmm/platform/boot_guest.h"
 #include "vmm/platform/guest_vspace.h"
 
+#include "vm.h"
+
 seL4_CPtr intready_aep();
 
 void platsupport_serial_setup_simple(vspace_t *vspace, simple_t *simple, vka_t *vka) {
@@ -47,6 +49,110 @@ static vka_t vka;
 static vspace_t vspace;
 static sel4utils_alloc_data_t vspace_data;
 static vmm_t vmm;
+
+/* custom allocator interface for attempting to allocate frames
+ * from special frame only memory */
+typedef struct proxy_vka {
+    uintptr_t last_paddr;
+    int have_mem;
+    vka_t regular_vka;
+} proxy_vka_t;
+
+static proxy_vka_t proxy_vka;
+
+typedef struct ut_node {
+    int frame;
+    uint32_t cookie;
+} ut_node_t;
+
+int proxy_vka_cspace_alloc(void *data, seL4_CPtr *res) {
+    proxy_vka_t *vka = (proxy_vka_t*)data;
+    return vka_cspace_alloc(&vka->regular_vka, res);
+}
+
+void proxy_vka_cspace_make_path(void *data, seL4_CPtr slot, cspacepath_t *res) {
+    proxy_vka_t *vka = (proxy_vka_t*)data;
+    vka_cspace_make_path(&vka->regular_vka, slot, res);
+}
+
+void proxy_vka_cspace_free(void *data, seL4_CPtr slot) {
+    proxy_vka_t *vka = (proxy_vka_t*)data;
+    vka_cspace_free(&vka->regular_vka, slot);
+}
+
+int proxy_vka_utspace_alloc(void *data, const cspacepath_t *dest, seL4_Word type, seL4_Word size_bits, uint32_t *res) {
+    proxy_vka_t *vka = (proxy_vka_t*)data;
+    int error;
+    uint32_t cookie;
+    ut_node_t *node = malloc(sizeof(*node));
+    if (!node) {
+        return -1;
+    }
+    if (type == seL4_IA32_4K && vka->have_mem) {
+        error = simple_get_frame_cap(&camkes_simple, (void*)vka->last_paddr, seL4_PageBits, (cspacepath_t*)dest);
+        if (error) {
+            vka->have_mem = 0;
+        } else {
+            node->frame = 1;
+            node->cookie = vka->last_paddr;
+            vka->last_paddr += PAGE_SIZE_4K;
+            return 0;
+        }
+    }
+    error = vka_utspace_alloc(&vka->regular_vka, dest, type, size_bits, &cookie);
+    if (!error) {
+        node->frame = 0;
+        node->cookie = cookie;
+        *res = (uint32_t)node;
+        return  0;
+    }
+    free(node);
+    return error;
+}
+
+void proxy_vka_utspace_free(void *data, seL4_Word type, seL4_Word size_bits, uint32_t target) {
+    proxy_vka_t *vka = (proxy_vka_t*)data;
+    ut_node_t *node = (ut_node_t*)target;
+    if (!node->frame) {
+        vka_utspace_free(&vka->regular_vka, type, size_bits, node->cookie);
+    }
+    free(node);
+}
+
+uintptr_t proxy_vka_utspace_paddr(void *data, uint32_t target, seL4_Word type, seL4_Word size_bits) {
+    proxy_vka_t *vka = (proxy_vka_t*)data;
+    ut_node_t *node = (ut_node_t*)target;
+    if (node->frame) {
+        return node->cookie;
+    } else {
+        return proxy_vka_utspace_paddr(&vka->regular_vka, node->cookie, type, size_bits);
+    }
+}
+
+static void make_proxy_vka(vka_t *vka, allocman_t *allocman) {
+#ifdef VM_CONFIGURATION_EXTRA_RAM
+    proxy_vka_t *proxy = &proxy_vka;
+    allocman_make_vka(&proxy->regular_vka, allocman);
+#define GET_EXTRA_RAM_OUTPUT(num, iteration, data) \
+    if (strcmp(get_instance_name(),BOOST_PP_STRINGIZE(vm##iteration)) == 0) { \
+        proxy->last_paddr = BOOST_PP_TUPLE_ELEM(0, BOOST_PP_CAT(VM_CONFIGURATION_EXTRA_RAM_,iteration)()); \
+        proxy->have_mem = 1; \
+    } \
+    /**/
+    BOOST_PP_REPEAT(VM_NUM_GUESTS, GET_EXTRA_RAM_OUTPUT, _)
+    *vka = (vka_t) {
+        proxy,
+        proxy_vka_cspace_alloc,
+        proxy_vka_cspace_make_path,
+        proxy_vka_utspace_alloc,
+        proxy_vka_cspace_free,
+        proxy_vka_utspace_free,
+        proxy_vka_utspace_paddr
+    };
+#else
+    allocman_make_vka(vka, allocman);
+#endif
+}
 
 void pre_init(void) {
     int error;
@@ -69,7 +175,7 @@ void pre_init(void) {
     );
     assert(allocman);
     error = allocman_add_simple_untypeds(allocman, &camkes_simple);
-    allocman_make_vka(&vka, allocman);
+    make_proxy_vka(&vka, allocman);
 
     /* Initialize the vspace */
     error = sel4utils_bootstrap_vspace(&vspace, &vspace_data,
@@ -119,8 +225,12 @@ typedef struct host_pci_device {
     int irq;
 } host_pci_device_t;
 
-host_pci_device_t guest_passthrough_devices_vm0[] = {
-};
+#define GUEST_PASSTHROUGH_OUTPUT(num, iteration, data) \
+    host_pci_device_t guest_passthrough_devices_vm##iteration[] = { \
+        BOOST_PP_CAT(VM_GUEST_PASSTHROUGH_DEVICES_, iteration)() \
+    }; \
+    /**/
+BOOST_PP_REPEAT(VM_NUM_GUESTS, GUEST_PASSTHROUGH_OUTPUT, _)
 
 /* Wrappers for passing PCI config space calls to camkes */
 static uint8_t camkes_pci_read8(void *cookie, vmm_pci_address_t addr, unsigned int offset) {
@@ -207,15 +317,42 @@ ioport_desc_t ioport_handlers[] = {
 //    {X86_IO_PS2C_START,       X86_IO_PS2C_END,       NULL, NULL, "8042 PS/2 Controller"},
 //    {X86_IO_POS_START,        X86_IO_POS_END,        NULL, NULL, "POS Programmable Option Select (PS/2)"},
 
+#if 0
+    {0xC000,                  0xF000,                NULL, NULL, "PCI Bus IOPort Mapping Space"},
+    {0x1060,                  0x1070,                NULL, NULL, "IDE controller"},
+    {0x01F0,                  0x01F8,                NULL, NULL, "Primary IDE controller"},
+    {0x0170,                  0x0178,                NULL, NULL, "Secondary IDE controller"},
+    {0x3f6,                   0x03f7,                NULL, NULL, "Additional ATA register"},
+    {0x376,                   0x0377,                NULL, NULL, "Additional ATA register"},
+    {0x3b0,                   0x3df,                 NULL, NULL, "IBM VGA"},
+
+    {0x80,                    0x80,                  NULL, NULL, "DMA IOPort timer"},
+#endif
+
+#if 0
+    {0x164e,                  0x164f,                NULL, NULL, "Serial Configuration Registers"},
+#endif
 };
 
-ioport_desc_t ioport_handlers_vm0[] = {
-//    {0x1060,                  0x1070,                NULL, NULL, "IDE controller"},
-//    {0x01F0,                  0x01F8,                NULL, NULL, "Primary IDE controller"},
-//    {0x0170,                  0x0178,                NULL, NULL, "Secondary IDE controller"},
-//    {0x3f6,                   0x03f7,                NULL, NULL, "Additional ATA register"},
-//    {0x376,                   0x0377,                NULL, NULL, "Additional ATA register"},
-};
+#define GUEST_IOPORT_OUTPUT(r, data, elem) \
+    BOOST_PP_EXPAND( \
+        BOOST_PP_REM BOOST_PP_IF( \
+            BOOST_PP_TUPLE_ELEM(2, elem),\
+            ({BOOST_PP_TUPLE_ELEM(0,elem),BOOST_PP_TUPLE_ELEM(1,elem),NULL,NULL,BOOST_PP_TUPLE_ELEM(3,elem)},), \
+            () \
+        ) \
+    ) \
+    /**/
+#define GUEST_IOPORTS_OUTPUT(num, iteration, data) \
+    ioport_desc_t ioport_handlers_vm##iteration[] = { \
+        BOOST_PP_LIST_FOR_EACH(GUEST_IOPORT_OUTPUT, iteration, BOOST_PP_TUPLE_TO_LIST(CAT(VM_CONFIGURATION_IOPORT_, iteration)())) \
+    }; \
+    /**/
+#define SOME_OP(num) \
+    BOOST_PP_LIST_FOR_EACH(GUEST_IOPORTS_OUTPUT, num, BOOST_PP_TUPLE_TO_LIST(CAT(VM_CONFIGURATION_IOPORT_, num)())) \
+    /**/
+
+BOOST_PP_REPEAT(VM_NUM_GUESTS, GUEST_IOPORTS_OUTPUT, _)
 
 int pci_config_io_in(void *cookie, uint32_t port, int io_size, uint32_t *result) {
     uint32_t *conf_port_addr = (uint32_t*)cookie;
@@ -341,29 +478,21 @@ int main_continued(void) {
     /* Do per vm configuration */
     int num_guest_passthrough_devices;
     host_pci_device_t *guest_passthrough_devices;
-    if (strcmp(get_instance_name(),"vm0") == 0) {
-        num_guest_passthrough_devices = ARRAY_SIZE(guest_passthrough_devices_vm0);
-        guest_passthrough_devices = guest_passthrough_devices_vm0;
-        vm_ioports = ioport_handlers_vm0;
-        num_vm_ioports = ARRAY_SIZE(ioport_handlers_vm0);
-        kernel_image = CONFIG_APP_CAMKES_VM_MULTIBOOT_KERNEL1;
-        kernel_cmdline = CONFIG_APP_CAMKES_VM_MULTIBOOT_KERNEL1 " " CONFIG_APP_CAMKES_VM_KERNEL1_CMDLINE;
-#ifdef CONFIG_APP_CAMKES_VM_INITRD1_SUPPORT
-        have_initrd = 1;
-        initrd_image = CONFIG_APP_CAMKES_VM_INITRD1_IMG;
-#else
-        have_initrd = 0;
-#endif
-#ifdef CONFIG_APP_CAMKES_VM_COMPRESSED_KERNEL1
-        kernel_relocs = kernel_image;
-#else
-        kernel_relocs = CONFIG_APP_CAMKES_VM_MULTIBOOT_KERNEL1 ".relocs";
-#endif
-        iospace_domain = 0xf;
-    } else {
-        assert(!"Unknown instance");
-        return 1;
-    }
+#define PER_VM_CONFIG(num, iteration, data) \
+    if (strcmp(get_instance_name(), BOOST_PP_STRINGIZE(vm##iteration)) == 0) { \
+        num_guest_passthrough_devices = ARRAY_SIZE(guest_passthrough_devices_vm##iteration); \
+        guest_passthrough_devices = guest_passthrough_devices_vm##iteration; \
+        vm_ioports = ioport_handlers_vm##iteration; \
+        num_vm_ioports = ARRAY_SIZE(ioport_handlers_vm##iteration); \
+        kernel_image = BOOST_PP_CAT(VM_GUEST_IMAGE_, iteration)(); \
+        kernel_cmdline = BOOST_PP_CAT(VM_GUEST_IMAGE_, iteration)() " " BOOST_PP_CAT(VM_GUEST_CMDLINE_, iteration)(); \
+        initrd_image = BOOST_PP_CAT(VM_GUEST_ROOTFS_, iteration)(); \
+        have_initrd = !(strcmp(initrd_image, "") == 0); \
+        kernel_relocs = BOOST_PP_CAT(VM_GUEST_RELOCS_, iteration)(); \
+        iospace_domain = BOOST_PP_CAT(VM_GUEST_IOSPACE_DOMAIN_, iteration)(); \
+    } \
+    /**/
+    BOOST_PP_REPEAT(VM_NUM_GUESTS, PER_VM_CONFIG, _)
 
 #ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_IOMMU
     /* Do early device discovery and find any relevant PCI busses that

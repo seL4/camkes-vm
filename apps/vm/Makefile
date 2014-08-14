@@ -22,9 +22,13 @@ Init_OFILES := archive.o
 #sel4vspace sel4utils utils pci cpio sel4vmm sel4simple sel4simple-stable
 #LIBS = $(LIBS-y)
 
-# We want to run C99
-CFLAGS += -std=gnu99
+# Construct configuration name
+VM_CONFIG := $(patsubst "%",%, ${CONFIG_APP_CAMKES_VM_CONFIG})
 
+# We want to run C99
+CFLAGS += -std=gnu99 "-DCAMKES_VM_CONFIG=${VM_CONFIG}" "-DBOOST_PP_VARIADICS"
+
+Init_HFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/configurations/*.h))
 Init_LIBS := sel4camkes sel4vmm sel4utils cpio elf sel4vka sel4allocman sel4vspace pci cpio sel4simple sel4simple-stable sel4platsupport
 
 PICEmulator_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/PICEmulator/src/*.c))
@@ -33,49 +37,19 @@ RTCEmulator_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/comp
 SerialEmulator_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/SerialEmulator/src/*.c))
 
 SerialServer_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/SerialServer/src/*.c))
+SerialServer_HFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/configurations/*.h))
 PCIConfigIO_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/PCIConfigIO/src/*.c))
 
 RTC_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/RTC/src/*.c))
 RTC_LIBS := platsupport
 
 TimeServer_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/TimeServer/src/*.c))
+TimeServer_HFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/configurations/*.h))
 TimeServer_LIBS := platsupport
+
+CAMKES_FLAGS += --cpp-flag="-DBOOST_PP_VARIADICS" --cpp-flag=-I${SOURCE_DIR} --cpp-flag="-DCAMKES_VM_CONFIG=${VM_CONFIG}" --cache-dir=${PWD}/build/camkes_cache
 
 include ${PWD}/tools/camkes/camkes.mk
 
-KERNEL1_FILENAME=$(patsubst "%",%,$(CONFIG_APP_CAMKES_VM_MULTIBOOT_KERNEL1))
-
-ARCHIVE1_DEPS := ${STAGE_DIR}/${KERNEL1_FILENAME}
-
-ifneq (${CONFIG_APP_CAMKES_VM_COMPRESSED_KERNEL1},y)
-${STAGE_DIR}/${KERNEL1_FILENAME}: $(SOURCE_DIR)/linux/${KERNEL1_FILENAME}
-	@echo "[CP] $@"
-	$(Q)mkdir -p $(@D)
-	@cp $< $@
-
-${STAGE_DIR}/${KERNEL1_FILENAME}.relocs: ${STAGE_DIR}/${KERNEL1_FILENAME}
-	@echo "[RELOCS] $@"
-	@${PWD}/tools/elf/relocs $< > \
-		${STAGE_DIR}/${KERNEL1_FILENAME}.relocs
-ARCHIVE1_DEPS += ${STAGE_DIR}/${KERNEL1_FILENAME}.relocs
-else
-${STAGE_DIR}/${KERNEL1_FILENAME}: $(SOURCE_DIR)/linux/${KERNEL1_FILENAME}
-	@echo "[EXTRACT-VMLINUX] $@"
-	$(Q)mkdir -p $(@D)
-	${PWD}/tools/elf/extract-vmlinux $< > $@
-endif # CONFIG_APP_CAMKES_VM_COMPRESSED_KERNEL
-
-ifeq (${CONFIG_APP_CAMKES_VM_INITRD1_SUPPORT},y)
-INITRD1_FILENAME=$(patsubst "%",%,$(CONFIG_APP_CAMKES_VM_INITRD1_IMG))
-${STAGE_DIR}/${INITRD1_FILENAME}: ${SOURCE_DIR}/linux/${INITRD1_FILENAME}
-	@echo "[CP] $@"
-	@cp $< $@
-ARCHIVE1_DEPS += ${STAGE_DIR}/${INITRD1_FILENAME}
-endif
-
-${BUILD_DIR}/src/vm0/static/archive.o: ${ARCHIVE1_DEPS}
-	$(Q)mkdir -p $(dir $@)
-	@echo "[CPIO] $@"
-	$(Q)${COMMON_PATH}/files_to_obj.sh $@ _cpio_archive $^
-	@echo "[CPIO] done."	
-
+# Include the per configuration Makefile
+include ${SOURCE_DIR}/configurations/${VM_CONFIG}.makefile

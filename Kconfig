@@ -19,6 +19,7 @@ menu "Kernel"
 endmenu
 
 menu "Libraries"
+    source "libs/libboost/Kconfig"
     source "libs/libmuslc/Kconfig"
     source "libs/libsel4/Kconfig"
     source "libs/libsel4muslcsys/Kconfig"

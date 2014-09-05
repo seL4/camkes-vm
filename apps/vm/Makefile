@@ -41,7 +41,7 @@ RTC_LIBS := platsupport
 TimeServer_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/TimeServer/src/*.c))
 TimeServer_LIBS := platsupport
 
-include ${COMMON_PATH}/camkes.mk
+include ${PWD}/tools/camkes/camkes.mk
 
 KERNEL1_FILENAME=$(patsubst "%",%,$(CONFIG_APP_CAMKES_VM_MULTIBOOT_KERNEL1))
 

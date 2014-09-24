@@ -100,7 +100,14 @@ assembly {
     configuration {
 
         hpet.hpet_attributes = "0xFED00000:0x1000";
+#ifdef CONFIG_APP_CAMKES_VM_HPET_MSI
         hpet.irq_attributes = "24,0,0";
+#else
+#define QUOTE "
+#define _MAKE_IRQ_ATTRIB(x) QUOTE x,0,0 QUOTE ;
+#define MAKE_IRQ_ATTRIB(x) _MAKE_IRQ_ATTRIB(x)
+        hpet.irq_attributes = MAKE_IRQ_ATTRIB(HPET_IRQ())
+#endif
 
         /* Serial port definitions */
         hw_serial.serial_attributes="0x3f8:3ff";

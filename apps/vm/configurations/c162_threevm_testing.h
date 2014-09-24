@@ -159,4 +159,6 @@
 #define VM_GUEST_IOSPACE_DOMAIN_1() 0x10
 #define VM_GUEST_IOSPACE_DOMAIN_2() 0x11
 
+#define HPET_IRQ() 20
+
 #endif

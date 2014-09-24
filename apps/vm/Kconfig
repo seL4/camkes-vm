@@ -48,3 +48,8 @@ config APP_CAMKES_VM_CONFIG
         Specify which of the configurations (in apps/vm/configurations) to use
         You can add additional configurations by adding a new .h file and updating
         apps/vm/configurations/vm.h accordingly    
+
+config APP_CAMKES_VM_HPET_MSI
+    bool "Use MSI delivery for HPET (requires hardware support)"
+    depends on APP_CAMKES_VM
+    default y

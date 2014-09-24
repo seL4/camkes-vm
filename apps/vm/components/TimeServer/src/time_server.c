@@ -21,7 +21,11 @@
 #include "vm.h"
 #include <boost/preprocessor/repeat.hpp>
 
+#ifdef CONFIG_APP_CAMKES_VM_HPET_MSI
 #define TIMER_IRQ (MSI_MIN + IRQ_OFFSET) //24 + IRQ_OFFSET
+#else
+#define TIMER_IRQ HPET_IRQ()
+#endif
 
 static pstimer_t *timer = NULL;
 
@@ -204,7 +208,13 @@ void pre_init() {
         client_state[i].timer_type = TIMER_TYPE_OFF;
         sorted_clients[i] = &client_state[i];
     }
-    hpet_config_t config = (hpet_config_t){.vaddr = (void*)hpet, .irq = TIMER_IRQ};
+    int ioapic;
+#ifdef CONFIG_APP_CAMKES_VM_HPET_MSI
+    ioapic = 0;
+#else
+    ioapic = 1;
+#endif
+    hpet_config_t config = (hpet_config_t){.vaddr = (void*)hpet, .irq = TIMER_IRQ, .ioapic_delivery = ioapic};
     timer = hpet_get_timer(&config);
     assert(timer);
 //    tsc_frequency = tsc_calculate_frequency(timer);

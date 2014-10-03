@@ -39,11 +39,13 @@ menu "Libraries"
     source "libs/libpci/Kconfig"
     source "libs/libsel4vmm/Kconfig"
     source "libs/libsel4allocman/Kconfig"
+    source "libs/libsel4bench/Kconfig"
 endmenu
 
 menu "Applications"
     source "apps/capdl-loader-experimental/Kconfig"
     source "apps/vm/Kconfig"
+    source "apps/cxx/Kconfig"
 endmenu
 
 source "tools/camkes/Kconfig"

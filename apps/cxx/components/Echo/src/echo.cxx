@@ -21,7 +21,7 @@ static char string_buf[100];
 static char *echo_string(const char *s) {
     std::string str(s);
     std::transform(str.begin(), str.end(), str.begin(), ::toupper);
-//    std::copy(str.begin(), str.end, string_buf);
+    std::copy(str.begin(), str.end(), string_buf);
     return string_buf;
 }
 

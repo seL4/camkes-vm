@@ -590,6 +590,10 @@ int main_continued(void) {
         }
     }
     for (i = 0; i < num_vm_ioports; i++) {
+        /* These IOPort additions are redundant as they seem to all be for PCI bars that
+         * will already get added by vmm_pci_helper_map_bars. Just going to leave this
+         * commented out for now */
+#if 0
         if (vm_ioports[i].port_in) {
             error = vmm_io_port_add_handler(&vmm.io_port, vm_ioports[i].start_port, vm_ioports[i].end_port, NULL, vm_ioports[i].port_in, vm_ioports[i].port_out, vm_ioports[i].desc);
             assert(!error);
@@ -597,6 +601,7 @@ int main_continued(void) {
             error = vmm_io_port_add_passthrough(&vmm.io_port, vm_ioports[i].start_port, vm_ioports[i].end_port, vm_ioports[i].desc);
             assert(!error);
         }
+#endif
     }
     /* config start and end encomposes both addr and data ports */
     error = vmm_io_port_add_handler(&vmm.io_port, X86_IO_PCI_CONFIG_START, X86_IO_PCI_CONFIG_END, &vmm.pci, vmm_pci_io_port_in, vmm_pci_io_port_out, "PCI Configuration Space");

@@ -20,6 +20,7 @@ import "interfaces/InterruptGenerator.idl4";
 import "interfaces/PCIConfig.idl4";
 import "interfaces/Timer.idl4";
 import "interfaces/RTC.idl4";
+import "interfaces/Ethdriver.idl4";
 
 import "IOAPIC.camkes";
 import "PIC.camkes";
@@ -36,11 +37,18 @@ import "components/RTC/RTC.camkes";
 import "components/RTCEmulator/RTCEmulator.camkes";
 import "components/SerialEmulator/SerialEmulator.camkes";
 import "components/SerialServer/SerialServer.camkes";
+import "components/Ethdriver/Ethdriver.camkes";
 
 component PieceOfHardware {
     hardware;
     provides IOPort pci_config_address;
     provides IOPort pci_config_data;
+};
+
+component HWEthDriver {
+    hardware;
+    emits IRQ irq;
+    dataport EthDriverMMIO mmio;
 };
 
 #define REPEAT_WRAPPER(num, iteration, data) data(iteration)
@@ -64,6 +72,9 @@ assembly {
         component Serial hw_serial;
         /* Hack to get hardware definitions sensibly in camkes for the cmoment */
         component PieceOfHardware poh;
+
+        /* Components defined by the platform specification */
+        PLAT_COMPONENT_DEF()
 
         /* These components don't do much output, but just in case they can pretend to
          * be vm0 */

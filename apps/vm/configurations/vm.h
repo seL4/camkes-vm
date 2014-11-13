@@ -39,6 +39,11 @@
 #define VTIMER_I(t, n) CAT(timer,BOOST_PP_ADD(VTIMER_FIRST,BOOST_PP_ADD(t, BOOST_PP_MUL(VTIMER_NUM, n))))
 #define VM_NUM_TIMERS BOOST_PP_ADD(VTIMER_FIRST, BOOST_PP_MUL(VTIMER_NUM, VM_NUM_GUESTS))
 
+/* The int manager async endpoint sets both the high and low bits of the badge
+ * following standard protocal of high bit indicating some async message
+ * low bit indicating which async event */
+#define INT_MAN_BADGE 134217729
+
 /* VM and per VM componenents */
 #define VM_COMP_DEF(num) \
     component Init vm##num; \
@@ -133,6 +138,7 @@
 #define VM_IOPORT(num) BOOST_PP_LIST_FOR_EACH(IOPORT_OUTPUT, num, BOOST_PP_TUPLE_TO_LIST(CAT(VM_CONFIGURATION_IOPORT_, num)()))
 
 #define VM_CONFIG_DEF(num) \
+    IntMan##num.haveint_attributes = BOOST_PP_STRINGIZE(INT_MAN_BADGE); \
     vm##num.cnode_size_bits = 21; \
     vm##num.simple = true; \
     VM_MAYBE_ZONE_DMA(num) \

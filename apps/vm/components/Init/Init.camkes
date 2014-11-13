@@ -10,10 +10,12 @@
 
 #include <autoconf.h>
 
+#include <configurations/vm.h>
 import "../../interfaces/VirtIOPort.idl4";
 import "../../interfaces/InterruptGenerator.idl4";
 import "../../interfaces/RTC.idl4";
 import "../../interfaces/PutChar.idl4";
+import "../../interfaces/Ethdriver.idl4";
 
 component Init {
     control;
@@ -27,4 +29,6 @@ component Init {
     uses PCIConfig pci_config;
     uses RTC rtc;
     consumes HaveInterrupt intready;
+
+    VM_INIT_COMPONENT()
 }

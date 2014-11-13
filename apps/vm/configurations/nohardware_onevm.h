@@ -46,6 +46,30 @@
 
 #define VM_GUEST_IOSPACE_DOMAIN_0() 0x0f
 
+#define VM_INIT_COMPONENT() \
+    /**/
+
+#define VM_ASYNC_DEVICE_BADGES_0() \
+    /**/
+
+#define VM_ASYNC_DEVICE_BADGES_1() \
+    /**/
+
+#define VM_ASYNC_DEVICE_BADGES_2() \
+    /**/
+
+#define VM_DEVICE_INIT_FN_0() \
+    /**/
+
+#define VM_DEVICE_INIT_FN_1() \
+    /**/
+
+#define VM_DEVICE_INIT_FN_2() \
+    /**/
+
+#define PLAT_COMPONENT_DEF() \
+    /**/
+
 #define HPET_IRQ() 20
 
 #endif

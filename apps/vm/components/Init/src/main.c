@@ -20,9 +20,9 @@
 #include <allocman/bootstrap.h>
 #include <allocman/vka.h>
 #include <simple/simple_helpers.h>
+#include <vka/capops.h>
 
 #include <Init.h>
-#include <camkes/dataport.h>
 
 #include "vmm/vmm.h"
 #include "vmm/driver/pci_helper.h"
@@ -32,8 +32,20 @@
 #include "vmm/platform/guest_vspace.h"
 
 #include "vm.h"
+#include "virtio_net.h"
+
+#define BRK_VIRTUAL_SIZE 400000000
+
+reservation_t muslc_brk_reservation;
+void *muslc_brk_reservation_start;
+vspace_t  *muslc_this_vspace;
+static sel4utils_res_t muslc_brk_reservation_memory;
 
 seL4_CPtr intready_aep();
+
+static seL4_CPtr get_async_event_aep() {
+    return intready_aep();
+}
 
 void platsupport_serial_setup_simple(vspace_t *vspace, simple_t *simple, vka_t *vka) {
     printf("Ignoring call to %s\n", __FUNCTION__);
@@ -55,6 +67,7 @@ static vmm_t vmm;
 typedef struct proxy_vka {
     uintptr_t last_paddr;
     int have_mem;
+    allocman_t *allocman;
     vka_t regular_vka;
 } proxy_vka_t;
 
@@ -84,7 +97,7 @@ int proxy_vka_utspace_alloc(void *data, const cspacepath_t *dest, seL4_Word type
     proxy_vka_t *vka = (proxy_vka_t*)data;
     int error;
     uint32_t cookie;
-    ut_node_t *node = malloc(sizeof(*node));
+    ut_node_t *node = allocman_mspace_alloc(vka->allocman, sizeof(*node), &error);
     if (!node) {
         return -1;
     }
@@ -116,7 +129,7 @@ void proxy_vka_utspace_free(void *data, seL4_Word type, seL4_Word size_bits, uin
     if (!node->frame) {
         vka_utspace_free(&vka->regular_vka, type, size_bits, node->cookie);
     }
-    free(node);
+    allocman_mspace_free(vka->allocman, node, sizeof(*node));
 }
 
 uintptr_t proxy_vka_utspace_paddr(void *data, uint32_t target, seL4_Word type, seL4_Word size_bits) {
@@ -132,6 +145,7 @@ uintptr_t proxy_vka_utspace_paddr(void *data, uint32_t target, seL4_Word type, s
 static void make_proxy_vka(vka_t *vka, allocman_t *allocman) {
 #ifdef VM_CONFIGURATION_EXTRA_RAM
     proxy_vka_t *proxy = &proxy_vka;
+    proxy->allocman = allocman;
     allocman_make_vka(&proxy->regular_vka, allocman);
 #define GET_EXTRA_RAM_OUTPUT(num, iteration, data) \
     if (strcmp(get_instance_name(),BOOST_PP_STRINGIZE(vm##iteration)) == 0) { \
@@ -181,6 +195,10 @@ void pre_init(void) {
     error = sel4utils_bootstrap_vspace(&vspace, &vspace_data,
             simple_get_init_cap(&camkes_simple, seL4_CapInitThreadPD), &vka, NULL, NULL, existing_frames);
     assert(!error);
+
+    sel4utils_reserve_range_no_alloc(&vspace, &muslc_brk_reservation_memory, BRK_VIRTUAL_SIZE, seL4_AllRights, 1, &muslc_brk_reservation_start);
+    muslc_this_vspace = &vspace;
+    muslc_brk_reservation = (reservation_t){.res = &muslc_brk_reservation_memory};
 }
 
 typedef struct memory_range {
@@ -231,6 +249,56 @@ typedef struct host_pci_device {
     }; \
     /**/
 BOOST_PP_REPEAT(VM_NUM_GUESTS, GUEST_PASSTHROUGH_OUTPUT, _)
+
+/* this struct holds a bunch of compile time data for dealing with extra
+ * async notifications for native devices. everything here is known at
+ * build time but it is convenient to be able to inspect it programatically
+ * instead of through insane macros
+ */
+typedef struct device_notify {
+    /* which extra bit to badge */
+    uint32_t badge_bit;
+    /* the function (as described by the user in the configuration) to call
+     * when the message has been received. */
+    void (*func)();
+    /* record of the name of the proxy function. this is what is actually
+     * registered to camkes async notification */
+    void (*proxy)();
+    /* this is a reference to the camkes 'x_reg_callback' function, where
+     * x is the async interface name. It is more convenient to have a reference
+     * here than try and generate the full name where need to invoke it */
+    int (*reg)(void (*)(void*),void*);
+    /* pointer to cptr. this allows us to point at the final capability we
+     * generate. doing this via a pointer is convenient for the init code */
+    seL4_CPtr *cap;
+} device_notify_t;
+#define PROXY_CAP_NAME(iter, badge) \
+    CAT(CAT(CAT(proxy_cap_,iter),_), badge) \
+    /**/
+#define ASYNC_PROXY(r, data, elem) \
+    static seL4_CPtr PROXY_CAP_NAME(data, BOOST_PP_TUPLE_ELEM(0, elem)); \
+    void CAT(proxy_notify_,BOOST_PP_TUPLE_ELEM(0, elem))() { \
+        CAT(BOOST_PP_TUPLE_ELEM(2, elem),_reg_callback)(CAT(proxy_notify_,BOOST_PP_TUPLE_ELEM(0, elem)), NULL); \
+        seL4_Notify(PROXY_CAP_NAME(data, BOOST_PP_TUPLE_ELEM(0, elem)), 0); \
+    } \
+    /**/
+#define ASYNC_DEVICE_MEMBER(r, data, elem) \
+    {BOOST_PP_TUPLE_ELEM(0, elem), BOOST_PP_TUPLE_ELEM(1, elem), CAT(proxy_notify_,BOOST_PP_TUPLE_ELEM(0, elem)), CAT(BOOST_PP_TUPLE_ELEM(2, elem),_reg_callback), &PROXY_CAP_NAME(data, BOOST_PP_TUPLE_ELEM(0, elem))}, \
+    /**/
+#define ASYNC_DEVICE_OUTPUT(num, iteration, data) \
+    BOOST_PP_LIST_FOR_EACH(ASYNC_PROXY, iteration, BOOST_PP_TUPLE_TO_LIST(CAT(VM_ASYNC_DEVICE_BADGES_, iteration)())) \
+    device_notify_t device_notify_vm##iteration[] = { \
+        BOOST_PP_LIST_FOR_EACH(ASYNC_DEVICE_MEMBER, iteration, BOOST_PP_TUPLE_TO_LIST(CAT(VM_ASYNC_DEVICE_BADGES_, iteration)())) \
+    }; \
+    /**/
+BOOST_PP_REPEAT(VM_NUM_GUESTS, ASYNC_DEVICE_OUTPUT, _)
+
+#define DEVICE_INIT_OUTPUT(num, iteration, data) \
+    static void(*device_init_fn_vm##iteration[])(vmm_t *) = { \
+        CAT(VM_DEVICE_INIT_FN_, iteration)() \
+    }; \
+    /**/
+BOOST_PP_REPEAT(VM_NUM_GUESTS, DEVICE_INIT_OUTPUT, _)
 
 /* Wrappers for passing PCI config space calls to camkes */
 static uint8_t camkes_pci_read8(void *cookie, vmm_pci_address_t addr, unsigned int offset) {
@@ -439,6 +507,43 @@ ps_io_port_ops_t make_pci_io_ops() {
                                };
 }
 
+static int device_notify_list_len = 0;
+static device_notify_t *device_notify_list = NULL;
+
+static int handle_async_event(seL4_Word badge) {
+    int ret = 1;
+    if (badge & BIT(27)) {
+        if ( (badge & INT_MAN_BADGE) == INT_MAN_BADGE) {
+            ret = 0;
+        }
+        for (int i = 0; i < device_notify_list_len; i++) {
+            uint32_t device_badge = BIT(27) | BIT(device_notify_list[i].badge_bit);
+            if ( (badge & device_badge) == device_badge) {
+                assert(device_notify_list[i].func);
+                device_notify_list[i].func();
+            }
+        }
+    }
+    /* return 0 to indicate an interrupt occured */
+    return ret;
+}
+
+static void make_async_aep() {
+    cspacepath_t async_path;
+    int error;
+    seL4_CPtr async_event_aep = intready_aep();
+    vka_cspace_make_path(&vka, async_event_aep, &async_path);
+    for (int i = 0; i < device_notify_list_len; i++) {
+        cspacepath_t badge_path;
+        error = vka_cspace_alloc_path(&vka, &badge_path);
+        assert(!error);
+        error = vka_cnode_mint(&badge_path, &async_path, seL4_AllRights, seL4_CapData_Badge_new(BIT(27) | BIT(device_notify_list[i].badge_bit)));
+        assert(!error);
+        *device_notify_list[i].cap = badge_path.capPtr;
+        device_notify_list[i].reg(device_notify_list[i].proxy, NULL);
+    }
+}
+
 int main_continued(void) {
     int error;
     int i;
@@ -451,6 +556,8 @@ int main_continued(void) {
     int iospace_domain;
     ioport_desc_t *vm_ioports;
     int num_vm_ioports;
+    void (**device_init_list)(vmm_t*) = NULL;
+    int device_init_list_len = 0;
 
     rtc_time_date_t time_date = rtc_time_date();
     printf("Starting VM %s at: %04d:%02d:%02d %02d:%02d:%02d\n", get_instance_name(), time_date.year, time_date.month, time_date.day, time_date.hour, time_date.minute, time_date.second);
@@ -462,7 +569,8 @@ int main_continued(void) {
     platform_callbacks_t callbacks = (platform_callbacks_t) {
         .get_interrupt = IntManager_get_interrupt,
         .has_interrupt = IntManager_has_interrupt,
-        .get_int_pending_aep = intready_aep
+        .do_async = handle_async_event,
+        .get_async_event_aep = get_async_event_aep
     };
     error = vmm_init(&vmm, camkes_simple, vka, vspace, callbacks);
     assert(!error);
@@ -490,9 +598,15 @@ int main_continued(void) {
         have_initrd = !(strcmp(initrd_image, "") == 0); \
         kernel_relocs = BOOST_PP_CAT(VM_GUEST_RELOCS_, iteration)(); \
         iospace_domain = BOOST_PP_CAT(VM_GUEST_IOSPACE_DOMAIN_, iteration)(); \
+        device_notify_list = BOOST_PP_CAT(device_notify_vm, iteration); \
+        device_notify_list_len = ARRAY_SIZE(BOOST_PP_CAT(device_notify_vm, iteration)); \
+        device_init_list = BOOST_PP_CAT(device_init_fn_vm, iteration); \
+        device_init_list_len = ARRAY_SIZE(BOOST_PP_CAT(device_init_fn_vm, iteration)); \
     } \
     /**/
     BOOST_PP_REPEAT(VM_NUM_GUESTS, PER_VM_CONFIG, _)
+
+    make_async_aep();
 
 #ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_IOMMU
     /* Do early device discovery and find any relevant PCI busses that
@@ -577,6 +691,10 @@ int main_continued(void) {
             error = vmm_pci_add_entry(&vmm.pci, entry, NULL);
             assert(!error);
         }
+    }
+
+    for (i = 0; i < device_init_list_len; i++) {
+        device_init_list[i](&vmm);
     }
 
     /* Add any IO ports */

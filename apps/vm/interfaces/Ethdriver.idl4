@@ -1,0 +1,17 @@
+/*
+ * Copyright 2014, NICTA
+ *
+ * This software may be distributed and modified according to the terms of
+ * the GNU General Public License version 2. Note that NO WARRANTY is provided.
+ * See "LICENSE_GPLv2.txt" for details.
+ *
+ * @TAG(NICTA_GPL)
+ */
+
+procedure Ethdriver {
+    void tx(in int len);
+    int rx(out int len);
+    void mac(out uint8_t b1, out uint8_t b2, out uint8_t b3, out uint8_t b4, out uint8_t b5, out uint8_t b6);
+};
+
+    

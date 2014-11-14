@@ -104,7 +104,7 @@
     /**/
 
 #ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE
-#define VM_MAYBE_ZONE_DMA(num) vm##num.mmio = "0x8000:0x97000";
+#define VM_MAYBE_ZONE_DMA(num) vm##num.mmio = "0x8000:0x97000:12";
 #else
 #define VM_MAYBE_ZONE_DMA(num)
 #endif
@@ -112,7 +112,7 @@
 /* If the platform configuration defined extra ram that we
  * generate the specifics of that generation for them */
 #ifdef VM_CONFIGURATION_EXTRA_RAM
-#define EXTRA_RAM_OUTPUT(a,b) BOOST_PP_STRINGIZE(a:b)
+#define EXTRA_RAM_OUTPUT(a,b) BOOST_PP_STRINGIZE(a:b:12)
 #define VM_MAYBE_EXTRA_RAM(num) vm##num.mmio = BOOST_PP_EXPAND(EXTRA_RAM_OUTPUT CAT(VM_CONFIGURATION_EXTRA_RAM_,num)()) ;
 #else
 #define VM_MAYBE_EXTRA_RAM(num)

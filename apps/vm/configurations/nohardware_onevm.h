@@ -28,7 +28,7 @@
     /**/
 
 #define PLAT_CONFIG_DEF() \
-    vm0.untyped24_pool = 16; \
+    vm0.simple_untyped24_pool = 16; \
     /**/
 
 #define VM_GUEST_PASSTHROUGH_DEVICES_0() \

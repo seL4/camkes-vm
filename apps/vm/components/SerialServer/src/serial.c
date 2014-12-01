@@ -412,8 +412,8 @@ void pre_init(void) {
     set_putchar(serial_putchar);
     serial_irq_reg_callback(serial_irq, 0);
     serial_unlock();
-    /* Start regular heartbeat of 50ms */
-    timeout_periodic(50000000);
+    /* Start regular heartbeat of 500ms */
+    timeout_periodic(500000000);
     timeout_complete_reg_callback(timer_callback, 0);
 }
 

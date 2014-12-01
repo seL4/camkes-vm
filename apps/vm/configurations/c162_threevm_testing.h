@@ -33,9 +33,14 @@
     /* Give ethernet driver same output as its vm */ \
     connection seL4RPCCall eth_putchar(from ethdriver0.putchar, to serial.vm1); \
     /* Connect ethernet driver to vm 1 */ \
-    connection seL4SharedData eth_packet1(from ethdriver0.packet, to vm1.packet); \
-    connection seL4RPCCall eth_driver1(from vm1.ethdriver, to ethdriver0.client); \
-    connection seL4Asynch eth_rx_ready1(from ethdriver0.rx_ready, to vm1.eth_rx_ready); \
+    connection seL4SharedData eth_packet1(from ethdriver0.packet0, to vm1.packet); \
+    connection seL4RPCCall eth_driver1(from vm1.ethdriver, to ethdriver0.client0); \
+    connection seL4Asynch eth_rx_ready1(from ethdriver0.rx_ready0, to vm1.eth_rx_ready); \
+    /* Connect ethernet driver to echo */ \
+    connection seL4RPCCall echo_putchar(from echo.putchar, to serial.vm1); \
+    connection seL4SharedData eth_packet2(from ethdriver0.packet1, to echo.packet); \
+    connection seL4RPCCall eth_driver2(from echo.ethdriver, to ethdriver0.client1); \
+    connection seL4Asynch eth_rx_ready2(from ethdriver0.rx_ready1, to echo.eth_rx_ready); \
     /* Define hardware resources for ethdriver0 */ \
     connection seL4HardwareMMIO ethdrivermmio1(from ethdriver0.EthDriver, to HWEthDriver.mmio); \
     connection seL4IOAPICHardwareInterrupt hwethirq(from HWEthDriver.irq, to ethdriver0.irq); \
@@ -199,12 +204,20 @@
 #define PLAT_COMPONENT_DEF() \
     component Ethdriver ethdriver0; \
     component HWEthDriver HWEthDriver; \
+    component Echo echo; \
     /**/
 
 #define VM_NUM_ETHDRIVERS 1
 
 #define VM_ETHDRIVER_IOSPACE_0() 0x12
 #define VM_ETHDRIVER_PCI_BDF_0() ( (1 << 8) | (0 << 3) | 0)
+
+#define VM_ETHDRIVER_NUM_CLIENTS 2
+#define VM_ETHDRIVER_CLIENTS_0() ( \
+    (06, 00, 00, 11, 12, 13), \
+    (06, 00, 00, 12, 13, 14) \
+    ) \
+    /**/
 
 #define HPET_IRQ() 20
 

@@ -70,6 +70,8 @@
 #define PLAT_COMPONENT_DEF() \
     /**/
 
+#define VM_ETHDRIVER_NUM_CLIENTS 0
+
 #define HPET_IRQ() 20
 
 #endif

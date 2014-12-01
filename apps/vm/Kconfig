@@ -53,3 +53,14 @@ config APP_CAMKES_VM_HPET_MSI
     bool "Use MSI delivery for HPET (requires hardware support)"
     depends on APP_CAMKES_VM
     default y
+
+config APP_CAMKES_VM_ECHO_STATIC_IP
+    prompt "Echo server IP Address"
+    int
+    depends on APP_CAMKES_VM
+    default 3607170314
+    help
+        If using a configuration with the Echo component this is the IP address
+        for which it will respond to ARP requests. This is configured here by
+        the 32bit value that is put into IP headers, so the default of
+        3607170314 represents 10.13.1.215

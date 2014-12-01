@@ -38,6 +38,7 @@ import "components/RTCEmulator/RTCEmulator.camkes";
 import "components/SerialEmulator/SerialEmulator.camkes";
 import "components/SerialServer/SerialServer.camkes";
 import "components/Ethdriver/Ethdriver.camkes";
+import "components/Echo/Echo.camkes";
 
 component PieceOfHardware {
     hardware;

@@ -24,6 +24,7 @@
 #include <ethdrivers/raw.h>
 #include <sel4utils/iommu_dma.h>
 #include <sel4platsupport/arch/io.h>
+#include <boost/preprocessor/tuple.hpp>
 
 #define RX_BUFS 256
 
@@ -48,24 +49,73 @@ static struct eth_driver eth_driver;
 
 void camkes_make_simple(simple_t *simple);
 
-/* this flag indicates whether we or not we need to notify the client
- * if new data is received. We only notify once the client observes
- * the last packet */
-static int should_notify_client = 1;
-
 typedef struct pending_rx {
     void *buf;
     int len;
+    int client;
 } pending_rx_t;
 
-static int pending_client_rx_head = 0;
-static int pending_client_rx_tail = 0;
-static pending_rx_t pending_client_rx[CLIENT_RX_BUFS];
+typedef struct eth_buf {
+    void *buf;
+    int len;
+    int client;
+} tx_buf_t;
 
-static int num_client_tx_bufs = 0;
-static void *client_tx_bufs[CLIENT_TX_BUFS];
+typedef struct client {
+    /* this flag indicates whether we or not we need to notify the client
+     * if new data is received. We only notify once the client observes
+     * the last packet */
+    int should_notify;
 
-static int num_rx_bufs = 0;
+    int rx_head;
+    int rx_tail;
+    pending_rx_t rx[CLIENT_RX_BUFS];
+
+    int num_tx;
+    tx_buf_t tx_mem[CLIENT_TX_BUFS];
+    tx_buf_t *tx[CLIENT_TX_BUFS];
+
+    /* mac address for this client */
+    uint8_t mac[6];
+    /* notification function */
+    void (*rx_ready)(void);
+} client_t;
+
+#define ETH_CLIENT(r, data, i, elem) \
+    { \
+        .should_notify = 1, \
+        .rx_head = 0, \
+        .rx_tail = 0, \
+        .num_tx = 0, \
+        .mac = {BOOST_PP_TUPLE_ENUM(elem)}, \
+        .rx_ready = BOOST_PP_CAT(rx_ready##i,_emit), \
+    }, \
+    /**/
+
+
+
+#define ETH_CLIENT_OUTPUT(num, iteration, data) \
+    static client_t BOOST_PP_CAT(clients_,iteration)[] = { \
+        BOOST_PP_LIST_FOR_EACH_I(ETH_CLIENT, iteration, BOOST_PP_TUPLE_TO_LIST(BOOST_PP_CAT(VM_ETHDRIVER_CLIENTS_, iteration)())) \
+    }; \
+    /**/
+
+BOOST_PP_REPEAT(VM_NUM_ETHDRIVERS, ETH_CLIENT_OUTPUT, _)
+
+static int num_clients = 0;
+static client_t *clients = NULL;
+/*static client_t clients[1] = {
+    {
+        .should_notify = 1,
+        .rx_head = 0,
+        .rx_tail = 0,
+        .num_tx = 0,
+        .mac = {0, 0, 0, 0, 0, 0},
+        .rx_ready = rx_ready_emit,
+    },
+};*/
+
+static int num_rx_bufs;
 static void *rx_bufs[RX_BUFS];
 
 static int done_init = 0;
@@ -103,8 +153,10 @@ static void init_system(void) {
 }
 
 static void eth_tx_complete(void *iface, void *cookie) {
-    client_tx_bufs[num_client_tx_bufs] = cookie;
-    num_client_tx_bufs++;
+    tx_buf_t *buf = (tx_buf_t*)cookie;
+    client_t *client = &clients[buf->client];
+    client->tx[client->num_tx] = buf;
+    client->num_tx++;
 }
 
 static uintptr_t eth_allocate_rx_buf(void *iface, size_t buf_size, void **cookie) {
@@ -120,21 +172,74 @@ static uintptr_t eth_allocate_rx_buf(void *iface, size_t buf_size, void **cookie
     return (uintptr_t)buf;
 }
 
+static client_t *detect_client(void *buf, unsigned int len) {
+    if (len < 6) {
+        return NULL;
+    }
+    for (int i = 0; i < num_clients; i++) {
+        if (memcmp(clients[i].mac, buf, 6) == 0) {
+            return &clients[i];
+        }
+    }
+    return NULL;
+}
+
+static int is_broadcast(void *buf, unsigned int len) {
+    static uint8_t broadcast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+    if (len < 6) {
+        return 0;
+    }
+    if (memcmp(buf, broadcast, 6) == 0) {
+        return 1;
+    }
+    return 0;
+}
+
+static void give_client_buf(client_t *client, void *cookie, unsigned int len) {
+    client->rx[client->rx_head] = (pending_rx_t){cookie,len, 0};
+    client->rx_head = (client->rx_head + 1) % CLIENT_RX_BUFS;
+    if (client->should_notify) {
+        client->rx_ready();
+        client->should_notify = 0;
+    }
+}
+
 static void eth_rx_complete(void *iface, unsigned int num_bufs, void **cookies, unsigned int *lens) {
     /* insert filtering here. currently everything just goes to one client */
-    if (num_bufs != 1 || (pending_client_rx_head + 1) % CLIENT_RX_BUFS == pending_client_rx_tail) {
-        /* abort and put all the bufs back */
-        for (int i = 0; i < num_bufs; i++) {
-            rx_bufs[num_rx_bufs] = cookies[i];
-            num_rx_bufs++;
-        }
-        return;
+    if (num_bufs != 1) {
+        goto error;
     }
-    pending_client_rx[pending_client_rx_head] = (pending_rx_t){cookies[0],lens[0]};
-    pending_client_rx_head = (pending_client_rx_head + 1) % CLIENT_RX_BUFS;
-    if (should_notify_client) {
-        rx_ready_emit();
-        should_notify_client = 0;
+    client_t *client = detect_client(cookies[0], lens[0]);
+    if (!client) {
+        if (is_broadcast(cookies[0], lens[0])) {
+            /* in a broadcast duplicate this buffer for every other client, we will fallthrough
+             * to give the buffer to client 0 at the end */
+            for (int i = 1; i < num_clients; i++) {
+                client = &clients[i];
+                if ((client->rx_head + 1) % CLIENT_RX_BUFS != client->rx_tail) {
+                    void *cookie;
+                    void *buf = eth_allocate_rx_buf(iface, lens[0], &cookie);
+                    if (buf) {
+                        memcpy(buf, cookies[0], lens[0]);
+                        give_client_buf(client, cookies[0], lens[0]);
+                    }
+                }
+            }
+        } else {
+            goto error;
+        }
+        client = &clients[0];
+    }
+    if ((client->rx_head + 1) % CLIENT_RX_BUFS == client->rx_tail) {
+        goto error;
+    }
+    give_client_buf(client, cookies[0], lens[0]);
+    return;
+error:
+    /* abort and put all the bufs back */
+    for (int i = 0; i < num_bufs; i++) {
+        rx_bufs[num_rx_bufs] = cookies[i];
+        num_rx_bufs++;
     }
 }
 
@@ -144,23 +249,23 @@ static struct raw_iface_callbacks ethdriver_callbacks = {
     .allocate_rx_buf = eth_allocate_rx_buf
 };
 
-int client_rx(int *len) {
+static int client_rx(client_t *client, void *packet, int *len) {
     if (!done_init) {
-        return;
+        return -1;
     }
     int ret;
     ethdriver_lock();
-    if (pending_client_rx_head == pending_client_rx_tail) {
-        should_notify_client = 1;
+    if (client->rx_head == client->rx_tail) {
+        client->should_notify = 1;
         ethdriver_unlock();
         return -1;
     }
-    pending_rx_t rx = pending_client_rx[pending_client_rx_tail];
-    pending_client_rx_tail = (pending_client_rx_tail + 1) % CLIENT_RX_BUFS;
+    pending_rx_t rx = client->rx[client->rx_tail];
+    client->rx_tail = (client->rx_tail + 1) % CLIENT_RX_BUFS;
     memcpy(packet, rx.buf, rx.len);
     *len = rx.len;
-    if (pending_client_rx_tail == pending_client_rx_head) {
-        should_notify_client = 1;
+    if (client->rx_tail == client->rx_head) {
+        client->should_notify = 1;
         ret = 0;
     } else {
         ret = 1;
@@ -171,28 +276,39 @@ int client_rx(int *len) {
     return ret;
 }
 
-void client_tx(int len) {
+static void client_tx(client_t *client, void *packet, int len) {
     if (!done_init) {
         return;
     }
-    ethdriver_lock();
     if (len > BUF_SIZE) {
         len = BUF_SIZE;
     }
-    if (len < 0) {
-        len = 0;
-    }
-    if (num_client_tx_bufs == 0) {
-        /* silently drop packets */
-        ethdriver_unlock();
+    if (len < 12) {
         return;
     }
-    num_client_tx_bufs --;
-    void *tx_buf = client_tx_bufs[num_client_tx_bufs];
-    /* copy the packet over */
-    memcpy(tx_buf, packet, len);
-    /* queue up transmit */
-    eth_driver.i_fn.raw_tx(&eth_driver, 1, (uintptr_t*)&tx_buf, (unsigned int*)&len, tx_buf);
+    ethdriver_lock();
+    /* silently drop packets */
+    if (client->num_tx != 0) {
+        client->num_tx --;
+        tx_buf_t *tx_buf = client->tx[client->num_tx];
+        /* copy the packet over */
+        memcpy(tx_buf->buf, packet, len);
+        memcpy(tx_buf->buf + 6, client->mac, 6);
+        /* queue up transmit */
+        eth_driver.i_fn.raw_tx(&eth_driver, 1, (uintptr_t*)&(tx_buf->buf), (unsigned int*)&len, tx_buf);
+    }
+    ethdriver_unlock();
+}
+
+static void client_mac(client_t *client, uint8_t *b1, uint8_t *b2, uint8_t *b3, uint8_t *b4, uint8_t *b5, uint8_t *b6) {
+    assert(done_init);
+    ethdriver_lock();
+    *b1 = client->mac[0];
+    *b2 = client->mac[1];
+    *b3 = client->mac[2];
+    *b4 = client->mac[3];
+    *b5 = client->mac[4];
+    *b6 = client->mac[5];
     ethdriver_unlock();
 }
 
@@ -200,21 +316,6 @@ static void eth_interrupt(void *cookie) {
     ethdriver_lock();
     eth_driver.i_fn.raw_handleIRQ(&eth_driver, 0);
     irq_reg_callback(eth_interrupt, NULL);
-    ethdriver_unlock();
-}
-
-void client_mac(uint8_t *b1, uint8_t *b2, uint8_t *b3, uint8_t *b4, uint8_t *b5, uint8_t *b6) {
-    ethdriver_lock();
-    assert(done_init);
-    uint8_t mac[6];
-    int mtu;
-    eth_driver.i_fn.low_level_init(&eth_driver, mac, &mtu);
-    *b1 = mac[0];
-    *b2 = mac[1];
-    *b3 = mac[2];
-    *b4 = mac[3];
-    *b5 = mac[4];
-    *b6 = mac[5];
     ethdriver_unlock();
 }
 
@@ -234,6 +335,8 @@ void post_init(void) {
     if (strcmp(get_instance_name(), BOOST_PP_STRINGIZE(ethdriver##iteration)) == 0) { \
         iospace_id = BOOST_PP_CAT(VM_ETHDRIVER_IOSPACE_,iteration)(); \
         pci_bdf = BOOST_PP_CAT(VM_ETHDRIVER_PCI_BDF_,iteration)(); \
+        clients = BOOST_PP_CAT(clients_,iteration); \
+        num_clients = ARRAY_SIZE(BOOST_PP_CAT(clients_,iteration)); \
     } \
     /**/
     BOOST_PP_REPEAT(VM_NUM_ETHDRIVERS, PER_ETH_CONFIG, _)
@@ -253,13 +356,17 @@ void post_init(void) {
         rx_bufs[num_rx_bufs] = buf;
         num_rx_bufs++;
     }
-    for (int i = 0; i < CLIENT_TX_BUFS; i++) {
-        void *buf = ps_dma_alloc(&ioops.dma_manager, BUF_SIZE, 4, 1, PS_MEM_NORMAL);
-        assert(buf);
-        uintptr_t phys = ps_dma_pin(&ioops.dma_manager, buf, BUF_SIZE);
-        assert(phys == (uintptr_t)buf);
-        client_tx_bufs[num_client_tx_bufs] = buf;
-        num_client_tx_bufs++;
+    for (int client = 0; client < num_clients; client++) {
+        for (int i = 0; i < CLIENT_TX_BUFS; i++) {
+            void *buf = ps_dma_alloc(&ioops.dma_manager, BUF_SIZE, 4, 1, PS_MEM_NORMAL);
+            assert(buf);
+            uintptr_t phys = ps_dma_pin(&ioops.dma_manager, buf, BUF_SIZE);
+            assert(phys == (uintptr_t)buf);
+            tx_buf_t *tx_buf = &clients[client].tx_mem[clients[client].num_tx];
+            *tx_buf = (tx_buf_t){.buf = buf, .len = BUF_SIZE, .client = client};
+            clients[client].tx[clients[client].num_tx] = tx_buf;
+            clients[client].num_tx++;
+        }
     }
     eth_driver.cb_cookie = NULL;
     eth_driver.i_cb = ethdriver_callbacks;
@@ -273,11 +380,17 @@ void post_init(void) {
     ethdriver_unlock();
 }
 
-int __attribute__((weak)) packet_wrap_ptr(dataport_ptr_t *p, void *ptr) {
-    return -1;
-}
+#define CLIENT_DEF(num, iteration, data) \
+    void BOOST_PP_CAT(client##iteration,_mac)(uint8_t *b1, uint8_t *b2, uint8_t *b3, uint8_t *b4, uint8_t *b5, uint8_t *b6) { \
+        client_mac(&clients[iteration], b1, b2, b3, b4, b5, b6); \
+    } \
+    int BOOST_PP_CAT(client##iteration,_rx)(int *len) { \
+        return client_rx(&clients[iteration], packet##iteration, len); \
+    } \
+    void BOOST_PP_CAT(client##iteration,_tx)(int len) { \
+        client_tx(&clients[iteration], packet##iteration, len); \
+    } \
+    /**/
 
-void * __attribute__((weak)) packet_unwrap_ptr(dataport_ptr_t *p) {
-    return NULL;
-}
+BOOST_PP_REPEAT(VM_ETHDRIVER_NUM_CLIENTS, CLIENT_DEF, _);
 

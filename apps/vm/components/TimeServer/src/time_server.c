@@ -48,7 +48,7 @@ static uint64_t current_timeout = 0;
 
 //static uint64_t tsc_frequency = 0;
 
-#define TIMER_COMPLETE_EMIT_OUTPUT(a, vm, b) BOOST_PP_CAT(timer##vm,_complete_emit),
+#define TIMER_COMPLETE_EMIT_OUTPUT(a, vm, b) BOOST_PP_CAT(BOOST_PP_CAT(timer, BOOST_PP_INC(vm)),_complete_emit),
 static void (*timer_complete_emit[])(void) = {
     BOOST_PP_REPEAT(VM_NUM_TIMERS, TIMER_COMPLETE_EMIT_OUTPUT, _)
 };
@@ -103,7 +103,7 @@ static void sort_clients() {
     qsort(sorted_clients, VM_NUM_TIMERS, sizeof(client_state_t*), client_cmp);
 }
 
-void reprogram_timer() {
+static void reprogram_timer() {
     sort_clients();
     if (sorted_clients[0]->timer_type == TIMER_TYPE_OFF) {
         timer_stop(timer);
@@ -179,29 +179,29 @@ static uint64_t _time(int id) {
     return ret;
 }
 
-/* Generate stub interfaces for each camkes interface */
-#define INTERFACE_OUTPUT(unused1, n, unused2) \
-    int BOOST_PP_CAT(timer##n, _oneshot_relative)(uint64_t ns) { \
-        return _oneshot_relative(n, ns); \
-    } \
-    int BOOST_PP_CAT(timer##n, _oneshot_absolute)(uint64_t ns) { \
-        return _oneshot_absolute(n, ns); \
-    } \
-    int BOOST_PP_CAT(timer##n, _periodic)(uint64_t ns) { \
-        return _periodic(n, ns); \
-    } \
-    int BOOST_PP_CAT(timer##n, _stop)() { \
-        return _stop(n); \
-    } \
-    uint64_t BOOST_PP_CAT(timer##n, _time)() { \
-        return _time(n); \
-    } \
-    /**/
+/* substract 1 from the badge as we started counting badges at 1
+ * to avoid using the 0 badge */
+int the_timer_oneshot_relative(uint64_t ns) {
+    return _oneshot_relative(the_timer_get_badge() - 1, ns);
+}
 
-BOOST_PP_REPEAT(VM_NUM_TIMERS, INTERFACE_OUTPUT, _);
+int the_timer_oneshot_absolute(uint64_t ns) {
+    return _oneshot_absolute(the_timer_get_badge() - 1, ns);
+}
+
+int the_timer_periodic(uint64_t ns) {
+    return _periodic(the_timer_get_badge() - 1, ns);
+}
+
+int the_timer_stop() {
+    return _stop(the_timer_get_badge() - 1);
+}
+
+uint64_t the_timer_time() {
+    return _time(the_timer_get_badge() - 1);
+}
 
 void pre_init() {
-    time_server_lock();
     set_putchar(putchar_putchar);
     for (int i = 0; i < VM_NUM_TIMERS; i++) {
         client_state[i].id = i;
@@ -220,5 +220,4 @@ void pre_init() {
 //    tsc_frequency = tsc_calculate_frequency(timer);
 //    assert(tsc_frequency);
     irq_reg_callback(timer_interrupt, NULL);
-    time_server_unlock();
 }

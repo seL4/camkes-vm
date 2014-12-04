@@ -30,14 +30,18 @@
 #define CAT BOOST_PP_CAT
 
 /* The timer layout is
- * timer 0 timer for serial server
+ * timer 1 timer for serial server
  * blocks of 8 timers for each VM
  */
-#define VTIMER_FIRST 1
+#define VTIMER_FIRST 2
 #define VTIMER_NUM   8
+#define VTIMERNUM_I(t, n) BOOST_PP_ADD(VTIMER_FIRST,BOOST_PP_ADD(t, BOOST_PP_MUL(VTIMER_NUM, n)))
+#define VTIMERNUM(t, n) VTIMERNUM_I(t, n)
 #define VTIMER(t, n) VTIMER_I(t, n)
-#define VTIMER_I(t, n) CAT(timer,BOOST_PP_ADD(VTIMER_FIRST,BOOST_PP_ADD(t, BOOST_PP_MUL(VTIMER_NUM, n))))
-#define VM_NUM_TIMERS BOOST_PP_ADD(VTIMER_FIRST, BOOST_PP_MUL(VTIMER_NUM, VM_NUM_GUESTS))
+#define VTIMER_I(t, n) BOOST_PP_CAT(timer, VTIMERNUM(t, n))
+/* We start counting timers at 1 instead of 0 due to not wanting to use the 0
+ * badge. Therefore we add 1 here and not VTIMER_FIRST */
+#define VM_NUM_TIMERS BOOST_PP_ADD(1, BOOST_PP_MUL(VTIMER_NUM, VM_NUM_GUESTS))
 
 /* The int manager async endpoint sets both the high and low bits of the badge
  * following standard protocal of high bit indicating some async message
@@ -68,23 +72,23 @@
     /* Connect the emulated serial to the VM */ \
     connection seL4RPCCall serial##num(from vm##num.serial, to SerialEmul##num.serialport); \
     /* Connect the emulated PIT to the timer server */ \
-    connection seL4RPCCall CAT(pit##num,_timer)(from PIT##num.timer, to time_server.VTIMER(0, num)); \
+    connection seL4RPCCall CAT(pit##num,_timer)(from PIT##num.timer, to time_server.the_timer); \
     connection seL4Asynch CAT(pit##num,_timer_interrupt)(from time_server.CAT(VTIMER(0, num),_complete), to PIT##num.timer_interrupt); \
     /* Connect the emulated RTC to the timer server */ \
-    connection seL4RPCCall CAT(rtc##num,_timer0)(from RTCEmul##num.periodic_timer, to time_server.VTIMER(1, num)); \
+    connection seL4RPCCall CAT(rtc##num,_timer0)(from RTCEmul##num.periodic_timer, to time_server.the_timer); \
     connection seL4Asynch CAT(rtc##num,_timer0_interrupt)(from time_server.CAT(VTIMER(1, num),_complete), to RTCEmul##num.periodic_timer_interrupt); \
-    connection seL4RPCCall CAT(rtc##num,_timer1)(from RTCEmul##num.coalesced_timer, to time_server.VTIMER(2, num)); \
+    connection seL4RPCCall CAT(rtc##num,_timer1)(from RTCEmul##num.coalesced_timer, to time_server.the_timer); \
     connection seL4Asynch CAT(rtc##num,_timer1_interrupt)(from time_server.CAT(VTIMER(2, num),_complete), to RTCEmul##num.coalesced_timer_interrupt); \
-    connection seL4RPCCall CAT(rtc##num,_timer2)(from RTCEmul##num.second_timer, to time_server.VTIMER(3, num)); \
+    connection seL4RPCCall CAT(rtc##num,_timer2)(from RTCEmul##num.second_timer, to time_server.the_timer); \
     connection seL4Asynch CAT(rtc##num,_timer2_interrupt)(from time_server.CAT(VTIMER(3, num),_complete), to RTCEmul##num.second_timer_interrupt); \
-    connection seL4RPCCall CAT(rtc##num,_timer3)(from RTCEmul##num.second_timer2, to time_server.VTIMER(4, num)); \
+    connection seL4RPCCall CAT(rtc##num,_timer3)(from RTCEmul##num.second_timer2, to time_server.the_timer); \
     connection seL4Asynch CAT(rtc##num,_timer3_interrupt)(from time_server.CAT(VTIMER(4, num),_complete), to RTCEmul##num.second_timer2_interrupt); \
     /* Connect the emulated serial to the timer server */ \
-    connection seL4RPCCall CAT(serial##num,_timer0)(from SerialEmul##num.fifo_timeout, to time_server.VTIMER(5, num)); \
+    connection seL4RPCCall CAT(serial##num,_timer0)(from SerialEmul##num.fifo_timeout, to time_server.the_timer); \
     connection seL4Asynch CAT(serial##num,_timer0_interrupt)(from time_server.CAT(VTIMER(5,num),_complete), to SerialEmul##num.fifo_timeout_interrupt); \
-    connection seL4RPCCall CAT(serial##num,_timer1)(from SerialEmul##num.transmit_timer, to time_server.VTIMER(6, num)); \
+    connection seL4RPCCall CAT(serial##num,_timer1)(from SerialEmul##num.transmit_timer, to time_server.the_timer); \
     connection seL4Asynch CAT(serial##num,_timer1_interrupt)(from time_server.CAT(VTIMER(6,num),_complete), to SerialEmul##num.transmit_timer_interrupt); \
-    connection seL4RPCCall CAT(serial##num,_timer2)(from SerialEmul##num.modem_status_timer, to time_server.VTIMER(7, num)); \
+    connection seL4RPCCall CAT(serial##num,_timer2)(from SerialEmul##num.modem_status_timer, to time_server.the_timer); \
     connection seL4Asynch CAT(serial##num,_timer2_interrupt)(from time_server.CAT(VTIMER(7,num),_complete), to SerialEmul##num.modem_status_timer_interrupt); \
     /* Connect the emulated RTC to the RTC component */ \
     connection seL4RPCCall cmosrtc_system##num(from RTCEmul##num.system_rtc, to rtc.rtc); \
@@ -138,6 +142,14 @@
 #define VM_IOPORT(num) BOOST_PP_LIST_FOR_EACH(IOPORT_OUTPUT, num, BOOST_PP_TUPLE_TO_LIST(CAT(VM_CONFIGURATION_IOPORT_, num)()))
 
 #define VM_CONFIG_DEF(num) \
+    PIT##num.timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(0, num)); \
+    RTCEmul##num.periodic_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(1, num)); \
+    RTCEmul##num.coalesced_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(2, num)); \
+    RTCEmul##num.second_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(3, num)); \
+    RTCEmul##num.second_timer2_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(4, num)); \
+    SerialEmul##num.fifo_timeout_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(5, num)); \
+    SerialEmul##num.transmit_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(6, num)); \
+    SerialEmul##num.modem_status_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(7, num)); \
     IntMan##num.haveint_attributes = BOOST_PP_STRINGIZE(INT_MAN_BADGE); \
     vm##num.cnode_size_bits = 21; \
     vm##num.simple = true; \

@@ -15,13 +15,14 @@ import "../../interfaces/PutChar.idl4";
 #include <boost/preprocessor/repeat.hpp>
 
 #define TIMER_DEF(num, iteration, data) \
-    provides Timer timer##iteration; \
-    emits timer_complete BOOST_PP_CAT(timer##iteration, _complete); \
+    emits timer_complete BOOST_PP_CAT(timer, BOOST_PP_CAT(BOOST_PP_INC(iteration), _complete)); \
     /**/
 
 component TimeServer {
     has mutex time_server;
     uses PutChar putchar;
+
+    provides Timer the_timer;
 
     BOOST_PP_REPEAT(VM_NUM_TIMERS, TIMER_DEF, _)
 

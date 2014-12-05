@@ -72,8 +72,8 @@
     /* Connect the emulated serial to the VM */ \
     connection seL4RPCCall serial##num(from vm##num.serial, to SerialEmul##num.serialport); \
     /* Connect the emulated PIT to the timer server */ \
-    connection seL4RPCCall CAT(pit##num,_timer)(from PIT##num.timer, to time_server.the_timer); \
-    connection seL4Asynch CAT(pit##num,_timer_interrupt)(from time_server.CAT(VTIMER(0, num),_complete), to PIT##num.timer_interrupt); \
+    connection seL4RPCCall CAT(pit##num,_timer)(from PIT##num.pit_timer, to time_server.the_timer); \
+    connection seL4Asynch CAT(pit##num,_timer_interrupt)(from time_server.CAT(VTIMER(0, num),_complete), to PIT##num.pit_timer_interrupt); \
     /* Connect the emulated RTC to the timer server */ \
     connection seL4RPCCall CAT(rtc##num,_timer0)(from RTCEmul##num.periodic_timer, to time_server.the_timer); \
     connection seL4Asynch CAT(rtc##num,_timer0_interrupt)(from time_server.CAT(VTIMER(1, num),_complete), to RTCEmul##num.periodic_timer_interrupt); \

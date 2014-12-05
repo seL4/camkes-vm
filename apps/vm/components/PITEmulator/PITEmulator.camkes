@@ -21,6 +21,6 @@ component PITEmulator {
     uses LevelInterrupt pit_irq;
     emits Irq0 pit_edge_irq;
 
-    uses Timer timer;
-    consumes timer_complete timer_interrupt;
+    uses Timer pit_timer;
+    consumes timer_complete pit_timer_interrupt;
 }

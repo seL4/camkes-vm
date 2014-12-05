@@ -27,6 +27,9 @@
 #define TIMER_IRQ HPET_IRQ()
 #endif
 
+/* Prevent timeouts < 1 MS to prevent DoS attacks */
+#define MIN_TIMEOUT 1000000
+
 static pstimer_t *timer = NULL;
 
 #define TIMER_TYPE_OFF 0
@@ -138,6 +141,9 @@ static void timer_interrupt(void *cookie) {
 static int _oneshot_relative(int id, uint64_t ns) {
     time_server_lock();
     client_state[id].timer_type = TIMER_TYPE_RELATIVE;
+    if (ns < MIN_TIMEOUT) {
+        ns = MIN_TIMEOUT;
+    }
     client_state[id].timeout_time = timer_get_time(timer) + ns;
     reprogram_timer();
     time_server_unlock();
@@ -147,6 +153,10 @@ static int _oneshot_relative(int id, uint64_t ns) {
 static int _oneshot_absolute(int id, uint64_t ns) {
     time_server_lock();
     client_state[id].timer_type = TIMER_TYPE_ABSOLUTE;
+    uint64_t current_time = timer_get_time(timer);
+    if (current_time > ns || (ns - current_time) < MIN_TIMEOUT) {
+        ns = current_time + MIN_TIMEOUT;
+    }
     client_state[id].timeout_time = ns;
     reprogram_timer();
     time_server_unlock();
@@ -156,6 +166,9 @@ static int _oneshot_absolute(int id, uint64_t ns) {
 static int _periodic(int id, uint64_t ns) {
     time_server_lock();
     client_state[id].timer_type = TIMER_TYPE_PERIODIC;
+    if (ns < MIN_TIMEOUT) {
+        ns = MIN_TIMEOUT;
+    }
     client_state[id].periodic_ns = ns;
     client_state[id].timeout_time = timer_get_time(timer) + ns;
     reprogram_timer();

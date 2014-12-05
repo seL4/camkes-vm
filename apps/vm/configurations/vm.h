@@ -46,7 +46,13 @@
 /* The int manager async endpoint sets both the high and low bits of the badge
  * following standard protocal of high bit indicating some async message
  * low bit indicating which async event */
-#define INT_MAN_BADGE 134217729
+#define VM_INT_MAN_BADGE 134217729 /* BIT(27) | BIT(0) */
+
+/* The PIT timer completion is also on the interrupt manager badge */
+#define VM_PIT_TIMER_BADGE 134217730 /* BIT(27) | BIT(1) */
+
+/* First available badge for user bits */
+#define VM_FIRST_BADGE_BIT 2
 
 /* VM and per VM componenents */
 #define VM_COMP_DEF(num) \
@@ -71,7 +77,7 @@
     connection seL4RPCCall serial##num(from vm##num.serial, to SerialEmul##num.serialport); \
     /* Connect the emulated PIT to the timer server */ \
     connection seL4RPCCall CAT(pit##num,_timer)(from vm##num.pit_timer, to time_server.the_timer); \
-    connection seL4Asynch CAT(pit##num,_timer_interrupt)(from time_server.CAT(VTIMER(0, num),_complete), to vm##num.pit_timer_interrupt); \
+    connection seL4AsynchBind CAT(pit##num,_timer_interrupt)(from time_server.CAT(VTIMER(0, num),_complete), to vm##num.intready); \
     /* Connect the emulated RTC to the timer server */ \
     connection seL4RPCCall CAT(rtc##num,_timer0)(from RTCEmul##num.periodic_timer, to time_server.the_timer); \
     connection seL4Asynch CAT(rtc##num,_timer0_interrupt)(from time_server.CAT(VTIMER(1, num),_complete), to RTCEmul##num.periodic_timer_interrupt); \
@@ -92,8 +98,6 @@
     connection seL4RPCCall cmosrtc_system##num(from RTCEmul##num.system_rtc, to rtc.rtc); \
     /* Connect the emulated RTC to the VM */ \
     connection seL4RPCCall cmosrtc##num(from vm##num.cmos, to RTCEmul##num.cmosport); \
-    /* Connect the emulated PIT to the VM */ \
-    connection seL4RPCCall i8254_##num(from vm##num.i8254, to vm##num.i8254port); \
     /* Connect config space to main VM */ \
     connection seL4RPCCall pciconfig##num(from vm##num.pci_config, to pci_config.pci_config); \
     /* Connect the PIC emulator to the main VM */ \
@@ -148,7 +152,8 @@
     SerialEmul##num.fifo_timeout_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(5, num)); \
     SerialEmul##num.transmit_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(6, num)); \
     SerialEmul##num.modem_status_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(7, num)); \
-    IntMan##num.haveint_attributes = BOOST_PP_STRINGIZE(INT_MAN_BADGE); \
+    IntMan##num.haveint_attributes = BOOST_PP_STRINGIZE(VM_INT_MAN_BADGE); \
+    time_server.CAT(VTIMER(0, num),_complete_attributes) = BOOST_PP_STRINGIZE(VM_PIT_TIMER_BADGE); \
     vm##num.cnode_size_bits = 21; \
     vm##num.simple = true; \
     VM_MAYBE_ZONE_DMA(num) \

@@ -183,7 +183,7 @@
     /**/
 
 #define VM_ASYNC_DEVICE_BADGES_1() ( \
-        (1, virtio_net_notify, eth_rx_ready) \
+        (VM_FIRST_BADGE_BIT, virtio_net_notify, eth_rx_ready) \
     ) \
     /**/
 

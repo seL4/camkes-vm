@@ -352,14 +352,6 @@ static int camkes_i8259_port_out(void *cookie, unsigned int port_no, unsigned in
     return i8259_port_out(port_no, size, value);
 }
 
-static int camkes_i8254_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
-    return i8254_port_in(port_no, size, result);
-}
-
-static int camkes_i8254_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value) {
-    return i8254_port_out(port_no, size, value);
-}
-
 static int camkes_cmos_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
     return cmos_port_in(port_no, size, result);
 }
@@ -376,6 +368,9 @@ static int camkes_serial_port_out(void *cookie, unsigned int port_no, unsigned i
     return serial_port_out(port_no, size, value);
 }
 
+int i8254_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
+int i8254_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
+
 ioport_desc_t ioport_handlers[] = {
     {X86_IO_SERIAL_1_START,   X86_IO_SERIAL_1_END,   camkes_serial_port_in, camkes_serial_port_out, "COM1 Serial Port"},
 //    {X86_IO_SERIAL_3_START,   X86_IO_SERIAL_3_END,   NULL, NULL, "COM3 Serial Port"},
@@ -385,7 +380,7 @@ ioport_desc_t ioport_handlers[] = {
     /* PCI config requires a cookie and is specced dynamically in code */
 //    {X86_IO_PCI_CONFIG_START, X86_IO_PCI_CONFIG_END, vmm_pci_io_port_in, vmm_pci_io_port_out, "PCI Configuration"},
     {X86_IO_RTC_START,        X86_IO_RTC_END,        camkes_cmos_port_in, camkes_cmos_port_out, "CMOS Registers / RTC Real-Time Clock / NMI Interrupts"},
-    {X86_IO_PIT_START,        X86_IO_PIT_END,        camkes_i8254_port_in, camkes_i8254_port_out, "8253/8254 Programmable Interval Timer"},
+    {X86_IO_PIT_START,        X86_IO_PIT_END,        i8254_port_in, i8254_port_out, "8253/8254 Programmable Interval Timer"},
 //    {X86_IO_PS2C_START,       X86_IO_PS2C_END,       NULL, NULL, "8042 PS/2 Controller"},
 //    {X86_IO_POS_START,        X86_IO_POS_END,        NULL, NULL, "POS Programmable Option Select (PS/2)"},
 
@@ -514,11 +509,16 @@ ps_io_port_ops_t make_pci_io_ops() {
 static int device_notify_list_len = 0;
 static device_notify_t *device_notify_list = NULL;
 
+void pit_timer_interrupt(void);
+
 static int handle_async_event(seL4_Word badge) {
     int ret = 1;
     if (badge & BIT(27)) {
-        if ( (badge & INT_MAN_BADGE) == INT_MAN_BADGE) {
+        if ( (badge & VM_INT_MAN_BADGE) == VM_INT_MAN_BADGE) {
             ret = 0;
+        }
+        if ( (badge & VM_PIT_TIMER_BADGE) == VM_PIT_TIMER_BADGE) {
+            pit_timer_interrupt();
         }
         for (int i = 0; i < device_notify_list_len; i++) {
             uint32_t device_badge = BIT(27) | BIT(device_notify_list[i].badge_bit);

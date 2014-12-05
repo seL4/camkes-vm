@@ -32,7 +32,7 @@
 #include <stdint.h>
 #include <sel4/sel4.h>
 #include <stdio.h>
-#include <PITEmulator.h>
+#include <Init.h>
 
 //#define DEBUG_PIT
 
@@ -645,7 +645,7 @@ static void timer_interrupt(void *cookie) {
     pit_unlock();
 }
 
-void pre_init(void) {
+void pit_pre_init(void) {
     pit_lock();
     set_putchar(putchar_putchar);
     for (int i = 0; i < 3; i++) {

@@ -21,6 +21,7 @@ component Init {
     control;
     uses PutChar putchar;
     has mutex vm_mutex;
+    has mutex pit;
     uses VirtIOPort i8259;
     uses VirtIOPort i8254;
     uses VirtIOPort cmos;
@@ -29,6 +30,12 @@ component Init {
     uses PCIConfig pci_config;
     uses RTC rtc;
     consumes HaveInterrupt intready;
+
+    provides VirtIOPort i8254port;
+    uses LevelInterrupt pit_irq;
+    emits Irq0 pit_edge_irq;
+    uses Timer pit_timer;
+    consumes timer_complete pit_timer_interrupt;
 
     VM_INIT_COMPONENT()
 }

@@ -52,7 +52,6 @@
 #define VM_COMP_DEF(num) \
     component Init vm##num; \
     component PICEmulator IntMan##num; \
-    component PITEmulator PIT##num; \
     component RTCEmulator RTCEmul##num; \
     component SerialEmulator SerialEmul##num; \
     /**/
@@ -61,7 +60,6 @@
     /* Connect all the components to the serial server */ \
     connection seL4RPCCall serial_vm##num(from vm##num.putchar, to serial.vm##num); \
     connection seL4RPCCall serial_intman##num(from IntMan##num.putchar, to serial.vm##num); \
-    connection seL4RPCCall serial_pit##num(from PIT##num.putchar, to serial.vm##num); \
     connection seL4RPCCall serial_rtcemul##num(from RTCEmul##num.putchar, to serial.vm##num); \
     connection seL4RPCCall serial_serialemul##num(from SerialEmul##num.putchar, to serial.guest##num); \
     /* Connect the emulated serial input to the serial server */ \
@@ -72,8 +70,8 @@
     /* Connect the emulated serial to the VM */ \
     connection seL4RPCCall serial##num(from vm##num.serial, to SerialEmul##num.serialport); \
     /* Connect the emulated PIT to the timer server */ \
-    connection seL4RPCCall CAT(pit##num,_timer)(from PIT##num.pit_timer, to time_server.the_timer); \
-    connection seL4Asynch CAT(pit##num,_timer_interrupt)(from time_server.CAT(VTIMER(0, num),_complete), to PIT##num.pit_timer_interrupt); \
+    connection seL4RPCCall CAT(pit##num,_timer)(from vm##num.pit_timer, to time_server.the_timer); \
+    connection seL4Asynch CAT(pit##num,_timer_interrupt)(from time_server.CAT(VTIMER(0, num),_complete), to vm##num.pit_timer_interrupt); \
     /* Connect the emulated RTC to the timer server */ \
     connection seL4RPCCall CAT(rtc##num,_timer0)(from RTCEmul##num.periodic_timer, to time_server.the_timer); \
     connection seL4Asynch CAT(rtc##num,_timer0_interrupt)(from time_server.CAT(VTIMER(1, num),_complete), to RTCEmul##num.periodic_timer_interrupt); \
@@ -95,7 +93,7 @@
     /* Connect the emulated RTC to the VM */ \
     connection seL4RPCCall cmosrtc##num(from vm##num.cmos, to RTCEmul##num.cmosport); \
     /* Connect the emulated PIT to the VM */ \
-    connection seL4RPCCall i8254_##num(from vm##num.i8254, to PIT##num.i8254port); \
+    connection seL4RPCCall i8254_##num(from vm##num.i8254, to vm##num.i8254port); \
     /* Connect config space to main VM */ \
     connection seL4RPCCall pciconfig##num(from vm##num.pci_config, to pci_config.pci_config); \
     /* Connect the PIC emulator to the main VM */ \
@@ -103,8 +101,8 @@
     connection seL4RPCCall intmanager##num(from vm##num.IntManager, to IntMan##num.i8259int); \
     connection seL4AsynchBind haveint##num(from IntMan##num.haveint, to vm##num.intready); \
     /* Connect the emulated pit to the PIC emulator */ \
-    connection seL4RPCCall irq0_level_##num(from PIT##num.pit_irq, to IntMan##num.irq0_level); \
-    connection seL4Asynch irq0_edge_##num(from PIT##num.pit_edge_irq, to IntMan##num.irq0); \
+    connection seL4RPCCall irq0_level_##num(from vm##num.pit_irq, to IntMan##num.irq0_level); \
+    connection seL4Asynch irq0_edge_##num(from vm##num.pit_edge_irq, to IntMan##num.irq0); \
     /* Connect the emulated rtc to the PIC emulator */ \
     connection seL4RPCCall irq8_level_##num(from RTCEmul##num.rtc_irq, to IntMan##num.irq8_level); \
     /* Connect the emulated serial to the PIC emulator */ \
@@ -142,7 +140,7 @@
 #define VM_IOPORT(num) BOOST_PP_LIST_FOR_EACH(IOPORT_OUTPUT, num, BOOST_PP_TUPLE_TO_LIST(CAT(VM_CONFIGURATION_IOPORT_, num)()))
 
 #define VM_CONFIG_DEF(num) \
-    PIT##num.timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(0, num)); \
+    vm##num.pit_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(0, num)); \
     RTCEmul##num.periodic_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(1, num)); \
     RTCEmul##num.coalesced_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(2, num)); \
     RTCEmul##num.second_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(3, num)); \

@@ -168,6 +168,8 @@ static void make_proxy_vka(vka_t *vka, allocman_t *allocman) {
 #endif
 }
 
+void pit_pre_init(void);
+
 void pre_init(void) {
     int error;
 
@@ -199,6 +201,8 @@ void pre_init(void) {
     sel4utils_reserve_range_no_alloc(&vspace, &muslc_brk_reservation_memory, BRK_VIRTUAL_SIZE, seL4_AllRights, 1, &muslc_brk_reservation_start);
     muslc_this_vspace = &vspace;
     muslc_brk_reservation = (reservation_t){.res = &muslc_brk_reservation_memory};
+
+    pit_pre_init();
 }
 
 typedef struct memory_range {

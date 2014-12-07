@@ -635,18 +635,14 @@ device_init(pit_register)
 #endif
 
 void pit_timer_interrupt(void) {
-    pit_lock();
     PITState *pit = &pit_state;
     PITChannelState *s;
     s = &pit->channels[0];
     s->timer_status = 0;
     pit_irq_timer_update(s, s->next_transition_time);
-//    pit_timer_interrupt_reg_callback(timer_interrupt, cookie);
-    pit_unlock();
 }
 
 void pit_pre_init(void) {
-    pit_lock();
     for (int i = 0; i < 3; i++) {
         pit_state.channels[i].irq_level = 0;
         pit_state.channels[i].timer_status = 0;
@@ -654,8 +650,6 @@ void pit_pre_init(void) {
     }
     pit_state.channels[0].irq_timer = 1;
     pit_reset(&pit_state);
-//    pit_timer_interrupt_reg_callback(timer_interrupt, &pit_state);
-    pit_unlock();
 }
 
 int i8254_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
@@ -663,9 +657,7 @@ int i8254_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigne
         LOG_ERROR("i8254 only supports reads of size 1");
         return -1;
     }
-    pit_lock();
     *result = pit_ioport_read(&pit_state, port_no);
-    pit_unlock();
     return 0;
 }
 
@@ -674,8 +666,6 @@ int i8254_port_out(void *cookie, unsigned int port_no, unsigned int size, unsign
         LOG_ERROR("i8254 only supports writes of size 1");
         return -1;
     }
-    pit_lock();
     pit_ioport_write(&pit_state, port_no, value);
-    pit_unlock();
     return 0;
 }

@@ -20,7 +20,6 @@ import "../../interfaces/Ethdriver.idl4";
 component Init {
     control;
     uses PutChar putchar;
-    has mutex pit;
     uses VirtIOPort i8259;
     uses VirtIOPort cmos;
     uses VirtIOPort serial;

@@ -42,7 +42,12 @@ vspace_t  *muslc_this_vspace;
 static sel4utils_res_t muslc_brk_reservation_memory;
 
 seL4_CPtr intready_aep();
+/* TODO: these exist for other components that have been collapsed into
+ * the init componenet, but we have not yet removed their dependency
+ * on having a async endpoint interface */
 seL4_CPtr haveint_aep = 0;
+seL4_CPtr irq0_aep = 0;
+seL4_CPtr hw_irq_handlers[16] = {0};
 
 static seL4_CPtr get_async_event_aep() {
     return intready_aep();
@@ -514,6 +519,25 @@ static device_notify_t *device_notify_list = NULL;
 
 void pit_timer_interrupt(void);
 
+static seL4_Word irq_badges[16] = {
+    VM_PIC_BADGE_IRQ_0,
+    VM_PIC_BADGE_IRQ_1,
+    VM_PIC_BADGE_IRQ_2,
+    VM_PIC_BADGE_IRQ_3,
+    VM_PIC_BADGE_IRQ_4,
+    VM_PIC_BADGE_IRQ_5,
+    VM_PIC_BADGE_IRQ_6,
+    VM_PIC_BADGE_IRQ_7,
+    VM_PIC_BADGE_IRQ_8,
+    VM_PIC_BADGE_IRQ_9,
+    VM_PIC_BADGE_IRQ_10,
+    VM_PIC_BADGE_IRQ_11,
+    VM_PIC_BADGE_IRQ_12,
+    VM_PIC_BADGE_IRQ_13,
+    VM_PIC_BADGE_IRQ_14,
+    VM_PIC_BADGE_IRQ_15
+};
+
 static int handle_async_event(seL4_Word badge) {
     int ret = 1;
     if (badge & BIT(27)) {
@@ -522,6 +546,11 @@ static int handle_async_event(seL4_Word badge) {
         }
         if ( (badge & VM_PIT_TIMER_BADGE) == VM_PIT_TIMER_BADGE) {
             pit_timer_interrupt();
+        }
+        for (int i = 0; i < 16; i++) {
+            if ( (badge & irq_badges[i]) == irq_badges[i]) {
+                i8259_gen_irq(i);
+            }
         }
         for (int i = 0; i < device_notify_list_len; i++) {
             uint32_t device_badge = BIT(27) | BIT(device_notify_list[i].badge_bit);
@@ -535,19 +564,67 @@ static int handle_async_event(seL4_Word badge) {
     return ret;
 }
 
+typedef struct hw_irq {
+    int source;
+    int level;
+    int polarity;
+    int dest;
+} hw_irq_t;
+
+#define IRQ_OUTPUT(r, data, elem) \
+    {.source = BOOST_PP_TUPLE_ELEM(0, elem), .level = BOOST_PP_TUPLE_ELEM(1, elem), .polarity = BOOST_PP_TUPLE_ELEM(2, elem), .dest = BOOST_PP_TUPLE_ELEM(3, elem)}, \
+    /**/
+
+#define HW_IRQ_OUTPUT(num, iteration, data) \
+    hw_irq_t CAT(hw_irqs_, iteration)[] = { \
+        BOOST_PP_LIST_FOR_EACH(IRQ_OUTPUT, iteration, BOOST_PP_TUPLE_TO_LIST(CAT(VM_PASSTHROUGH_IRQ_, iteration)())) \
+    }; \
+    /**/
+
+BOOST_PP_REPEAT(VM_NUM_GUESTS, HW_IRQ_OUTPUT, _)
+
+static void init_irqs(hw_irq_t *irqs, int num) {
+    int error;
+    for (int i = 0; i < num; i++) {
+        cspacepath_t badge_path;
+        cspacepath_t async_path;
+        vka_cspace_make_path(&vka, intready_aep(), &async_path);
+        error = vka_cspace_alloc_path(&vka, &badge_path);
+        assert(!error);
+        error = vka_cnode_mint(&badge_path, &async_path, seL4_AllRights, seL4_CapData_Badge_new(irq_badges[irqs[i].dest]));
+        assert(!error);
+        cspacepath_t irq;
+        error = vka_cspace_alloc_path(&vka, &irq);
+        assert(!error);
+        error = simple_get_IRQ_control(&camkes_simple, irqs[i].source, irq);
+        assert(!error);
+        error = seL4_IRQHandler_SetMode(irq.capPtr, irqs[i].level, irqs[i].polarity);
+        assert(!error);
+        error = seL4_IRQHandler_SetEndpoint(irq.capPtr, badge_path.capPtr);
+        assert(!error);
+        error = seL4_IRQHandler_Ack(irq.capPtr);
+        assert(!error);
+        hw_irq_handlers[irqs[i].dest] = irq.capPtr;
+    }
+}
+
 static void make_async_aep() {
     cspacepath_t async_path;
+    cspacepath_t badge_path;
     int error;
     seL4_CPtr async_event_aep = intready_aep();
     vka_cspace_make_path(&vka, async_event_aep, &async_path);
-    cspacepath_t haveint_path;
-    error = vka_cspace_alloc_path(&vka, &haveint_path);
+    error = vka_cspace_alloc_path(&vka, &badge_path);
     assert(!error);
-    error = vka_cnode_mint(&haveint_path, &async_path, seL4_AllRights, seL4_CapData_Badge_new(VM_INT_MAN_BADGE));
+    error = vka_cnode_mint(&badge_path, &async_path, seL4_AllRights, seL4_CapData_Badge_new(VM_INT_MAN_BADGE));
     assert(!error);
-    haveint_aep = haveint_path.capPtr;
+    haveint_aep = badge_path.capPtr;
+    error = vka_cspace_alloc_path(&vka, &badge_path);
+    assert(!error);
+    error = vka_cnode_mint(&badge_path, &async_path, seL4_AllRights, seL4_CapData_Badge_new(VM_PIC_BADGE_IRQ_0));
+    assert(!error);
+    irq0_aep = badge_path.capPtr;
     for (int i = 0; i < device_notify_list_len; i++) {
-        cspacepath_t badge_path;
         error = vka_cspace_alloc_path(&vka, &badge_path);
         assert(!error);
         error = vka_cnode_mint(&badge_path, &async_path, seL4_AllRights, seL4_CapData_Badge_new(BIT(27) | BIT(device_notify_list[i].badge_bit)));
@@ -571,6 +648,8 @@ int main_continued(void) {
     int num_vm_ioports;
     void (**device_init_list)(vmm_t*) = NULL;
     int device_init_list_len = 0;
+    hw_irq_t *hw_irqs = NULL;
+    int num_hw_irqs;
 
     rtc_time_date_t time_date = rtc_time_date();
     printf("Starting VM %s at: %04d:%02d:%02d %02d:%02d:%02d\n", get_instance_name(), time_date.year, time_date.month, time_date.day, time_date.hour, time_date.minute, time_date.second);
@@ -615,11 +694,14 @@ int main_continued(void) {
         device_notify_list_len = ARRAY_SIZE(BOOST_PP_CAT(device_notify_vm, iteration)); \
         device_init_list = BOOST_PP_CAT(device_init_fn_vm, iteration); \
         device_init_list_len = ARRAY_SIZE(BOOST_PP_CAT(device_init_fn_vm, iteration)); \
+        hw_irqs = BOOST_PP_CAT(hw_irqs_, iteration); \
+        num_hw_irqs = ARRAY_SIZE(BOOST_PP_CAT(hw_irqs_, iteration)); \
     } \
     /**/
     BOOST_PP_REPEAT(VM_NUM_GUESTS, PER_VM_CONFIG, _)
 
     make_async_aep();
+    init_irqs(hw_irqs, num_hw_irqs);
 
 #ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_IOMMU
     /* Do early device discovery and find any relevant PCI busses that

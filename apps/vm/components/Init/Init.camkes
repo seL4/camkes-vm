@@ -29,27 +29,11 @@ component Init {
     consumes HaveInterrupt intready;
 
     uses LevelInterrupt pit_irq;
-    emits Irq0 pit_edge_irq;
     uses Timer pit_timer;
 
     has mutex pic;
     provides VirtIOPort i8259port;
     provides InterruptGenerator i8259int;
-    maybe consumes Irq0 irq0;
-    maybe consumes Irq1 irq1;
-    maybe consumes Irq3 irq3;
-    maybe consumes Irq4 irq4;
-    maybe consumes Irq5 irq5;
-    maybe consumes Irq6 irq6;
-    maybe consumes Irq7 irq7;
-    maybe consumes Irq8 irq8;
-    maybe consumes Irq9 irq9;
-    maybe consumes Irq10 irq10;
-    maybe consumes Irq11 irq11;
-    maybe consumes Irq12 irq12;
-    maybe consumes Irq13 irq13;
-    maybe consumes Irq14 irq14;
-    maybe consumes Irq15 irq15;
     provides LevelInterrupt irq0_level;
     provides LevelInterrupt irq1_level;
     provides LevelInterrupt irq3_level;

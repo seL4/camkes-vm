@@ -31,32 +31,10 @@
 /* TODO: this exists due to this code originally being in a separate component
  * with its own thread. This is a temporary hack to make existing code work */
 extern seL4_CPtr haveint_aep;
+extern seL4_CPtr hw_irq_handlers[];
 static void haveint_emit() {
     seL4_Notify(haveint_aep, 0);
 }
-
-/* Define all the IRQ callback functions */
-static void irq_callback(void *data);
-
-/* defined a list of set callback functions */
-static int (*set_irq_callbacks[16])(void (*)(void *), void *) = {
-    irq0_reg_callback,
-    irq1_reg_callback,
-    NULL,
-    irq3_reg_callback,
-    irq4_reg_callback,
-    irq5_reg_callback,
-    irq6_reg_callback,
-    irq7_reg_callback,
-    irq8_reg_callback,
-    irq9_reg_callback,
-    irq10_reg_callback,
-    irq11_reg_callback,
-    irq12_reg_callback,
-    irq13_reg_callback,
-    irq14_reg_callback,
-    irq15_reg_callback
-};
 
 /* PIC Machine state. */
 struct i8259_state {
@@ -177,7 +155,11 @@ static void pic_clear_isr(struct i8259_state *s, int irq) {
         irq += 8;
 
     if (irq != 2) {
-        set_irq_callbacks[irq](irq_callback, (void*)irq);
+        if (hw_irq_handlers[irq]) {
+            int error;
+            error = seL4_IRQHandler_Ack(hw_irq_handlers[irq]);
+            assert(!error);
+        }
     }
 }
 
@@ -683,28 +665,20 @@ int i8259int_has_interrupt() {
     return ret;
 }
 
-/* This is the actual function that will get called for all interrupt events */
-static void irq_callback(void *data) {
-    int irq = (int)data;
-    pic_lock();
-    i8259_set_irq(irq, 1);
-    i8259_set_irq(irq, 0);
-    pic_unlock();
-}
-
 void i8259_pre_init(void) {
-    int i;
     pic_lock();
     set_putchar(putchar_putchar);
     /* First initialize the emulated pic state */
     i8259_init_state();
     i8259_gs.emitagain = 1;
-    /* setup all the call backs */
-    for (i = 0; i < 16; i++) {
-        if (set_irq_callbacks[i]) {
-            set_irq_callbacks[i](irq_callback, (void*)i);
-        }
-    }
+    pic_unlock();
+}
+
+/* This is the actual function that will get called for all interrupt events */
+void i8259_gen_irq(int irq) {
+    pic_lock();
+    i8259_set_irq(irq, 1);
+    i8259_set_irq(irq, 0);
     pic_unlock();
 }
 

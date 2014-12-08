@@ -22,7 +22,6 @@ import "interfaces/Timer.idl4";
 import "interfaces/RTC.idl4";
 import "interfaces/Ethdriver.idl4";
 
-import "IOAPIC.camkes";
 import "PIC.camkes";
 import "HPET.camkes";
 import "CMOS.camkes";
@@ -65,7 +64,6 @@ assembly {
         component RTC rtc;
 
         /* Hardware components that are not actuall instantiated */
-        component IOAPIC ioapic;
         component HPET hpet;
         component CMOS cmos;
         component Serial hw_serial;

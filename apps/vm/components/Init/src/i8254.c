@@ -34,6 +34,12 @@
 #include <stdio.h>
 #include <Init.h>
 
+extern seL4_CPtr irq0_aep;
+
+static void pit_edge_irq_emit() {
+    seL4_Notify(irq0_aep, 0);
+}
+
 //#define DEBUG_PIT
 
 #define RW_STATE_LSB 1

@@ -51,8 +51,25 @@
 /* The PIT timer completion is also on the interrupt manager badge */
 #define VM_PIT_TIMER_BADGE 134217730 /* BIT(27) | BIT(1) */
 
+#define VM_PIC_BADGE_IRQ_0 134217732 /* BIT(27) | BIT(2) */
+#define VM_PIC_BADGE_IRQ_1 134217736 /* BIT(27) | BIT(3) */
+#define VM_PIC_BADGE_IRQ_2 134217744 /* BIT(27) | BIT(4) */
+#define VM_PIC_BADGE_IRQ_3 134217760 /* BIT(27) | BIT(5) */
+#define VM_PIC_BADGE_IRQ_4 134217792 /* BIT(27) | BIT(6) */
+#define VM_PIC_BADGE_IRQ_5 134217856 /* BIT(27) | BIT(7) */
+#define VM_PIC_BADGE_IRQ_6 134217984 /* BIT(27) | BIT(8) */
+#define VM_PIC_BADGE_IRQ_7 134218240 /* BIT(27) | BIT(9) */
+#define VM_PIC_BADGE_IRQ_8 134218752 /* BIT(27) | BIT(10) */
+#define VM_PIC_BADGE_IRQ_9 134219776 /* BIT(27) | BIT(11) */
+#define VM_PIC_BADGE_IRQ_10 134221824 /* BIT(27) | BIT(12) */
+#define VM_PIC_BADGE_IRQ_11 134225920 /* BIT(27) | BIT(13) */
+#define VM_PIC_BADGE_IRQ_12 134234112 /* BIT(27) | BIT(14) */
+#define VM_PIC_BADGE_IRQ_13 134250496 /* BIT(27) | BIT(15) */
+#define VM_PIC_BADGE_IRQ_14 134283264 /* BIT(27) | BIT(16) */
+#define VM_PIC_BADGE_IRQ_15 134348800 /* BIT(27) | BIT(17) */
+
 /* First available badge for user bits */
-#define VM_FIRST_BADGE_BIT 2
+#define VM_FIRST_BADGE_BIT 18
 
 /* VM and per VM componenents */
 #define VM_COMP_DEF(num) \
@@ -103,12 +120,11 @@
     connection seL4RPCCall intmanager##num(from vm##num.IntManager, to vm##num.i8259int); \
     /* Connect the emulated pit to the PIC emulator */ \
     connection seL4RPCCall irq0_level_##num(from vm##num.pit_irq, to vm##num.irq0_level); \
-    connection seL4Asynch irq0_edge_##num(from vm##num.pit_edge_irq, to vm##num.irq0); \
     /* Connect the emulated rtc to the PIC emulator */ \
     connection seL4RPCCall irq8_level_##num(from RTCEmul##num.rtc_irq, to vm##num.irq8_level); \
     /* Connect the emulated serial to the PIC emulator */ \
     connection seL4RPCCall irq4_level_##num(from SerialEmul##num.serial_irq, to vm##num.irq4_level); \
-    connection seL4Asynch irq4_edge_##num(from SerialEmul##num.serial_edge_irq, to vm##num.irq4); \
+    connection seL4AsynchBind irq4_edge_##num(from SerialEmul##num.serial_edge_irq, to vm##num.intready); \
     /**/
 
 #ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE
@@ -140,6 +156,9 @@
 #define IOPORT_OUTPUT(r, data, elem) vm##data.ioport = BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(0,elem):BOOST_PP_TUPLE_ELEM(1,elem));
 #define VM_IOPORT(num) BOOST_PP_LIST_FOR_EACH(IOPORT_OUTPUT, num, BOOST_PP_TUPLE_TO_LIST(CAT(VM_CONFIGURATION_IOPORT_, num)()))
 
+#define VM_IRQ_OUTPUT(r, data, elem) vm##data.irq = BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(0, elem));
+#define VM_IRQS(num) BOOST_PP_LIST_FOR_EACH(VM_IRQ_OUTPUT, num, BOOST_PP_TUPLE_TO_LIST(CAT(VM_PASSTHROUGH_IRQ_, num)()))
+
 #define VM_CONFIG_DEF(num) \
     vm##num.pit_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(0, num)); \
     RTCEmul##num.periodic_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(1, num)); \
@@ -149,9 +168,11 @@
     SerialEmul##num.fifo_timeout_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(5, num)); \
     SerialEmul##num.transmit_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(6, num)); \
     SerialEmul##num.modem_status_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(7, num)); \
+    SerialEmul##num.serial_edge_irq_attributes = BOOST_PP_STRINGIZE(VM_PIC_BADGE_IRQ_4); \
     time_server.CAT(VTIMER(0, num),_complete_attributes) = BOOST_PP_STRINGIZE(VM_PIT_TIMER_BADGE); \
     vm##num.cnode_size_bits = 21; \
     vm##num.simple = true; \
+    VM_IRQS(num) \
     VM_MAYBE_ZONE_DMA(num) \
     VM_MAYBE_EXTRA_RAM(num) \
     VM_MAYBE_IOSPACE(num) \

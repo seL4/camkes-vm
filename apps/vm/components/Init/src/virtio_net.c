@@ -110,7 +110,7 @@ static int emul_raw_tx(struct eth_driver *driver, unsigned int num, uintptr_t *p
 }
 
 static void emul_raw_handle_irq(struct eth_driver *driver, int irq) {
-    EthInterrupt_emit();
+    i8259_gen_irq(6);
 }
 
 static void emul_raw_poll(struct eth_driver *driver) {

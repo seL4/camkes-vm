@@ -19,17 +19,24 @@
 #define VM_CONFIGURATION_EXTRA_RAM_1() (0x27000000,0x5000000)
 #define VM_CONFIGURATION_EXTRA_RAM_2() (0x2D000000,0x5000000)
 
+#define VM_PASSTHROUGH_IRQ_0() ( \
+        (11, 1, 1, 10), \
+        (23, 1, 1, 14) \
+    ) \
+    /**/
+
+#define VM_PASSTHROUGH_IRQ_1() ( \
+        (18, 1, 1, 12) \
+    ) \
+    /**/
+
+#define VM_PASSTHROUGH_IRQ_2() ( \
+        (17, 1, 1, 11), \
+        (3, 0, 0, 3) \
+    ) \
+    /**/
+
 #define PLAT_CONNECT_DEF() \
-    /* Connect hardware interrupts for vm0 */ \
-    connection seL4IOAPICHardwareInterrupt irq11(from ioapic.irq11, to vm0.irq10); \
-    connection seL4IOAPICHardwareInterrupt irq23(from ioapic.irq23, to vm0.irq14); \
-    /* Connect hardware interrupts for vm1 */ \
-    connection seL4IOAPICHardwareInterrupt irq18(from ioapic.irq18, to vm1.irq12); \
-    /* Connect hardware interrupts for vm2 */ \
-    connection seL4IOAPICHardwareInterrupt irq17(from ioapic.irq17, to vm2.irq11); \
-    connection seL4IOAPICHardwareInterrupt irq3(from ioapic.irq3, to vm2. irq3); \
-    /* Connect interrupt for emulated ethernet device for vm1 */ \
-    connection seL4Asynch ethinterrupt(from vm1.EthInterrupt, to vm1.irq6); \
     /* Give ethernet driver same output as its vm */ \
     connection seL4RPCCall eth_putchar(from ethdriver0.putchar, to serial.vm1); \
     /* Connect ethernet driver to vm 1 */ \
@@ -114,13 +121,6 @@
     /**/
 
 #define PLAT_CONFIG_DEF() \
-    /* IOAPIC interrupt definitions. These are all PCI interrupts \
-     * so are level triggered active low */ \
-    ioapic.irq3_attributes = "3,0,0"; \
-    ioapic.irq11_attributes = "11,1,1"; \
-    ioapic.irq17_attributes = "17,1,1"; \
-    ioapic.irq18_attributes = "18,1,1"; \
-    ioapic.irq23_attributes = "23,1,1"; \
     vm0.simple_untyped24_pool = 2; \
     vm1.simple_untyped24_pool = 2; \
     vm2.simple_untyped24_pool = 2; \
@@ -173,7 +173,6 @@
 #define VM_GUEST_IOSPACE_DOMAIN_2() 0x11
 
 #define VM_INIT_COMPONENT() \
-    emits Irq6 EthInterrupt; \
     maybe dataport Buf packet; \
     maybe uses Ethdriver ethdriver; \
     consumes Notifcation eth_rx_ready; \

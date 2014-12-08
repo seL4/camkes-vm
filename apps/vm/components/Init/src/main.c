@@ -42,6 +42,7 @@ vspace_t  *muslc_this_vspace;
 static sel4utils_res_t muslc_brk_reservation_memory;
 
 seL4_CPtr intready_aep();
+seL4_CPtr haveint_aep = 0;
 
 static seL4_CPtr get_async_event_aep() {
     return intready_aep();
@@ -169,6 +170,7 @@ static void make_proxy_vka(vka_t *vka, allocman_t *allocman) {
 }
 
 void pit_pre_init(void);
+void i8259_pre_init(void);
 
 void pre_init(void) {
     int error;
@@ -203,6 +205,7 @@ void pre_init(void) {
     muslc_brk_reservation = (reservation_t){.res = &muslc_brk_reservation_memory};
 
     pit_pre_init();
+    i8259_pre_init();
 }
 
 typedef struct memory_range {
@@ -537,6 +540,12 @@ static void make_async_aep() {
     int error;
     seL4_CPtr async_event_aep = intready_aep();
     vka_cspace_make_path(&vka, async_event_aep, &async_path);
+    cspacepath_t haveint_path;
+    error = vka_cspace_alloc_path(&vka, &haveint_path);
+    assert(!error);
+    error = vka_cnode_mint(&haveint_path, &async_path, seL4_AllRights, seL4_CapData_Badge_new(VM_INT_MAN_BADGE));
+    assert(!error);
+    haveint_aep = haveint_path.capPtr;
     for (int i = 0; i < device_notify_list_len; i++) {
         cspacepath_t badge_path;
         error = vka_cspace_alloc_path(&vka, &badge_path);

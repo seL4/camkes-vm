@@ -21,15 +21,15 @@
 
 #define PLAT_CONNECT_DEF() \
     /* Connect hardware interrupts for vm0 */ \
-    connection seL4IOAPICHardwareInterrupt irq11(from ioapic.irq11, to IntMan0.irq10); \
-    connection seL4IOAPICHardwareInterrupt irq23(from ioapic.irq23, to IntMan0.irq14); \
+    connection seL4IOAPICHardwareInterrupt irq11(from ioapic.irq11, to vm0.irq10); \
+    connection seL4IOAPICHardwareInterrupt irq23(from ioapic.irq23, to vm0.irq14); \
     /* Connect hardware interrupts for vm1 */ \
-    connection seL4IOAPICHardwareInterrupt irq18(from ioapic.irq18, to IntMan1.irq12); \
+    connection seL4IOAPICHardwareInterrupt irq18(from ioapic.irq18, to vm1.irq12); \
     /* Connect hardware interrupts for vm2 */ \
-    connection seL4IOAPICHardwareInterrupt irq17(from ioapic.irq17, to IntMan2.irq11); \
-    connection seL4IOAPICHardwareInterrupt irq3(from ioapic.irq3, to IntMan2. irq3); \
+    connection seL4IOAPICHardwareInterrupt irq17(from ioapic.irq17, to vm2.irq11); \
+    connection seL4IOAPICHardwareInterrupt irq3(from ioapic.irq3, to vm2. irq3); \
     /* Connect interrupt for emulated ethernet device for vm1 */ \
-    connection seL4Asynch ethinterrupt(from vm1.EthInterrupt, to IntMan1.irq6); \
+    connection seL4Asynch ethinterrupt(from vm1.EthInterrupt, to vm1.irq6); \
     /* Give ethernet driver same output as its vm */ \
     connection seL4RPCCall eth_putchar(from ethdriver0.putchar, to serial.vm1); \
     /* Connect ethernet driver to vm 1 */ \

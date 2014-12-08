@@ -57,7 +57,6 @@
 /* VM and per VM componenents */
 #define VM_COMP_DEF(num) \
     component Init vm##num; \
-    component PICEmulator IntMan##num; \
     component RTCEmulator RTCEmul##num; \
     component SerialEmulator SerialEmul##num; \
     /**/
@@ -65,7 +64,6 @@
 #define VM_CONNECT_DEF(num) \
     /* Connect all the components to the serial server */ \
     connection seL4RPCCall serial_vm##num(from vm##num.putchar, to serial.vm##num); \
-    connection seL4RPCCall serial_intman##num(from IntMan##num.putchar, to serial.vm##num); \
     connection seL4RPCCall serial_rtcemul##num(from RTCEmul##num.putchar, to serial.vm##num); \
     connection seL4RPCCall serial_serialemul##num(from SerialEmul##num.putchar, to serial.guest##num); \
     /* Connect the emulated serial input to the serial server */ \
@@ -101,17 +99,16 @@
     /* Connect config space to main VM */ \
     connection seL4RPCCall pciconfig##num(from vm##num.pci_config, to pci_config.pci_config); \
     /* Connect the PIC emulator to the main VM */ \
-    connection seL4RPCCall i8259port##num(from vm##num.i8259, to IntMan##num.i8259port); \
-    connection seL4RPCCall intmanager##num(from vm##num.IntManager, to IntMan##num.i8259int); \
-    connection seL4AsynchBind haveint##num(from IntMan##num.haveint, to vm##num.intready); \
+    connection seL4RPCCall i8259port##num(from vm##num.i8259, to vm##num.i8259port); \
+    connection seL4RPCCall intmanager##num(from vm##num.IntManager, to vm##num.i8259int); \
     /* Connect the emulated pit to the PIC emulator */ \
-    connection seL4RPCCall irq0_level_##num(from vm##num.pit_irq, to IntMan##num.irq0_level); \
-    connection seL4Asynch irq0_edge_##num(from vm##num.pit_edge_irq, to IntMan##num.irq0); \
+    connection seL4RPCCall irq0_level_##num(from vm##num.pit_irq, to vm##num.irq0_level); \
+    connection seL4Asynch irq0_edge_##num(from vm##num.pit_edge_irq, to vm##num.irq0); \
     /* Connect the emulated rtc to the PIC emulator */ \
-    connection seL4RPCCall irq8_level_##num(from RTCEmul##num.rtc_irq, to IntMan##num.irq8_level); \
+    connection seL4RPCCall irq8_level_##num(from RTCEmul##num.rtc_irq, to vm##num.irq8_level); \
     /* Connect the emulated serial to the PIC emulator */ \
-    connection seL4RPCCall irq4_level_##num(from SerialEmul##num.serial_irq, to IntMan##num.irq4_level); \
-    connection seL4Asynch irq4_edge_##num(from SerialEmul##num.serial_edge_irq, to IntMan##num.irq4); \
+    connection seL4RPCCall irq4_level_##num(from SerialEmul##num.serial_irq, to vm##num.irq4_level); \
+    connection seL4Asynch irq4_edge_##num(from SerialEmul##num.serial_edge_irq, to vm##num.irq4); \
     /**/
 
 #ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE
@@ -152,7 +149,6 @@
     SerialEmul##num.fifo_timeout_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(5, num)); \
     SerialEmul##num.transmit_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(6, num)); \
     SerialEmul##num.modem_status_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(7, num)); \
-    IntMan##num.haveint_attributes = BOOST_PP_STRINGIZE(VM_INT_MAN_BADGE); \
     time_server.CAT(VTIMER(0, num),_complete_attributes) = BOOST_PP_STRINGIZE(VM_PIT_TIMER_BADGE); \
     vm##num.cnode_size_bits = 21; \
     vm##num.simple = true; \

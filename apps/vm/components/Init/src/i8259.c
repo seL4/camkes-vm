@@ -21,12 +21,19 @@
 #include <stdbool.h>
 #include <sel4/sel4.h>
 #include <stdio.h>
-#include <PICEmulator.h>
+#include <Init.h>
 
 #define I8259_MASTER   0
 #define I8259_SLAVE    1
 
 #define PIC_NUM_PINS 16
+
+/* TODO: this exists due to this code originally being in a separate component
+ * with its own thread. This is a temporary hack to make existing code work */
+extern seL4_CPtr haveint_aep;
+static void haveint_emit() {
+    seL4_Notify(haveint_aep, 0);
+}
 
 /* Define all the IRQ callback functions */
 static void irq_callback(void *data);
@@ -685,7 +692,7 @@ static void irq_callback(void *data) {
     pic_unlock();
 }
 
-void pre_init(void) {
+void i8259_pre_init(void) {
     int i;
     pic_lock();
     set_putchar(putchar_putchar);

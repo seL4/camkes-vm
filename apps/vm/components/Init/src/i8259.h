@@ -14,4 +14,11 @@
 /* Tell the i8259 to simulate a edge triggered interrupt */
 void i8259_gen_irq(int irq);
 
+/* Port in/out functions for i8259 emulation */
+int i8259_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
+int i8259_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
+
+/* Init function */
+void i8259_pre_init(void);
+
 #endif

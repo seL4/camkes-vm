@@ -116,7 +116,6 @@
     /* Connect config space to main VM */ \
     connection seL4RPCCall pciconfig##num(from vm##num.pci_config, to pci_config.pci_config); \
     /* Connect the PIC emulator to the main VM */ \
-    connection seL4RPCCall i8259port##num(from vm##num.i8259, to vm##num.i8259port); \
     connection seL4RPCCall intmanager##num(from vm##num.IntManager, to vm##num.i8259int); \
     /* Connect the emulated pit to the PIC emulator */ \
     connection seL4RPCCall irq0_level_##num(from vm##num.pit_irq, to vm##num.irq0_level); \

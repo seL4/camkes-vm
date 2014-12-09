@@ -20,7 +20,6 @@ import "../../interfaces/Ethdriver.idl4";
 component Init {
     control;
     uses PutChar putchar;
-    uses VirtIOPort i8259;
     uses VirtIOPort cmos;
     uses VirtIOPort serial;
     uses InterruptGenerator IntManager;
@@ -32,7 +31,6 @@ component Init {
     uses Timer pit_timer;
 
     has mutex pic;
-    provides VirtIOPort i8259port;
     provides InterruptGenerator i8259int;
     provides LevelInterrupt irq0_level;
     provides LevelInterrupt irq1_level;

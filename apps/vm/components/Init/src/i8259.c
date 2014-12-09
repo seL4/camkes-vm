@@ -433,7 +433,7 @@ static unsigned int elcr_ioport_read(struct i8259_state *s, unsigned int addr) {
 }
 
 
-int i8259port_port_out(unsigned int port_no, unsigned int size, unsigned int value) {
+int i8259_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value) {
     pic_lock();
     /* Sender thread is the VMM main thread, calculate guest ID according to the badge. */
     struct i8259 *s = &i8259_gs;
@@ -465,7 +465,7 @@ int i8259port_port_out(unsigned int port_no, unsigned int size, unsigned int val
     return 0;
 }
 
-int i8259port_port_in(unsigned int port_no, unsigned int size, unsigned int *result) {
+int i8259_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
     pic_lock();
     /* Sender thread is the VMM main thread, calculate guest ID according to the badge. */
     struct i8259 *s = &i8259_gs;

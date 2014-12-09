@@ -23,7 +23,7 @@ component Init {
     uses VirtIOPort cmos;
     uses VirtIOPort serial;
     uses PCIConfig pci_config;
-    uses RTC rtc;
+    uses RTC system_rtc;
     consumes HaveInterrupt intready;
 
     uses Timer pit_timer;

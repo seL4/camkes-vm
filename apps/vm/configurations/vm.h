@@ -87,7 +87,7 @@
     connection seL4RPCCall serial_input##num(from SerialEmul##num.getchar, to serial.CAT(guest##num,_input)); \
     connection seL4Asynch serial_input_ready##num(from serial.CAT(guest##num,_input_signal), to SerialEmul##num.getchar_signal); \
     /* Temporarily connect the VM directly to the RTC */ \
-    connection seL4RPCCall rtctest##num(from vm##num.rtc, to rtc.rtc); \
+    connection seL4RPCCall rtctest##num(from vm##num.system_rtc, to rtc.rtc); \
     /* Connect the emulated serial to the VM */ \
     connection seL4RPCCall serial##num(from vm##num.serial, to SerialEmul##num.serialport); \
     /* Connect the emulated PIT to the timer server */ \

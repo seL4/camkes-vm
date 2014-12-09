@@ -637,7 +637,7 @@ int main_continued(void) {
     hw_irq_t *hw_irqs = NULL;
     int num_hw_irqs;
 
-    rtc_time_date_t time_date = rtc_time_date();
+    rtc_time_date_t time_date = system_rtc_time_date();
     printf("Starting VM %s at: %04d:%02d:%02d %02d:%02d:%02d\n", get_instance_name(), time_date.year, time_date.month, time_date.day, time_date.hour, time_date.minute, time_date.second);
 
     ioops = make_pci_io_ops();

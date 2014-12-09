@@ -94,14 +94,14 @@
     connection seL4RPCCall CAT(pit##num,_timer)(from vm##num.pit_timer, to time_server.the_timer); \
     connection seL4AsynchBind CAT(pit##num,_timer_interrupt)(from time_server.CAT(VTIMER(0, num),_complete), to vm##num.intready); \
     /* Connect the emulated RTC to the timer server */ \
-    connection seL4RPCCall CAT(rtc##num,_timer0)(from RTCEmul##num.periodic_timer, to time_server.the_timer); \
-    connection seL4Asynch CAT(rtc##num,_timer0_interrupt)(from time_server.CAT(VTIMER(1, num),_complete), to RTCEmul##num.periodic_timer_interrupt); \
-    connection seL4RPCCall CAT(rtc##num,_timer1)(from RTCEmul##num.coalesced_timer, to time_server.the_timer); \
-    connection seL4Asynch CAT(rtc##num,_timer1_interrupt)(from time_server.CAT(VTIMER(2, num),_complete), to RTCEmul##num.coalesced_timer_interrupt); \
-    connection seL4RPCCall CAT(rtc##num,_timer2)(from RTCEmul##num.second_timer, to time_server.the_timer); \
-    connection seL4Asynch CAT(rtc##num,_timer2_interrupt)(from time_server.CAT(VTIMER(3, num),_complete), to RTCEmul##num.second_timer_interrupt); \
-    connection seL4RPCCall CAT(rtc##num,_timer3)(from RTCEmul##num.second_timer2, to time_server.the_timer); \
-    connection seL4Asynch CAT(rtc##num,_timer3_interrupt)(from time_server.CAT(VTIMER(4, num),_complete), to RTCEmul##num.second_timer2_interrupt); \
+    connection seL4RPCCall CAT(rtc##num,_timer0)(from RTCEmul##num.rtc_periodic_timer, to time_server.the_timer); \
+    connection seL4Asynch CAT(rtc##num,_timer0_interrupt)(from time_server.CAT(VTIMER(1, num),_complete), to RTCEmul##num.rtc_periodic_timer_interrupt); \
+    connection seL4RPCCall CAT(rtc##num,_timer1)(from RTCEmul##num.rtc_coalesced_timer, to time_server.the_timer); \
+    connection seL4Asynch CAT(rtc##num,_timer1_interrupt)(from time_server.CAT(VTIMER(2, num),_complete), to RTCEmul##num.rtc_coalesced_timer_interrupt); \
+    connection seL4RPCCall CAT(rtc##num,_timer2)(from RTCEmul##num.rtc_second_timer, to time_server.the_timer); \
+    connection seL4Asynch CAT(rtc##num,_timer2_interrupt)(from time_server.CAT(VTIMER(3, num),_complete), to RTCEmul##num.rtc_second_timer_interrupt); \
+    connection seL4RPCCall CAT(rtc##num,_timer3)(from RTCEmul##num.rtc_second_timer2, to time_server.the_timer); \
+    connection seL4Asynch CAT(rtc##num,_timer3_interrupt)(from time_server.CAT(VTIMER(4, num),_complete), to RTCEmul##num.rtc_second_timer2_interrupt); \
     /* Connect the emulated serial to the timer server */ \
     connection seL4RPCCall CAT(serial##num,_timer0)(from SerialEmul##num.fifo_timeout, to time_server.the_timer); \
     connection seL4Asynch CAT(serial##num,_timer0_interrupt)(from time_server.CAT(VTIMER(5,num),_complete), to SerialEmul##num.fifo_timeout_interrupt); \

@@ -149,16 +149,16 @@ static void rtc_coalesced_timer_update(RTCState *s)
 {
     if (s->irq_coalesced == 0) {
 //        qemu_del_timer(s->coalesced_timer);
-        coalesced_timer_stop();
+        rtc_coalesced_timer_stop();
     } else {
         /* divide each RTC interval to 2 - 8 smaller intervals */
         int c = MIN(s->irq_coalesced, 7) + 1; 
 //        int64_t next_clock = qemu_get_clock_ns(rtc_clock) +
 //            muldiv64(s->period / c, get_ticks_per_sec(), 32768);
 //        qemu_mod_timer(s->coalesced_timer, next_clock);
-        int64_t next_clock = coalesced_timer_time() +
+        int64_t next_clock = rtc_coalesced_timer_time() +
             muldiv64(s->period / c, get_ticks_per_sec(), 32768);
-        coalesced_timer_oneshot_absolute(next_clock);
+        rtc_coalesced_timer_oneshot_absolute(next_clock);
     }
 }
 
@@ -209,13 +209,13 @@ static void rtc_timer_update(RTCState *s, int64_t current_time)
         s->next_periodic_time =
             muldiv64(next_irq_clock, get_ticks_per_sec(), 32768) + 1;
 //        qemu_mod_timer(s->periodic_timer, s->next_periodic_time);
-        periodic_timer_oneshot_absolute(s->next_periodic_time);
+        rtc_periodic_timer_oneshot_absolute(s->next_periodic_time);
     } else {
 #ifdef TARGET_I386
         s->irq_coalesced = 0;
 #endif
 //        qemu_del_timer(s->periodic_timer);
-        periodic_timer_stop();
+        rtc_periodic_timer_stop();
     }
 }
 
@@ -285,7 +285,7 @@ static void cmos_ioport_write(void *opaque, uint32_t addr, uint32_t data)
             s->cmos_data[RTC_REG_A] = (data & ~REG_A_UIP) |
                 (s->cmos_data[RTC_REG_A] & REG_A_UIP);
 //            rtc_timer_update(s, qemu_get_clock_ns(rtc_clock));
-            rtc_timer_update(s, periodic_timer_time());
+            rtc_timer_update(s, rtc_periodic_timer_time());
             break;
         case RTC_REG_B:
             if (data & REG_B_SET) {
@@ -308,7 +308,7 @@ static void cmos_ioport_write(void *opaque, uint32_t addr, uint32_t data)
                 s->cmos_data[RTC_REG_B] = data;
             }
 //            rtc_timer_update(s, qemu_get_clock_ns(rtc_clock));
-            rtc_timer_update(s, periodic_timer_time());
+            rtc_timer_update(s, rtc_periodic_timer_time());
             break;
         case RTC_REG_C:
         case RTC_REG_D:
@@ -449,7 +449,7 @@ static void rtc_update_second(void *opaque)
     if ((s->cmos_data[RTC_REG_A] & 0x70) != 0x20) {
         s->next_second_time += get_ticks_per_sec();
 //        qemu_mod_timer(s->second_timer, s->next_second_time);
-        second_timer_oneshot_absolute(s->next_second_time);
+        rtc_second_timer_oneshot_absolute(s->next_second_time);
     } else {
         rtc_next_second(&s->current_tm);
 
@@ -464,7 +464,7 @@ static void rtc_update_second(void *opaque)
             delay = 1;
 //        qemu_mod_timer(s->second_timer2,
 //                       s->next_second_time + delay);
-            second_timer2_oneshot_absolute(s->next_second_time + delay);
+            rtc_second_timer2_oneshot_absolute(s->next_second_time + delay);
     }
 }
 
@@ -504,7 +504,7 @@ static void rtc_update_second2(void *opaque)
 
     s->next_second_time += get_ticks_per_sec();
 //    qemu_mod_timer(s->second_timer, s->next_second_time);
-    second_timer_oneshot_absolute(s->next_second_time);
+    rtc_second_timer_oneshot_absolute(s->next_second_time);
 }
 
 static uint32_t cmos_ioport_read(void *opaque, uint32_t addr)
@@ -719,9 +719,9 @@ static int rtc_initfn(RTCState *s)
 //    qemu_register_clock_reset_notifier(rtc_clock, &s->clock_reset_notifier);
 
     s->next_second_time =
-        second_timer2_time() + (get_ticks_per_sec() * 99) / 100;
+        rtc_second_timer2_time() + (get_ticks_per_sec() * 99) / 100;
 //    qemu_mod_timer(s->second_timer2, s->next_second_time);
-    second_timer2_oneshot_absolute(s->next_second_time);
+    rtc_second_timer2_oneshot_absolute(s->next_second_time);
 
 //    memory_region_init_io(&s->io, &cmos_ops, s, "rtc", 2);
 //    isa_register_ioport(dev, &s->io, base);
@@ -776,7 +776,7 @@ static void periodic_timer_interrupt(void *cookie) {
     RTCState *s = (RTCState*)cookie;
     rtc_lock();
     rtc_periodic_timer(s);
-    periodic_timer_interrupt_reg_callback(periodic_timer_interrupt, cookie);
+    rtc_periodic_timer_interrupt_reg_callback(periodic_timer_interrupt, cookie);
     rtc_unlock();
 }
 
@@ -784,7 +784,7 @@ static void coalesced_timer_interrupt(void *cookie) {
     RTCState *s = (RTCState*)cookie;
     rtc_lock();
     rtc_coalesced_timer(s);
-    coalesced_timer_interrupt_reg_callback(coalesced_timer_interrupt, cookie);
+    rtc_coalesced_timer_interrupt_reg_callback(coalesced_timer_interrupt, cookie);
     rtc_unlock();
 }
 
@@ -792,7 +792,7 @@ static void second_timer_interrupt(void *cookie) {
     RTCState *s = (RTCState*)cookie;
     rtc_lock();
     rtc_update_second(s);
-    second_timer_interrupt_reg_callback(second_timer_interrupt, cookie);
+    rtc_second_timer_interrupt_reg_callback(second_timer_interrupt, cookie);
     rtc_unlock();
 }
 
@@ -800,7 +800,7 @@ static void second_timer2_interrupt(void *cookie) {
     RTCState *s = (RTCState*)cookie;
     rtc_lock();
     rtc_update_second2(s);
-    second_timer2_interrupt_reg_callback(second_timer2_interrupt, cookie);
+    rtc_second_timer2_interrupt_reg_callback(second_timer2_interrupt, cookie);
     rtc_unlock();
 }
 
@@ -812,10 +812,10 @@ void pre_init(void) {
     rtc_state.base_year = tm.year;
     rtc_initfn(&rtc_state);
     rtc_reset(&rtc_state);
-    periodic_timer_interrupt_reg_callback(periodic_timer_interrupt, &rtc_state);
-    coalesced_timer_interrupt_reg_callback(coalesced_timer_interrupt, &rtc_state);
-    second_timer_interrupt_reg_callback(second_timer_interrupt, &rtc_state);
-    second_timer2_interrupt_reg_callback(second_timer2_interrupt, &rtc_state);
+    rtc_periodic_timer_interrupt_reg_callback(periodic_timer_interrupt, &rtc_state);
+    rtc_coalesced_timer_interrupt_reg_callback(coalesced_timer_interrupt, &rtc_state);
+    rtc_second_timer_interrupt_reg_callback(second_timer_interrupt, &rtc_state);
+    rtc_second_timer2_interrupt_reg_callback(second_timer2_interrupt, &rtc_state);
     rtc_unlock();
 }
 

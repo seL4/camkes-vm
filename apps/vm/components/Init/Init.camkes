@@ -22,7 +22,6 @@ component Init {
     uses PutChar putchar;
     uses VirtIOPort cmos;
     uses VirtIOPort serial;
-    uses InterruptGenerator IntManager;
     uses PCIConfig pci_config;
     uses RTC rtc;
     consumes HaveInterrupt intready;
@@ -31,7 +30,6 @@ component Init {
     uses Timer pit_timer;
 
     has mutex pic;
-    provides InterruptGenerator i8259int;
     provides LevelInterrupt irq0_level;
     provides LevelInterrupt irq1_level;
     provides LevelInterrupt irq3_level;

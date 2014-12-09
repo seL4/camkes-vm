@@ -651,8 +651,8 @@ int main_continued(void) {
 
     /* Construct a new VM */
     platform_callbacks_t callbacks = (platform_callbacks_t) {
-        .get_interrupt = IntManager_get_interrupt,
-        .has_interrupt = IntManager_has_interrupt,
+        .get_interrupt = i8259_get_interrupt,
+        .has_interrupt = i8259_has_interrupt,
         .do_async = handle_async_event,
         .get_async_event_aep = get_async_event_aep
     };

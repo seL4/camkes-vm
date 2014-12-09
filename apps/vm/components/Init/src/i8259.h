@@ -21,4 +21,8 @@ int i8259_port_out(void *cookie, unsigned int port_no, unsigned int size, unsign
 /* Init function */
 void i8259_pre_init(void);
 
+/* Functions to retrieve interrupt state */
+int i8259_get_interrupt();
+int i8259_has_interrupt();
+
 #endif

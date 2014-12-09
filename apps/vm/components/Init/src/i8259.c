@@ -553,6 +553,7 @@ static int i8259_has_irq() {
     return s->output;
 }
 
+#if 0
 static int i8259_poll_irq()
 {
     struct i8259 *s = &i8259_gs;
@@ -583,6 +584,7 @@ static int i8259_poll_irq()
 
     return intno;
 }
+#endif
 
 /* Return the highest pending IRQ. Ack the IRQ by updating the ISR before entering guest, using this
  * function to get the pending IRQ. */
@@ -622,7 +624,7 @@ static int i8259_read_irq()
     return intno;
 }
 
-int i8259int_get_interrupt() {
+int i8259_get_interrupt() {
     pic_lock();
     int ret;
     i8259_gs.emitagain = 1;
@@ -635,30 +637,7 @@ int i8259int_get_interrupt() {
     return ret;
 }
 
-int i8259int_poll_interrupt_lock() {
-    pic_lock();
-    int ret;
-    if (i8259_has_irq()) {
-        ret = i8259_poll_irq();
-        /* don't unlock here */
-    } else {
-        ret = -1;
-        pic_unlock();
-    }
-    return ret;
-}
-
-void i8259int_poll_unlock() {
-    pic_unlock();
-}
-
-void i8259int_poll_complete_unlock(int intno) {
-    assert(i8259_has_irq());
-    assert(intno == i8259_read_irq());
-    pic_unlock();
-}
-
-int i8259int_has_interrupt() {
+int i8259_has_interrupt() {
     pic_lock();
     i8259_gs.emitagain = 1;
     int ret = i8259_has_irq();

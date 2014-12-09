@@ -33,12 +33,7 @@
 #include <sel4/sel4.h>
 #include <stdio.h>
 #include <Init.h>
-
-extern seL4_CPtr irq0_aep;
-
-static void pit_edge_irq_emit() {
-    seL4_Notify(irq0_aep, 0);
-}
+#include "i8259.h"
 
 //#define DEBUG_PIT
 
@@ -439,18 +434,7 @@ static void pit_irq_timer_update(PITChannelState *s, int64_t current_time)
     expire_time = pit_get_next_transition_time(s, current_time);
     irq_level = pit_get_out1(s, current_time);
 //    qemu_set_irq(s->irq, irq_level);
-    if (irq_level) {
-        pit_edge_irq_emit();
-//        if (!s->irq_level) {
-//            pit_irq_raise();
-//            s->irq_level = 1;
-//        }
-    } else {
-//        if (s->irq_level) {
-//            pit_irq_lower();
-//            s->irq_level = 0;
-//        }
-    }
+    i8259_level_set(0, irq_level);
 #ifdef DEBUG_PIT
     printf("irq_level=%d next_delay=%f\n",
            irq_level,

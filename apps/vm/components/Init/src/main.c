@@ -47,7 +47,6 @@ seL4_CPtr intready_aep();
  * the init componenet, but we have not yet removed their dependency
  * on having a async endpoint interface */
 seL4_CPtr haveint_aep = 0;
-seL4_CPtr irq0_aep = 0;
 seL4_CPtr hw_irq_handlers[16] = {0};
 
 static seL4_CPtr get_async_event_aep() {
@@ -611,11 +610,6 @@ static void make_async_aep() {
     error = vka_cnode_mint(&badge_path, &async_path, seL4_AllRights, seL4_CapData_Badge_new(VM_INT_MAN_BADGE));
     assert(!error);
     haveint_aep = badge_path.capPtr;
-    error = vka_cspace_alloc_path(&vka, &badge_path);
-    assert(!error);
-    error = vka_cnode_mint(&badge_path, &async_path, seL4_AllRights, seL4_CapData_Badge_new(VM_PIC_BADGE_IRQ_0));
-    assert(!error);
-    irq0_aep = badge_path.capPtr;
     for (int i = 0; i < device_notify_list_len; i++) {
         error = vka_cspace_alloc_path(&vka, &badge_path);
         assert(!error);

@@ -14,6 +14,11 @@
 /* Tell the i8259 to simulate a edge triggered interrupt */
 void i8259_gen_irq(int irq);
 
+/* Simulate level triggered interrupt states */
+void i8259_level_raise(int irq);
+void i8259_level_lower(int irq);
+void i8259_level_set(int irq, int level);
+
 /* Port in/out functions for i8259 emulation */
 int i8259_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
 int i8259_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value);

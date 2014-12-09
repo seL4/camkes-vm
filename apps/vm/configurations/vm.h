@@ -115,12 +115,9 @@
     connection seL4RPCCall cmosrtc##num(from vm##num.cmos, to RTCEmul##num.cmosport); \
     /* Connect config space to main VM */ \
     connection seL4RPCCall pciconfig##num(from vm##num.pci_config, to pci_config.pci_config); \
-    /* Connect the emulated pit to the PIC emulator */ \
-    connection seL4RPCCall irq0_level_##num(from vm##num.pit_irq, to vm##num.irq0_level); \
     /* Connect the emulated rtc to the PIC emulator */ \
     connection seL4RPCCall irq8_level_##num(from RTCEmul##num.rtc_irq, to vm##num.irq8_level); \
     /* Connect the emulated serial to the PIC emulator */ \
-    connection seL4RPCCall irq4_level_##num(from SerialEmul##num.serial_irq, to vm##num.irq4_level); \
     connection seL4AsynchBind irq4_edge_##num(from SerialEmul##num.serial_edge_irq, to vm##num.intready); \
     /**/
 

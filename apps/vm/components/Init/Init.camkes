@@ -26,25 +26,10 @@ component Init {
     uses RTC rtc;
     consumes HaveInterrupt intready;
 
-    uses LevelInterrupt pit_irq;
     uses Timer pit_timer;
 
     has mutex pic;
-    provides LevelInterrupt irq0_level;
-    provides LevelInterrupt irq1_level;
-    provides LevelInterrupt irq3_level;
-    provides LevelInterrupt irq4_level;
-    provides LevelInterrupt irq5_level;
-    provides LevelInterrupt irq6_level;
-    provides LevelInterrupt irq7_level;
     provides LevelInterrupt irq8_level;
-    provides LevelInterrupt irq9_level;
-    provides LevelInterrupt irq10_level;
-    provides LevelInterrupt irq11_level;
-    provides LevelInterrupt irq12_level;
-    provides LevelInterrupt irq13_level;
-    provides LevelInterrupt irq14_level;
-    provides LevelInterrupt irq15_level;
 
     VM_INIT_COMPONENT()
 }

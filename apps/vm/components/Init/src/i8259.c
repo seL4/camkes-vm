@@ -662,29 +662,24 @@ void i8259_gen_irq(int irq) {
     pic_unlock();
 }
 
-#define IRQ_LEVEL(x) void irq##x##_level_raise() { \
-    pic_lock(); \
-    i8259_set_irq(x, 1); \
-    pic_unlock(); \
-} \
-void irq##x##_level_lower() { \
-    pic_lock(); \
-    i8259_set_irq(x, 0); \
-    pic_unlock(); \
+void i8259_level_set(int irq, int level) {
+    pic_lock();
+    i8259_set_irq(irq, level);
+    pic_unlock();
 }
 
-IRQ_LEVEL(0)
-IRQ_LEVEL(1)
-IRQ_LEVEL(3)
-IRQ_LEVEL(4)
-IRQ_LEVEL(5)
-IRQ_LEVEL(6)
-IRQ_LEVEL(7)
-IRQ_LEVEL(8)
-IRQ_LEVEL(9)
-IRQ_LEVEL(10)
-IRQ_LEVEL(11)
-IRQ_LEVEL(12)
-IRQ_LEVEL(13)
-IRQ_LEVEL(14)
-IRQ_LEVEL(15)
+void i8259_level_raise(int irq) {
+    i8259_level_set(irq, 1);
+}
+
+void i8259_level_lower(int irq) {
+    i8259_level_set(irq, 0);
+}
+
+void irq8_level_raise() {
+    i8259_level_raise(8);
+}
+
+void irq8_level_lower() {
+    i8259_level_lower(8);
+}

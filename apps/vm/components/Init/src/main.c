@@ -33,6 +33,7 @@
 
 #include "vm.h"
 #include "virtio_net.h"
+#include "i8259.h"
 
 #define BRK_VIRTUAL_SIZE 400000000
 
@@ -644,7 +645,7 @@ int main_continued(void) {
     int have_initrd = 0;
     ps_io_port_ops_t ioops;
     int iospace_domain;
-    ioport_desc_t *vm_ioports;
+    ioport_desc_t UNUSED *vm_ioports;
     int num_vm_ioports;
     void (**device_init_list)(vmm_t*) = NULL;
     int device_init_list_len = 0;

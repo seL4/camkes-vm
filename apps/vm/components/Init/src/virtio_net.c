@@ -33,6 +33,7 @@
 #include "vmm/platform/guest_vspace.h"
 
 #include "vm.h"
+#include "i8259.h"
 
 #if VM_NUM_ETHDRIVERS > 0
 

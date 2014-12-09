@@ -218,7 +218,7 @@ static void eth_rx_complete(void *iface, unsigned int num_bufs, void **cookies, 
                 client = &clients[i];
                 if ((client->rx_head + 1) % CLIENT_RX_BUFS != client->rx_tail) {
                     void *cookie;
-                    void *buf = eth_allocate_rx_buf(iface, lens[0], &cookie);
+                    void *buf = (void*)eth_allocate_rx_buf(iface, lens[0], &cookie);
                     if (buf) {
                         memcpy(buf, cookies[0], lens[0]);
                         give_client_buf(client, cookies[0], lens[0]);

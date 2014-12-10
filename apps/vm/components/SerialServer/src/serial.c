@@ -411,10 +411,10 @@ void pre_init(void) {
     init_colours();
     set_putchar(serial_putchar);
     serial_irq_reg_callback(serial_irq, 0);
-    serial_unlock();
     /* Start regular heartbeat of 500ms */
-    timeout_periodic(500000000);
     timeout_complete_reg_callback(timer_callback, 0);
+    timeout_periodic(500000000);
+    serial_unlock();
 }
 
 /* Generate stub interfaces for each camkes interface */

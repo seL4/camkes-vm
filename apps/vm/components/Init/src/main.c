@@ -46,8 +46,8 @@ seL4_CPtr intready_aep();
 /* TODO: these exist for other components that have been collapsed into
  * the init componenet, but we have not yet removed their dependency
  * on having a async endpoint interface */
-seL4_CPtr haveint_aep = 0;
-seL4_CPtr hw_irq_handlers[16] = {0};
+volatile seL4_CPtr haveint_aep = 0;
+volatile seL4_CPtr hw_irq_handlers[16] = {0};
 
 static seL4_CPtr get_async_event_aep() {
     return intready_aep();
@@ -207,9 +207,6 @@ void pre_init(void) {
     sel4utils_reserve_range_no_alloc(&vspace, &muslc_brk_reservation_memory, BRK_VIRTUAL_SIZE, seL4_AllRights, 1, &muslc_brk_reservation_start);
     muslc_this_vspace = &vspace;
     muslc_brk_reservation = (reservation_t){.res = &muslc_brk_reservation_memory};
-
-    pit_pre_init();
-    i8259_pre_init();
 }
 
 typedef struct memory_range {
@@ -688,6 +685,9 @@ int main_continued(void) {
 
     make_async_aep();
     init_irqs(hw_irqs, num_hw_irqs);
+
+    i8259_pre_init();
+    pit_pre_init();
 
 #ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_IOMMU
     /* Do early device discovery and find any relevant PCI busses that

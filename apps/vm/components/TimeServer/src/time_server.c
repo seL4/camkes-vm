@@ -218,6 +218,7 @@ uint64_t the_timer_time() {
 }
 
 void pre_init() {
+    time_server_lock();
     set_putchar(putchar_putchar);
     for (int i = 0; i < VM_NUM_TIMERS; i++) {
         client_state[i].id = i;
@@ -236,4 +237,5 @@ void pre_init() {
 //    tsc_frequency = tsc_calculate_frequency(timer);
 //    assert(tsc_frequency);
     irq_reg_callback(timer_interrupt, NULL);
+    time_server_unlock();
 }

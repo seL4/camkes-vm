@@ -155,10 +155,10 @@
 
 #define VM_CONFIG_DEF(num) \
     vm##num.pit_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(0, num)); \
-    RTCEmul##num.periodic_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(1, num)); \
-    RTCEmul##num.coalesced_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(2, num)); \
-    RTCEmul##num.second_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(3, num)); \
-    RTCEmul##num.second_timer2_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(4, num)); \
+    RTCEmul##num.rtc_periodic_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(1, num)); \
+    RTCEmul##num.rtc_coalesced_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(2, num)); \
+    RTCEmul##num.rtc_second_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(3, num)); \
+    RTCEmul##num.rtc_second_timer2_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(4, num)); \
     SerialEmul##num.fifo_timeout_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(5, num)); \
     SerialEmul##num.transmit_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(6, num)); \
     SerialEmul##num.modem_status_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(7, num)); \

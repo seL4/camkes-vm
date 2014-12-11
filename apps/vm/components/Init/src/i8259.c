@@ -218,7 +218,7 @@ static void pic_update_irq(struct i8259 *s) {
     else
         s->output = 0;
 
-    if (s->emitagain) {
+    if (s->emitagain && s->output) {
         haveint_emit();
         s->emitagain = 0;
     }
@@ -627,11 +627,13 @@ static int i8259_read_irq()
 int i8259_get_interrupt() {
     pic_lock();
     int ret;
-    i8259_gs.emitagain = 1;
     if (i8259_has_irq()) {
         ret = i8259_read_irq();
     } else {
         ret = -1;
+    }
+    if (!i8259_has_irq()) {
+        i8259_gs.emitagain = 1;
     }
     pic_unlock();
     return ret;
@@ -639,7 +641,6 @@ int i8259_get_interrupt() {
 
 int i8259_has_interrupt() {
     pic_lock();
-    i8259_gs.emitagain = 1;
     int ret = i8259_has_irq();
     pic_unlock();
     return ret;
@@ -647,7 +648,6 @@ int i8259_has_interrupt() {
 
 void i8259_pre_init(void) {
     pic_lock();
-    set_putchar(putchar_putchar);
     /* First initialize the emulated pic state */
     i8259_init_state();
     i8259_gs.emitagain = 1;

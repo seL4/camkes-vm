@@ -9,9 +9,10 @@
  */
 
 procedure Timer {
-    int periodic(in uint64_t ns);
-    int oneshot_absolute(in uint64_t ns);
-    int oneshot_relative(in uint64_t ns);
+    unsigned int completed();
+    int periodic(in int tid, in uint64_t ns);
+    int oneshot_absolute(in int tid, in uint64_t ns);
+    int oneshot_relative(in int tid, in uint64_t ns);
+    int stop(in int tid);
     uint64_t time();
-    int stop();
 };

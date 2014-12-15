@@ -149,7 +149,7 @@ static void rtc_coalesced_timer_update(RTCState *s)
 {
     if (s->irq_coalesced == 0) {
 //        qemu_del_timer(s->coalesced_timer);
-        rtc_coalesced_timer_stop();
+        rtc_coalesced_timer_stop(0);
     } else {
         /* divide each RTC interval to 2 - 8 smaller intervals */
         int c = MIN(s->irq_coalesced, 7) + 1; 
@@ -158,7 +158,7 @@ static void rtc_coalesced_timer_update(RTCState *s)
 //        qemu_mod_timer(s->coalesced_timer, next_clock);
         int64_t next_clock = rtc_coalesced_timer_time() +
             muldiv64(s->period / c, get_ticks_per_sec(), 32768);
-        rtc_coalesced_timer_oneshot_absolute(next_clock);
+        rtc_coalesced_timer_oneshot_absolute(0, next_clock);
     }
 }
 
@@ -209,13 +209,13 @@ static void rtc_timer_update(RTCState *s, int64_t current_time)
         s->next_periodic_time =
             muldiv64(next_irq_clock, get_ticks_per_sec(), 32768) + 1;
 //        qemu_mod_timer(s->periodic_timer, s->next_periodic_time);
-        rtc_periodic_timer_oneshot_absolute(s->next_periodic_time);
+        rtc_periodic_timer_oneshot_absolute(0, s->next_periodic_time);
     } else {
 #ifdef TARGET_I386
         s->irq_coalesced = 0;
 #endif
 //        qemu_del_timer(s->periodic_timer);
-        rtc_periodic_timer_stop();
+        rtc_periodic_timer_stop(0);
     }
 }
 
@@ -449,7 +449,7 @@ static void rtc_update_second(void *opaque)
     if ((s->cmos_data[RTC_REG_A] & 0x70) != 0x20) {
         s->next_second_time += get_ticks_per_sec();
 //        qemu_mod_timer(s->second_timer, s->next_second_time);
-        rtc_second_timer_oneshot_absolute(s->next_second_time);
+        rtc_second_timer_oneshot_absolute(0, s->next_second_time);
     } else {
         rtc_next_second(&s->current_tm);
 
@@ -464,7 +464,7 @@ static void rtc_update_second(void *opaque)
             delay = 1;
 //        qemu_mod_timer(s->second_timer2,
 //                       s->next_second_time + delay);
-            rtc_second_timer2_oneshot_absolute(s->next_second_time + delay);
+            rtc_second_timer2_oneshot_absolute(0, s->next_second_time + delay);
     }
 }
 
@@ -504,7 +504,7 @@ static void rtc_update_second2(void *opaque)
 
     s->next_second_time += get_ticks_per_sec();
 //    qemu_mod_timer(s->second_timer, s->next_second_time);
-    rtc_second_timer_oneshot_absolute(s->next_second_time);
+    rtc_second_timer_oneshot_absolute(0, s->next_second_time);
 }
 
 static uint32_t cmos_ioport_read(void *opaque, uint32_t addr)
@@ -721,7 +721,7 @@ static int rtc_initfn(RTCState *s)
     s->next_second_time =
         rtc_second_timer2_time() + (get_ticks_per_sec() * 99) / 100;
 //    qemu_mod_timer(s->second_timer2, s->next_second_time);
-    rtc_second_timer2_oneshot_absolute(s->next_second_time);
+    rtc_second_timer2_oneshot_absolute(0, s->next_second_time);
 
 //    memory_region_init_io(&s->io, &cmos_ops, s, "rtc", 2);
 //    isa_register_ioport(dev, &s->io, base);

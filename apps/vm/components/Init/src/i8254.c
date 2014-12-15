@@ -447,13 +447,13 @@ static void pit_irq_timer_update(PITChannelState *s, int64_t current_time)
         qemu_del_timer(s->irq_timer);*/
     if (expire_time != -1) {
         if (s->timer_status != expire_time) {
-            pit_timer_oneshot_absolute(expire_time);
+            pit_timer_oneshot_absolute(0, expire_time);
             s->timer_status = expire_time;
         }
     }
     else {
         if (s->timer_status) {
-            pit_timer_stop();
+            pit_timer_stop(0);
             s->timer_status = 0;
         }
     }

@@ -43,6 +43,8 @@
  * badge. Therefore we add 1 here and not VTIMER_FIRST */
 #define VM_NUM_TIMERS BOOST_PP_ADD(1, BOOST_PP_MUL(VTIMER_NUM, VM_NUM_GUESTS))
 
+#define VM_NUM_TIMER_CLIENTS VM_NUM_TIMERS
+
 /* The int manager async endpoint sets both the high and low bits of the badge
  * following standard protocal of high bit indicating some async message
  * low bit indicating which async event */

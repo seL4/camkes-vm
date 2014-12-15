@@ -471,7 +471,7 @@ static void serial_ioport_write(void *opaque, uint32_t addr, uint32_t val)
 
         if (val & UART_FCR_RFR) {
 //            qemu_del_timer(s->fifo_timeout_timer);
-            fifo_timeout_stop();
+            fifo_timeout_stop(0);
             s->timeout_ipending=0;
             fifo_clear(s,RECV_FIFO);
         }
@@ -573,7 +573,7 @@ static uint32_t serial_ioport_read(void *opaque, uint32_t addr)
                     s->lsr &= ~(UART_LSR_DR | UART_LSR_BI);
                 } else {
 //                    qemu_mod_timer(s->fifo_timeout_timer, qemu_get_clock_ns (vm_clock) + s->char_transmit_time * 4);
-                    fifo_timeout_oneshot_absolute(fifo_timeout_time() + s->char_transmit_time * 4);
+                    fifo_timeout_oneshot_absolute(0, fifo_timeout_time() + s->char_transmit_time * 4);
                 }
                 s->timeout_ipending = 0;
             } else {
@@ -700,7 +700,7 @@ static void serial_receive1(void *opaque, const uint8_t *buf, int size)
         s->lsr |= UART_LSR_DR;
         /* call the timeout receive callback in 4 char transmit time */
 //        qemu_mod_timer(s->fifo_timeout_timer, qemu_get_clock_ns (vm_clock) + s->char_transmit_time * 4);
-        fifo_timeout_oneshot_absolute(fifo_timeout_time() + s->char_transmit_time * 4);
+        fifo_timeout_oneshot_absolute(0, fifo_timeout_time() + s->char_transmit_time * 4);
     } else {
         if (s->lsr & UART_LSR_DR)
             s->lsr |= UART_LSR_OE;

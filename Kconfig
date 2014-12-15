@@ -42,6 +42,7 @@ menu "Libraries"
     source "libs/libsel4bench/Kconfig"
     source "libs/libsel4cxx/Kconfig"
     source "libs/libethdrivers/Kconfig"
+    source "libs/liblwip/Kconfig"
 endmenu
 
 menu "Applications"

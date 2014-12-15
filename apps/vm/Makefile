@@ -11,6 +11,9 @@
 TARGETS := $(notdir ${SOURCE_DIR}).cdl
 ADL := vm.camkes
 
+# Subdirectory containing extra templates.
+TEMPLATES := templates
+
 #Source files required to build the target 
 Init_CFILES   := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/Init/src/*.c))
 
@@ -37,9 +40,10 @@ Ethdriver_HFILES += $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/config
 Ethdriver_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/Ethdriver/src/*.c))
 Ethdriver_LIBS := sel4camkes sel4utils sel4vka sel4allocman sel4vspace sel4simple sel4platsupport ethdrivers
 
-Echo_HFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/configurations/*.h))
 Echo_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/Echo/src/*.c))
-Echo_LIBS := sel4camkes ethdrivers lwip
+
+UDPServer_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/UDPServer/src/*.c))
+UDPServer_LIBS := sel4camkes ethdrivers lwip
 
 RTCEmulator_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/RTCEmulator/src/*.c))
 SerialEmulator_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/SerialEmulator/src/*.c))

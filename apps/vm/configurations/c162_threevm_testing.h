@@ -39,18 +39,25 @@
 #define PLAT_CONNECT_DEF() \
     /* Give ethernet driver same output as its vm */ \
     connection seL4RPCCall eth_putchar(from ethdriver0.putchar, to serial.vm1); \
+    /* Give echo output */ \
+    connection seL4RPCCall echo_putchar(from echo.putchar, to serial.vm1); \
+    /* Give udp server output */ \
+    connection seL4RPCCall udpserver_putchar (from udpserver.putchar, to serial.vm1); \
     /* Connect ethernet driver to vm 1 */ \
     connection seL4SharedData eth_packet1(from ethdriver0.packet0, to vm1.packet); \
     connection seL4RPCCall eth_driver1(from vm1.ethdriver, to ethdriver0.client0); \
     connection seL4Asynch eth_rx_ready1(from ethdriver0.rx_ready0, to vm1.eth_rx_ready); \
-    /* Connect ethernet driver to echo */ \
-    connection seL4RPCCall echo_putchar(from echo.putchar, to serial.vm1); \
-    connection seL4SharedData eth_packet2(from ethdriver0.packet1, to echo.packet); \
-    connection seL4RPCCall eth_driver2(from echo.ethdriver, to ethdriver0.client1); \
-    connection seL4Asynch eth_rx_ready2(from ethdriver0.rx_ready1, to echo.eth_rx_ready); \
+    /* Connect ethernet driver to udpserver */ \
+    connection seL4RPCCall udpserver_putchar(from udpserver.putchar, to serial.vm1); \
+    connection seL4SharedData eth_packet2(from ethdriver0.packet1, to udpserver.packet); \
+    connection seL4RPCCall eth_driver2(from udpserver.ethdriver, to ethdriver0.client1); \
+    connection seL4Asynch eth_rx_ready2(from ethdriver0.rx_ready1, to udpserver.eth_rx_ready); \
     /* Define hardware resources for ethdriver0 */ \
     connection seL4HardwareMMIO ethdrivermmio1(from ethdriver0.EthDriver, to HWEthDriver.mmio); \
     connection seL4IOAPICHardwareInterrupt hwethirq(from HWEthDriver.irq, to ethdriver0.irq); \
+    /* UDP connections for echo server */ \
+    connection seL4UDPRecv udp_echo_recv(from echo.echo_recv, to udpserver.client_recv); \
+    connection seL4UDPSend udp_echo_send(from echo.echo_send, to udpserver.client_send); \
     /**/
 
 #define VM_CONFIGURATION_IOSPACES_0() ( \
@@ -130,6 +137,8 @@
     ethdriver0.cnode_size_bits = 12; \
     ethdriver0.iospace = "0x12:0x1:0x0:0"; \
     ethdriver0.simple_untyped20_pool = 2; \
+    udpserver.client_recv_attributes = "8,7"; \
+    udpserver.client_send_attributes = "7"; \
     /**/
 
 #define VM_GUEST_PASSTHROUGH_DEVICES_0() \
@@ -204,6 +213,7 @@
     component Ethdriver ethdriver0; \
     component HWEthDriver HWEthDriver; \
     component Echo echo; \
+    component UDPServer udpserver; \
     /**/
 
 #define VM_NUM_ETHDRIVERS 1

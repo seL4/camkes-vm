@@ -35,7 +35,18 @@ import "components/RTCEmulator/RTCEmulator.camkes";
 import "components/SerialEmulator/SerialEmulator.camkes";
 import "components/SerialServer/SerialServer.camkes";
 import "components/Ethdriver/Ethdriver.camkes";
+import "components/UDPServer/UDPServer.camkes";
 import "components/Echo/Echo.camkes";
+
+connector seL4UDPSend {
+    from Dataport client template "seL4UDPSend-from.template.c";
+    to Dataport server template "seL4UDPSend-to.template.c";
+}
+
+connector seL4UDPRecv {
+    from Dataport client template "seL4UDPRecv-from.template.c";
+    to Dataport server template "seL4UDPRecv-to.template.c";
+}
 
 component PieceOfHardware {
     hardware;

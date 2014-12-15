@@ -11,8 +11,14 @@
 import "../../interfaces/Ethdriver.idl4";
 import "../../interfaces/PutChar.idl4";
 
-component Echo {
+component UDPServer {
     uses PutChar putchar;
-    dataport Buf echo_recv;
-    dataport Buf echo_send;
+    has mutex lwip;
+
+    dataport Buf packet;
+    uses Ethdriver ethdriver;
+    consumes Notifcation eth_rx_ready;
+
+    dataport Buf client_recv;
+    dataport Buf client_send;
 }

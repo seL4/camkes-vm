@@ -35,6 +35,9 @@
 #include "virtio_net.h"
 #include "i8259.h"
 
+#include <boost/preprocessor/facilities/apply.hpp>
+#include <boost/preprocessor/list/adt.hpp>
+
 #define BRK_VIRTUAL_SIZE 400000000
 
 reservation_t muslc_brk_reservation;
@@ -398,21 +401,18 @@ ioport_desc_t ioport_handlers[] = {
 };
 
 #define GUEST_IOPORT_OUTPUT(r, data, elem) \
-    BOOST_PP_EXPAND( \
-        BOOST_PP_REM BOOST_PP_IF( \
-            BOOST_PP_TUPLE_ELEM(2, elem),\
-            ({BOOST_PP_TUPLE_ELEM(0,elem),BOOST_PP_TUPLE_ELEM(1,elem),NULL,NULL,BOOST_PP_TUPLE_ELEM(3,elem)},), \
-            () \
-        ) \
-    ) \
+    BOOST_PP_TUPLE_ENUM(BOOST_PP_IF( \
+        BOOST_PP_TUPLE_ELEM(2, elem),\
+        ({.start_port = BOOST_PP_TUPLE_ELEM(0, elem), .end_port = BOOST_PP_TUPLE_ELEM(1, elem), .port_in = NULL, .port_out = NULL, .desc = BOOST_PP_TUPLE_ELEM(3, elem)},), \
+        () \
+    )) \
     /**/
+
+
 #define GUEST_IOPORTS_OUTPUT(num, iteration, data) \
     ioport_desc_t ioport_handlers_vm##iteration[] = { \
         BOOST_PP_LIST_FOR_EACH(GUEST_IOPORT_OUTPUT, iteration, BOOST_PP_TUPLE_TO_LIST(CAT(VM_CONFIGURATION_IOPORT_, iteration)())) \
     }; \
-    /**/
-#define SOME_OP(num) \
-    BOOST_PP_LIST_FOR_EACH(GUEST_IOPORTS_OUTPUT, num, BOOST_PP_TUPLE_TO_LIST(CAT(VM_CONFIGURATION_IOPORT_, num)())) \
     /**/
 
 BOOST_PP_REPEAT(VM_NUM_GUESTS, GUEST_IOPORTS_OUTPUT, _)
@@ -789,10 +789,7 @@ int main_continued(void) {
         }
     }
     for (i = 0; i < num_vm_ioports; i++) {
-        /* These IOPort additions are redundant as they seem to all be for PCI bars that
-         * will already get added by vmm_pci_helper_map_bars. Just going to leave this
-         * commented out for now */
-#if 0
+        /* add io ports that are marked as pass through but are not part of any PCI device */
         if (vm_ioports[i].port_in) {
             error = vmm_io_port_add_handler(&vmm.io_port, vm_ioports[i].start_port, vm_ioports[i].end_port, NULL, vm_ioports[i].port_in, vm_ioports[i].port_out, vm_ioports[i].desc);
             assert(!error);
@@ -800,7 +797,6 @@ int main_continued(void) {
             error = vmm_io_port_add_passthrough(&vmm.io_port, vm_ioports[i].start_port, vm_ioports[i].end_port, vm_ioports[i].desc);
             assert(!error);
         }
-#endif
     }
     /* config start and end encomposes both addr and data ports */
     error = vmm_io_port_add_handler(&vmm.io_port, X86_IO_PCI_CONFIG_START, X86_IO_PCI_CONFIG_END, &vmm.pci, vmm_pci_io_port_in, vmm_pci_io_port_out, "PCI Configuration Space");

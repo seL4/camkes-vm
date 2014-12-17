@@ -108,7 +108,7 @@
     (0x161E, 0x161F, 0, "CANbus 2 Two address"), \
     (0x16C0, 0x16E0, 0, "CANbus 2 Multi address"), \
     /* devices */ \
-    (0xe000, 0xe01f, 1,) \
+    (0xe000, 0xe01f, 0,) \
     ) \
     /**/
 
@@ -116,7 +116,7 @@
     (0x2f8, 0x2ff, 0, "COM2 Serial Port"), \
     (0x2e8, 0x2ef, 0, "COM4 Serial Port"), \
     /* device */ \
-    (0xd040, 0xd05f, 1,) \
+    (0xd040, 0xd05f, 0,) \
     ) \
     /**/
 

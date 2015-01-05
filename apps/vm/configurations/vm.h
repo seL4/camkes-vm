@@ -98,8 +98,6 @@
     connection seL4Asynch CAT(serial##num,_timer0_interrupt)(from time_server.CAT(VTIMER(1,num),_complete), to SerialEmul##num.serial_timer_interrupt); \
     /* Connect config space to main VM */ \
     connection seL4RPCCall pciconfig##num(from vm##num.pci_config, to pci_config.pci_config); \
-    /* Connect the emulated rtc to the PIC emulator */ \
-    connection seL4RPCCall irq8_level_##num(from vm##num.rtc_irq, to vm##num.irq8_level); \
     /* Connect the emulated serial to the PIC emulator */ \
     connection seL4AsynchBind irq4_edge_##num(from SerialEmul##num.serial_edge_irq, to vm##num.intready); \
     /**/

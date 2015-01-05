@@ -32,6 +32,7 @@
 #include <platsupport/plat/rtc.h>
 #include <Init.h>
 #include "timers.h"
+#include "i8259.h"
 
 #define TARGET_I386
 
@@ -172,7 +173,7 @@ static void rtc_coalesced_timer(void *opaque)
         s->cmos_data[RTC_REG_C] |= 0xc0;
         DPRINTF_C("cmos: injecting from timer\n");
 //        qemu_irq_raise(s->irq);
-        rtc_irq_raise();
+        i8259_level_raise(8);
 //        if (apic_get_irq_delivered()) {
 //            s->irq_coalesced--;
 //            DPRINTF_C("cmos: coalesced irqs decreased to %d\n",
@@ -233,7 +234,7 @@ static void rtc_periodic_timer(void *opaque)
                 s->irq_reinject_on_ack_count = 0;
 //            apic_reset_irq_delivered();
 //            qemu_irq_raise(s->irq);
-            rtc_irq_raise();
+            i8259_level_raise(8);
 //            if (!apic_get_irq_delivered()) {
 //                s->irq_coalesced++;
 //                rtc_coalesced_timer_update(s);
@@ -243,13 +244,13 @@ static void rtc_periodic_timer(void *opaque)
         } else
 #endif
 //        qemu_irq_raise(s->irq);
-            rtc_irq_raise();
+            i8259_level_raise(8);
     }
     if (s->cmos_data[RTC_REG_B] & REG_B_SQWE) {
         /* Not square wave at all but we don't want 2048Hz interrupts!
            Must be seen as a pulse.  */
 //        qemu_irq_raise(s->sqw_irq);
-        rtc_irq_raise();
+        i8259_level_raise(8);
     }
 }
 
@@ -488,7 +489,7 @@ static void rtc_update_second2(void *opaque)
 
             s->cmos_data[RTC_REG_C] |= 0xa0;
 //            qemu_irq_raise(s->irq);
-            rtc_irq_raise();
+            i8259_level_raise(8);
         }
     }
 
@@ -497,7 +498,7 @@ static void rtc_update_second2(void *opaque)
     if (s->cmos_data[RTC_REG_B] & REG_B_UIE) {
         s->cmos_data[RTC_REG_C] |= REG_C_IRQF;
 //        qemu_irq_raise(s->irq);
-        rtc_irq_raise();
+        i8259_level_raise(8);
     }
 
     /* clear update in progress bit */
@@ -531,7 +532,7 @@ static uint32_t cmos_ioport_read(void *opaque, uint32_t addr)
         case RTC_REG_C:
             ret = s->cmos_data[s->cmos_index];
 //            qemu_irq_lower(s->irq);
-            rtc_irq_lower();
+            i8259_level_lower(8);
 #ifdef TARGET_I386
             if(s->irq_coalesced &&
                     s->irq_reinject_on_ack_count < RTC_REINJECT_ON_ACK_COUNT) {
@@ -539,7 +540,7 @@ static uint32_t cmos_ioport_read(void *opaque, uint32_t addr)
 //                apic_reset_irq_delivered();
                 DPRINTF_C("cmos: injecting on ack\n");
 //                qemu_irq_raise(s->irq);
-                rtc_irq_raise();
+                i8259_level_raise(8);
 //                if (apic_get_irq_delivered()) {
 //                    s->irq_coalesced--;
 //                    DPRINTF_C("cmos: coalesced irqs decreased to %d\n",
@@ -672,7 +673,7 @@ static void rtc_reset(void *opaque)
     s->cmos_data[RTC_REG_C] &= ~(REG_C_UF | REG_C_IRQF | REG_C_PF | REG_C_AF);
 
 //    qemu_irq_lower(s->irq);
-    rtc_irq_lower();
+    i8259_level_lower(8);
 
 #ifdef TARGET_I386
     if (rtc_td_hack)
@@ -775,7 +776,6 @@ static RTCState rtc_state;
 
 void rtc_timer_interrupt(uint32_t completed) {
     RTCState *s = &rtc_state;
-    rtc_lock();
     if (completed & BIT(TIMER_PERIODIC_TIMER)) {
         rtc_periodic_timer(s);
     }
@@ -788,39 +788,30 @@ void rtc_timer_interrupt(uint32_t completed) {
     if (completed & BIT(TIMER_SECOND_TIMER2)) {
         rtc_update_second2(s);
     }
-    rtc_unlock();
 }
 
 void rtc_pre_init(void) {
-    rtc_lock();
     /* set the base year */
     rtc_time_date_t tm = system_rtc_time_date();
     rtc_state.base_year = tm.year;
     rtc_initfn(&rtc_state);
     rtc_reset(&rtc_state);
-    rtc_unlock();
 }
 
 int cmos_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
-    rtc_lock();
     if (size != 1) {
         assert(!"Reads to CMOS ports must be of size 1");
-        rtc_unlock();
         return -1;
     }
     *result = cmos_ioport_read(&rtc_state, port_no);
-    rtc_unlock();
     return 0;
 }
 
 int cmos_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value) {
-    rtc_lock();
     if (size != 1) {
         assert(!"Writes to CMOS ports must be of size 1");
-        rtc_unlock();
         return -1;
     }
     cmos_ioport_write(&rtc_state, port_no, value);
-    rtc_unlock();
     return 0;
 }

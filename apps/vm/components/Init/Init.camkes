@@ -27,11 +27,5 @@ component Init {
 
     uses Timer init_timer;
 
-    has mutex pic;
-    provides LevelInterrupt irq8_level;
-
-    has mutex rtc;
-    uses LevelInterrupt rtc_irq;
-
     VM_INIT_COMPONENT()
 }

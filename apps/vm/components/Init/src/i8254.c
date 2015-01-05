@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <Init.h>
 #include "i8259.h"
+#include "timers.h"
 
 //#define DEBUG_PIT
 
@@ -115,7 +116,7 @@ static int pit_get_count(PITChannelState *s)
     int counter;
 
 //    d = muldiv64(qemu_get_clock_ns(vm_clock) - s->count_load_time, PIT_FREQ,
-    d = muldiv64(pit_timer_time() - s->count_load_time, PIT_FREQ,
+    d = muldiv64(init_timer_time() - s->count_load_time, PIT_FREQ,
                  get_ticks_per_sec());
     switch(s->mode) {
     case 0:
@@ -291,7 +292,7 @@ static inline void pit_load_count(PITChannelState *s, int val)
     if (val == 0)
         val = 0x10000;
 //    s->count_load_time = qemu_get_clock_ns(vm_clock);
-    s->count_load_time = pit_timer_time();
+    s->count_load_time = init_timer_time();
     s->count = val;
     pit_irq_timer_update(s, s->count_load_time);
 }
@@ -326,7 +327,7 @@ static void pit_ioport_write(void *opaque, uint32_t addr, uint32_t val)
                         /* status latch */
                         /* XXX: add BCD and null count */
 //                        s->status =  (pit_get_out1(s, qemu_get_clock_ns(vm_clock)) << 7) |
-                        s->status =  (pit_get_out1(s, pit_timer_time()) << 7) |
+                        s->status =  (pit_get_out1(s, init_timer_time()) << 7) |
                             (s->rw_mode << 4) |
                             (s->mode << 1) |
                             s->bcd;
@@ -447,13 +448,13 @@ static void pit_irq_timer_update(PITChannelState *s, int64_t current_time)
         qemu_del_timer(s->irq_timer);*/
     if (expire_time != -1) {
         if (s->timer_status != expire_time) {
-            pit_timer_oneshot_absolute(0, expire_time);
+            init_timer_oneshot_absolute(TIMER_PIT, expire_time);
             s->timer_status = expire_time;
         }
     }
     else {
         if (s->timer_status) {
-            pit_timer_stop(0);
+            init_timer_stop(TIMER_PIT);
             s->timer_status = 0;
         }
     }

@@ -34,6 +34,7 @@
 #include "vm.h"
 #include "virtio_net.h"
 #include "i8259.h"
+#include "timers.h"
 
 #include <boost/preprocessor/facilities/apply.hpp>
 #include <boost/preprocessor/list/adt.hpp>
@@ -178,6 +179,7 @@ static void make_proxy_vka(vka_t *vka, allocman_t *allocman) {
 }
 
 void pit_pre_init(void);
+void rtc_pre_init(void);
 
 void pre_init(void) {
     int error;
@@ -351,14 +353,6 @@ typedef struct ioport_desc {
     const char *desc;
 } ioport_desc_t;
 
-static int camkes_cmos_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
-    return cmos_port_in(port_no, size, result);
-}
-
-static int camkes_cmos_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value) {
-    return cmos_port_out(port_no, size, value);
-}
-
 static int camkes_serial_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
     return serial_port_in(port_no, size, result);
 }
@@ -370,6 +364,9 @@ static int camkes_serial_port_out(void *cookie, unsigned int port_no, unsigned i
 int i8254_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
 int i8254_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
 
+int cmos_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
+int cmos_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
+
 ioport_desc_t ioport_handlers[] = {
     {X86_IO_SERIAL_1_START,   X86_IO_SERIAL_1_END,   camkes_serial_port_in, camkes_serial_port_out, "COM1 Serial Port"},
 //    {X86_IO_SERIAL_3_START,   X86_IO_SERIAL_3_END,   NULL, NULL, "COM3 Serial Port"},
@@ -378,7 +375,7 @@ ioport_desc_t ioport_handlers[] = {
     {X86_IO_ELCR_START,       X86_IO_ELCR_END,       i8259_port_in, i8259_port_out, "ELCR (edge/level control register) for IRQ line"},
     /* PCI config requires a cookie and is specced dynamically in code */
 //    {X86_IO_PCI_CONFIG_START, X86_IO_PCI_CONFIG_END, vmm_pci_io_port_in, vmm_pci_io_port_out, "PCI Configuration"},
-    {X86_IO_RTC_START,        X86_IO_RTC_END,        camkes_cmos_port_in, camkes_cmos_port_out, "CMOS Registers / RTC Real-Time Clock / NMI Interrupts"},
+    {X86_IO_RTC_START,        X86_IO_RTC_END,        cmos_port_in, cmos_port_out, "CMOS Registers / RTC Real-Time Clock / NMI Interrupts"},
     {X86_IO_PIT_START,        X86_IO_PIT_END,        i8254_port_in, i8254_port_out, "8253/8254 Programmable Interval Timer"},
 //    {X86_IO_PS2C_START,       X86_IO_PS2C_END,       NULL, NULL, "8042 PS/2 Controller"},
 //    {X86_IO_POS_START,        X86_IO_POS_END,        NULL, NULL, "POS Programmable Option Select (PS/2)"},
@@ -506,6 +503,7 @@ static int device_notify_list_len = 0;
 static device_notify_t *device_notify_list = NULL;
 
 void pit_timer_interrupt(void);
+void rtc_timer_interrupt(uint32_t);
 
 static seL4_Word irq_badges[16] = {
     VM_PIC_BADGE_IRQ_0,
@@ -532,8 +530,14 @@ static int handle_async_event(seL4_Word badge) {
         if ( (badge & VM_INT_MAN_BADGE) == VM_INT_MAN_BADGE) {
             ret = 0;
         }
-        if ( (badge & VM_PIT_TIMER_BADGE) == VM_PIT_TIMER_BADGE) {
-            pit_timer_interrupt();
+        if ( (badge & VM_INIT_TIMER_BADGE) == VM_INIT_TIMER_BADGE) {
+            uint32_t completed = init_timer_completed();
+            if (completed & BIT(TIMER_PIT)) {
+                pit_timer_interrupt();
+            }
+            if (completed & (BIT(TIMER_PERIODIC_TIMER) | BIT(TIMER_COALESCED_TIMER) | BIT(TIMER_SECOND_TIMER) | BIT(TIMER_SECOND_TIMER2))) {
+                rtc_timer_interrupt(completed);
+            }
         }
         for (int i = 0; i < 16; i++) {
             if ( (badge & irq_badges[i]) == irq_badges[i]) {
@@ -688,6 +692,7 @@ int main_continued(void) {
 
     i8259_pre_init();
     pit_pre_init();
+    rtc_pre_init();
 
 #ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_IOMMU
     /* Do early device discovery and find any relevant PCI busses that

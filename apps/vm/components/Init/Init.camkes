@@ -20,16 +20,18 @@ import "../../interfaces/Ethdriver.idl4";
 component Init {
     control;
     uses PutChar putchar;
-    uses VirtIOPort cmos;
     uses VirtIOPort serial;
     uses PCIConfig pci_config;
     uses RTC system_rtc;
     consumes HaveInterrupt intready;
 
-    uses Timer pit_timer;
+    uses Timer init_timer;
 
     has mutex pic;
     provides LevelInterrupt irq8_level;
+
+    has mutex rtc;
+    uses LevelInterrupt rtc_irq;
 
     VM_INIT_COMPONENT()
 }

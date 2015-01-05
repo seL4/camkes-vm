@@ -24,10 +24,6 @@ component SerialEmulator {
     uses GetChar getchar;
     consumes CharacterReady getchar_signal;
 
-    uses Timer fifo_timeout;
-    consumes timer_complete fifo_timeout_interrupt;
-    uses Timer transmit_timer;
-    consumes timer_complete transmit_timer_interrupt;
-    uses Timer modem_status_timer;
-    consumes timer_complete modem_status_timer_interrupt;
+    uses Timer serial_timer;
+    consumes timer_complete serial_timer_interrupt;
 }

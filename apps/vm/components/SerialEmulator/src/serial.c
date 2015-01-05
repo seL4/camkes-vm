@@ -36,6 +36,11 @@
 #include <string.h>
 #include <SerialEmulator.h>
 
+/* Timer IDs for use with the timer server */
+#define TIMER_FIFO_TIMEOUT 0
+#define TIMER_TRANSMIT_TIMER 1
+#define TIMER_MODEM_STATUS_TIMER 2
+
 //#define DEBUG_SERIAL
 
 #define UART_LCR_DLAB	0x80	/* Divisor latch access bit */
@@ -318,7 +323,7 @@ static void serial_update_msl(SerialState *s)
 //    int flags;
 
 //    qemu_del_timer(s->modem_status_poll);
-//    modem_status_timer_stop();
+//    serial_timer_stop(TIMER_MODEM_STATUS_TIMER);
 
 //    if (qemu_chr_fe_ioctl(s->chr,CHR_IOCTL_SERIAL_GET_TIOCM, &flags) == -ENOTSUP) {
     if (0) {
@@ -350,14 +355,14 @@ static void serial_update_msl(SerialState *s)
        We'll be lazy and poll only every 10ms, and only poll it at all if MSI interrupts are turned on */
 
 //    if (s->poll_msl)
-//        modem_status_timer_oneshot_absolute(modem_status_timer_time() + get_ticks_per_sec() / 100);
+//        serial_timer_oneshot_absolute(TIMER_MODEM_STATUS_TIMER, serial_timer_time() + get_ticks_per_sec() / 100);
 //        qemu_mod_timer(s->modem_status_poll, qemu_get_clock_ns(vm_clock) + get_ticks_per_sec() / 100);
 }
 
 static void serial_xmit(void *opaque)
 {
     SerialState *s = opaque;
-//    uint64_t new_xmit_ts = transmit_timer_time();
+//    uint64_t new_xmit_ts = serial_timer_time();
 
     if (s->tsr_retry <= 0) {
         if (s->fcr & UART_FCR_FE) {
@@ -392,10 +397,10 @@ static void serial_xmit(void *opaque)
         s->tsr_retry = 0;
     }
 
-//    s->last_xmit_ts = transmit_timer_time();
+//    s->last_xmit_ts = serial_timer_time();
     if (!(s->lsr & UART_LSR_THRE))
         serial_xmit(s);
-//        transmit_timer_oneshot_absolute(s->last_xmit_ts + s->char_transmit_time);
+//        serial_timer_oneshot_absolute(TIMER_TRANSMIT_TIMER, s->last_xmit_ts + s->char_transmit_time);
 //        qemu_mod_timer(s->transmit_timer, s->last_xmit_ts + s->char_transmit_time);
 
     if (s->lsr & UART_LSR_THRE) {
@@ -447,7 +452,7 @@ static void serial_ioport_write(void *opaque, uint32_t addr, uint32_t val)
                      serial_update_msl(s);
                 } else {
 //                     qemu_del_timer(s->modem_status_poll);
-//                     modem_status_timer_stop();
+//                     serial_timer_stop(TIMER_MODEM_STATUS_TIMER);
                      s->poll_msl = 0;
                 }
             }
@@ -471,7 +476,7 @@ static void serial_ioport_write(void *opaque, uint32_t addr, uint32_t val)
 
         if (val & UART_FCR_RFR) {
 //            qemu_del_timer(s->fifo_timeout_timer);
-            fifo_timeout_stop(0);
+            serial_timer_stop(TIMER_FIFO_TIMEOUT);
             s->timeout_ipending=0;
             fifo_clear(s,RECV_FIFO);
         }
@@ -541,7 +546,7 @@ static void serial_ioport_write(void *opaque, uint32_t addr, uint32_t val)
                 /* Update the modem status after a one-character-send wait-time, since there may be a response
                    from the device/computer at the other end of the serial line */
 //                qemu_mod_timer(s->modem_status_poll, qemu_get_clock_ns(vm_clock) + s->char_transmit_time);
-//                modem_status_timer_oneshot_absolute(modem_status_timer_time() + s->char_transmit_time);
+//                serial_timer_oneshot_absolute(TIMER_MODEM_STATUS_TIMER, serial_timer_time() + s->char_transmit_time);
             }
         }
         break;
@@ -573,7 +578,7 @@ static uint32_t serial_ioport_read(void *opaque, uint32_t addr)
                     s->lsr &= ~(UART_LSR_DR | UART_LSR_BI);
                 } else {
 //                    qemu_mod_timer(s->fifo_timeout_timer, qemu_get_clock_ns (vm_clock) + s->char_transmit_time * 4);
-                    fifo_timeout_oneshot_absolute(0, fifo_timeout_time() + s->char_transmit_time * 4);
+                    serial_timer_oneshot_absolute(TIMER_FIFO_TIMEOUT, serial_timer_time() + s->char_transmit_time * 4);
                 }
                 s->timeout_ipending = 0;
             } else {
@@ -700,7 +705,7 @@ static void serial_receive1(void *opaque, const uint8_t *buf, int size)
         s->lsr |= UART_LSR_DR;
         /* call the timeout receive callback in 4 char transmit time */
 //        qemu_mod_timer(s->fifo_timeout_timer, qemu_get_clock_ns (vm_clock) + s->char_transmit_time * 4);
-        fifo_timeout_oneshot_absolute(0, fifo_timeout_time() + s->char_transmit_time * 4);
+        serial_timer_oneshot_absolute(TIMER_FIFO_TIMEOUT, serial_timer_time() + s->char_transmit_time * 4);
     } else {
         if (s->lsr & UART_LSR_DR)
             s->lsr |= UART_LSR_OE;
@@ -784,7 +789,7 @@ static void serial_reset(void *opaque)
     fifo_clear(s,XMIT_FIFO);
 
 //    s->last_xmit_ts = qemu_get_clock_ns(vm_clock);
-    s->last_xmit_ts = transmit_timer_time();
+    s->last_xmit_ts = serial_timer_time();
 
     s->thr_ipending = 0;
     s->last_break_enable = 0;
@@ -972,27 +977,20 @@ device_init(serial_register_devices)
 
 static SerialState serialstate;
 
-static void fifo_timeout_callback(void *cookie) {
+static void serial_timer_callback(void *cookie) {
     serial_lock();
     SerialState *s = (SerialState*)cookie;
-    fifo_timeout_int(s);
-    fifo_timeout_interrupt_reg_callback(fifo_timeout_callback, cookie);
-    serial_unlock();
-}
-
-static void transmit_timer_callback(void *cookie) {
-    serial_lock();
-    SerialState *s = (SerialState*)cookie;
-    serial_xmit(s);
-    transmit_timer_interrupt_reg_callback(transmit_timer_callback, cookie);
-    serial_unlock();
-}
-
-static void modem_status_timer_callback(void *cookie) {
-    serial_lock();
-    SerialState *s = (SerialState*)cookie;
-    serial_update_msl(s);
-    modem_status_timer_interrupt_reg_callback(modem_status_timer_callback, cookie);
+    uint32_t completed = serial_timer_completed();
+    if (completed & BIT(TIMER_FIFO_TIMEOUT)) {
+        fifo_timeout_int(s);
+    }
+    if (completed & BIT(TIMER_TRANSMIT_TIMER)) {
+        serial_xmit(s);
+    }
+    if (completed & BIT(TIMER_MODEM_STATUS_TIMER)) {
+        serial_update_msl(s);
+    }
+    serial_timer_interrupt_reg_callback(serial_timer_callback, cookie);
     serial_unlock();
 }
 
@@ -1016,9 +1014,7 @@ void pre_init(void) {
     SerialState *s = &serialstate;
     s->serial_level = 0;
     s->baudbase = 115200;
-    fifo_timeout_interrupt_reg_callback(fifo_timeout_callback, s);
-    transmit_timer_interrupt_reg_callback(transmit_timer_callback, s);
-    modem_status_timer_interrupt_reg_callback(modem_status_timer_callback, s);
+    serial_timer_interrupt_reg_callback(serial_timer_callback, s);
     getchar_signal_reg_callback(getchar_callback, s);
     serial_init_core(s);
     serial_update_msl(s);

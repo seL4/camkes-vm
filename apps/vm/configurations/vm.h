@@ -31,10 +31,10 @@
 
 /* The timer layout is
  * timer 1 timer for serial server
- * blocks of 8 timers for each VM
+ * blocks of 6 timers for each VM
  */
 #define VTIMER_FIRST 2
-#define VTIMER_NUM   8
+#define VTIMER_NUM   6
 #define VTIMERNUM_I(t, n) BOOST_PP_ADD(VTIMER_FIRST,BOOST_PP_ADD(t, BOOST_PP_MUL(VTIMER_NUM, n)))
 #define VTIMERNUM(t, n) VTIMERNUM_I(t, n)
 #define VTIMER(t, n) VTIMER_I(t, n)
@@ -105,12 +105,8 @@
     connection seL4RPCCall CAT(rtc##num,_timer3)(from RTCEmul##num.rtc_second_timer2, to time_server.the_timer); \
     connection seL4Asynch CAT(rtc##num,_timer3_interrupt)(from time_server.CAT(VTIMER(4, num),_complete), to RTCEmul##num.rtc_second_timer2_interrupt); \
     /* Connect the emulated serial to the timer server */ \
-    connection seL4RPCCall CAT(serial##num,_timer0)(from SerialEmul##num.fifo_timeout, to time_server.the_timer); \
-    connection seL4Asynch CAT(serial##num,_timer0_interrupt)(from time_server.CAT(VTIMER(5,num),_complete), to SerialEmul##num.fifo_timeout_interrupt); \
-    connection seL4RPCCall CAT(serial##num,_timer1)(from SerialEmul##num.transmit_timer, to time_server.the_timer); \
-    connection seL4Asynch CAT(serial##num,_timer1_interrupt)(from time_server.CAT(VTIMER(6,num),_complete), to SerialEmul##num.transmit_timer_interrupt); \
-    connection seL4RPCCall CAT(serial##num,_timer2)(from SerialEmul##num.modem_status_timer, to time_server.the_timer); \
-    connection seL4Asynch CAT(serial##num,_timer2_interrupt)(from time_server.CAT(VTIMER(7,num),_complete), to SerialEmul##num.modem_status_timer_interrupt); \
+    connection seL4RPCCall CAT(serial##num,_timer0)(from SerialEmul##num.serial_timer, to time_server.the_timer); \
+    connection seL4Asynch CAT(serial##num,_timer0_interrupt)(from time_server.CAT(VTIMER(5,num),_complete), to SerialEmul##num.serial_timer_interrupt); \
     /* Connect the emulated RTC to the RTC component */ \
     connection seL4RPCCall cmosrtc_system##num(from RTCEmul##num.system_rtc, to rtc.rtc); \
     /* Connect the emulated RTC to the VM */ \
@@ -161,9 +157,7 @@
     RTCEmul##num.rtc_coalesced_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(2, num)); \
     RTCEmul##num.rtc_second_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(3, num)); \
     RTCEmul##num.rtc_second_timer2_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(4, num)); \
-    SerialEmul##num.fifo_timeout_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(5, num)); \
-    SerialEmul##num.transmit_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(6, num)); \
-    SerialEmul##num.modem_status_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(7, num)); \
+    SerialEmul##num.serial_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(5, num)); \
     SerialEmul##num.serial_edge_irq_attributes = BOOST_PP_STRINGIZE(VM_PIC_BADGE_IRQ_4); \
     time_server.CAT(VTIMER(0, num),_complete_attributes) = BOOST_PP_STRINGIZE(VM_PIT_TIMER_BADGE); \
     vm##num.cnode_size_bits = 21; \

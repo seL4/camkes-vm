@@ -32,6 +32,12 @@
 #include <platsupport/plat/rtc.h>
 #include <RTCEmulator.h>
 
+/* Timer IDS for use with the timer server */
+#define TIMER_PERIODIC_TIMER 0
+#define TIMER_COALESCED_TIMER 1
+#define TIMER_SECOND_TIMER 2
+#define TIMER_SECOND_TIMER2 3
+
 #define TARGET_I386
 
 //#define DEBUG_CMOS
@@ -149,16 +155,16 @@ static void rtc_coalesced_timer_update(RTCState *s)
 {
     if (s->irq_coalesced == 0) {
 //        qemu_del_timer(s->coalesced_timer);
-        rtc_coalesced_timer_stop(0);
+        rtc_timer_stop(TIMER_COALESCED_TIMER);
     } else {
         /* divide each RTC interval to 2 - 8 smaller intervals */
         int c = MIN(s->irq_coalesced, 7) + 1; 
 //        int64_t next_clock = qemu_get_clock_ns(rtc_clock) +
 //            muldiv64(s->period / c, get_ticks_per_sec(), 32768);
 //        qemu_mod_timer(s->coalesced_timer, next_clock);
-        int64_t next_clock = rtc_coalesced_timer_time() +
+        int64_t next_clock = rtc_timer_time() +
             muldiv64(s->period / c, get_ticks_per_sec(), 32768);
-        rtc_coalesced_timer_oneshot_absolute(0, next_clock);
+        rtc_timer_oneshot_absolute(TIMER_COALESCED_TIMER, next_clock);
     }
 }
 
@@ -209,13 +215,13 @@ static void rtc_timer_update(RTCState *s, int64_t current_time)
         s->next_periodic_time =
             muldiv64(next_irq_clock, get_ticks_per_sec(), 32768) + 1;
 //        qemu_mod_timer(s->periodic_timer, s->next_periodic_time);
-        rtc_periodic_timer_oneshot_absolute(0, s->next_periodic_time);
+        rtc_timer_oneshot_absolute(TIMER_PERIODIC_TIMER, s->next_periodic_time);
     } else {
 #ifdef TARGET_I386
         s->irq_coalesced = 0;
 #endif
 //        qemu_del_timer(s->periodic_timer);
-        rtc_periodic_timer_stop(0);
+        rtc_timer_stop(TIMER_PERIODIC_TIMER);
     }
 }
 
@@ -285,7 +291,7 @@ static void cmos_ioport_write(void *opaque, uint32_t addr, uint32_t data)
             s->cmos_data[RTC_REG_A] = (data & ~REG_A_UIP) |
                 (s->cmos_data[RTC_REG_A] & REG_A_UIP);
 //            rtc_timer_update(s, qemu_get_clock_ns(rtc_clock));
-            rtc_timer_update(s, rtc_periodic_timer_time());
+            rtc_timer_update(s, rtc_timer_time());
             break;
         case RTC_REG_B:
             if (data & REG_B_SET) {
@@ -308,7 +314,7 @@ static void cmos_ioport_write(void *opaque, uint32_t addr, uint32_t data)
                 s->cmos_data[RTC_REG_B] = data;
             }
 //            rtc_timer_update(s, qemu_get_clock_ns(rtc_clock));
-            rtc_timer_update(s, rtc_periodic_timer_time());
+            rtc_timer_update(s, rtc_timer_time());
             break;
         case RTC_REG_C:
         case RTC_REG_D:
@@ -449,7 +455,7 @@ static void rtc_update_second(void *opaque)
     if ((s->cmos_data[RTC_REG_A] & 0x70) != 0x20) {
         s->next_second_time += get_ticks_per_sec();
 //        qemu_mod_timer(s->second_timer, s->next_second_time);
-        rtc_second_timer_oneshot_absolute(0, s->next_second_time);
+        rtc_timer_oneshot_absolute(TIMER_SECOND_TIMER, s->next_second_time);
     } else {
         rtc_next_second(&s->current_tm);
 
@@ -464,7 +470,7 @@ static void rtc_update_second(void *opaque)
             delay = 1;
 //        qemu_mod_timer(s->second_timer2,
 //                       s->next_second_time + delay);
-            rtc_second_timer2_oneshot_absolute(0, s->next_second_time + delay);
+            rtc_timer_oneshot_absolute(TIMER_SECOND_TIMER2, s->next_second_time + delay);
     }
 }
 
@@ -504,7 +510,7 @@ static void rtc_update_second2(void *opaque)
 
     s->next_second_time += get_ticks_per_sec();
 //    qemu_mod_timer(s->second_timer, s->next_second_time);
-    rtc_second_timer_oneshot_absolute(0, s->next_second_time);
+    rtc_timer_oneshot_absolute(TIMER_SECOND_TIMER, s->next_second_time);
 }
 
 static uint32_t cmos_ioport_read(void *opaque, uint32_t addr)
@@ -719,9 +725,9 @@ static int rtc_initfn(RTCState *s)
 //    qemu_register_clock_reset_notifier(rtc_clock, &s->clock_reset_notifier);
 
     s->next_second_time =
-        rtc_second_timer2_time() + (get_ticks_per_sec() * 99) / 100;
+        rtc_timer_time() + (get_ticks_per_sec() * 99) / 100;
 //    qemu_mod_timer(s->second_timer2, s->next_second_time);
-    rtc_second_timer2_oneshot_absolute(0, s->next_second_time);
+    rtc_timer_oneshot_absolute(TIMER_SECOND_TIMER2, s->next_second_time);
 
 //    memory_region_init_io(&s->io, &cmos_ops, s, "rtc", 2);
 //    isa_register_ioport(dev, &s->io, base);
@@ -772,35 +778,23 @@ device_init(mc146818rtc_register)
 
 static RTCState rtc_state;
 
-static void periodic_timer_interrupt(void *cookie) {
+static void rtc_timer_interrupt(void *cookie) {
     RTCState *s = (RTCState*)cookie;
     rtc_lock();
-    rtc_periodic_timer(s);
-    rtc_periodic_timer_interrupt_reg_callback(periodic_timer_interrupt, cookie);
-    rtc_unlock();
-}
-
-static void coalesced_timer_interrupt(void *cookie) {
-    RTCState *s = (RTCState*)cookie;
-    rtc_lock();
-    rtc_coalesced_timer(s);
-    rtc_coalesced_timer_interrupt_reg_callback(coalesced_timer_interrupt, cookie);
-    rtc_unlock();
-}
-
-static void second_timer_interrupt(void *cookie) {
-    RTCState *s = (RTCState*)cookie;
-    rtc_lock();
-    rtc_update_second(s);
-    rtc_second_timer_interrupt_reg_callback(second_timer_interrupt, cookie);
-    rtc_unlock();
-}
-
-static void second_timer2_interrupt(void *cookie) {
-    RTCState *s = (RTCState*)cookie;
-    rtc_lock();
-    rtc_update_second2(s);
-    rtc_second_timer2_interrupt_reg_callback(second_timer2_interrupt, cookie);
+    uint32_t completed = rtc_timer_completed();
+    if (completed & TIMER_PERIODIC_TIMER) {
+        rtc_periodic_timer(s);
+    }
+    if (completed & TIMER_COALESCED_TIMER) {
+        rtc_coalesced_timer(s);
+    }
+    if (completed & TIMER_SECOND_TIMER) {
+        rtc_update_second(s);
+    }
+    if (completed & TIMER_SECOND_TIMER2) {
+        rtc_update_second2(s);
+    }
+    rtc_timer_interrupt_reg_callback(rtc_timer_interrupt, cookie);
     rtc_unlock();
 }
 
@@ -812,10 +806,7 @@ void pre_init(void) {
     rtc_state.base_year = tm.year;
     rtc_initfn(&rtc_state);
     rtc_reset(&rtc_state);
-    rtc_periodic_timer_interrupt_reg_callback(periodic_timer_interrupt, &rtc_state);
-    rtc_coalesced_timer_interrupt_reg_callback(coalesced_timer_interrupt, &rtc_state);
-    rtc_second_timer_interrupt_reg_callback(second_timer_interrupt, &rtc_state);
-    rtc_second_timer2_interrupt_reg_callback(second_timer2_interrupt, &rtc_state);
+    rtc_timer_interrupt_reg_callback(rtc_timer_interrupt, &rtc_state);
     rtc_unlock();
 }
 

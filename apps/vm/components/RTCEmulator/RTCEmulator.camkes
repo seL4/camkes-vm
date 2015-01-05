@@ -22,12 +22,6 @@ component RTCEmulator {
 
     uses RTC system_rtc;
 
-    uses Timer rtc_periodic_timer;
-    consumes timer_complete rtc_periodic_timer_interrupt;
-    uses Timer rtc_coalesced_timer;
-    consumes timer_complete rtc_coalesced_timer_interrupt;
-    uses Timer rtc_second_timer;
-    consumes timer_complete rtc_second_timer_interrupt;
-    uses Timer rtc_second_timer2;
-    consumes timer_complete rtc_second_timer2_interrupt;
+    uses Timer rtc_timer;
+    consumes timer_complete rtc_timer_interrupt;
 }

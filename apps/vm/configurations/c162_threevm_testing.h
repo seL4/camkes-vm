@@ -46,7 +46,7 @@
     /* Connect ethernet driver to vm 1 */ \
     connection seL4SharedData eth_packet1(from ethdriver0.packet0, to vm1.packet); \
     connection seL4RPCCall eth_driver1(from vm1.ethdriver, to ethdriver0.client0); \
-    connection seL4Asynch eth_rx_ready1(from ethdriver0.rx_ready0, to vm1.eth_rx_ready); \
+    connection seL4AsynchBind eth_rx_ready1(from ethdriver0.rx_ready0, to vm1.intready); \
     /* Connect ethernet driver to udpserver */ \
     connection seL4RPCCall udpserver_putchar(from udpserver.putchar, to serial.vm1); \
     connection seL4SharedData eth_packet2(from ethdriver0.packet1, to udpserver.packet); \
@@ -137,6 +137,7 @@
     ethdriver0.cnode_size_bits = 12; \
     ethdriver0.iospace = "0x12:0x1:0x0:0"; \
     ethdriver0.simple_untyped20_pool = 2; \
+    ethdriver0.rx_ready0_attributes = "134479872"; /* BIT(18) + BIT(27)*/ \
     udpserver.client_recv_attributes = "8,7"; \
     udpserver.client_send_attributes = "7"; \
     /**/
@@ -184,14 +185,13 @@
 #define VM_INIT_COMPONENT() \
     maybe dataport Buf packet; \
     maybe uses Ethdriver ethdriver; \
-    consumes Notifcation eth_rx_ready; \
     /**/
 
 #define VM_ASYNC_DEVICE_BADGES_0() \
     /**/
 
 #define VM_ASYNC_DEVICE_BADGES_1() ( \
-        (VM_FIRST_BADGE_BIT, virtio_net_notify, eth_rx_ready) \
+        (VM_FIRST_BADGE_BIT, virtio_net_notify) \
     ) \
     /**/
 

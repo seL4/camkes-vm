@@ -274,32 +274,11 @@ typedef struct device_notify {
     /* the function (as described by the user in the configuration) to call
      * when the message has been received. */
     void (*func)();
-    /* record of the name of the proxy function. this is what is actually
-     * registered to camkes async notification */
-    void (*proxy)();
-    /* this is a reference to the camkes 'x_reg_callback' function, where
-     * x is the async interface name. It is more convenient to have a reference
-     * here than try and generate the full name where need to invoke it */
-    int (*reg)(void (*)(void*),void*);
-    /* pointer to cptr. this allows us to point at the final capability we
-     * generate. doing this via a pointer is convenient for the init code */
-    seL4_CPtr *cap;
 } device_notify_t;
-#define PROXY_CAP_NAME(iter, badge) \
-    CAT(CAT(CAT(proxy_cap_,iter),_), badge) \
-    /**/
-#define ASYNC_PROXY(r, data, elem) \
-    static seL4_CPtr PROXY_CAP_NAME(data, BOOST_PP_TUPLE_ELEM(0, elem)); \
-    void CAT(proxy_notify_,BOOST_PP_TUPLE_ELEM(0, elem))() { \
-        CAT(BOOST_PP_TUPLE_ELEM(2, elem),_reg_callback)(CAT(proxy_notify_,BOOST_PP_TUPLE_ELEM(0, elem)), NULL); \
-        seL4_Notify(PROXY_CAP_NAME(data, BOOST_PP_TUPLE_ELEM(0, elem)), 0); \
-    } \
-    /**/
 #define ASYNC_DEVICE_MEMBER(r, data, elem) \
-    {BOOST_PP_TUPLE_ELEM(0, elem), BOOST_PP_TUPLE_ELEM(1, elem), CAT(proxy_notify_,BOOST_PP_TUPLE_ELEM(0, elem)), CAT(BOOST_PP_TUPLE_ELEM(2, elem),_reg_callback), &PROXY_CAP_NAME(data, BOOST_PP_TUPLE_ELEM(0, elem))}, \
+    {BOOST_PP_TUPLE_ELEM(0, elem), BOOST_PP_TUPLE_ELEM(1, elem)}, \
     /**/
 #define ASYNC_DEVICE_OUTPUT(num, iteration, data) \
-    BOOST_PP_LIST_FOR_EACH(ASYNC_PROXY, iteration, BOOST_PP_TUPLE_TO_LIST(CAT(VM_ASYNC_DEVICE_BADGES_, iteration)())) \
     device_notify_t device_notify_vm##iteration[] = { \
         BOOST_PP_LIST_FOR_EACH(ASYNC_DEVICE_MEMBER, iteration, BOOST_PP_TUPLE_TO_LIST(CAT(VM_ASYNC_DEVICE_BADGES_, iteration)())) \
     }; \
@@ -611,14 +590,6 @@ static void make_async_aep() {
     error = vka_cnode_mint(&badge_path, &async_path, seL4_AllRights, seL4_CapData_Badge_new(VM_INT_MAN_BADGE));
     assert(!error);
     haveint_aep = badge_path.capPtr;
-    for (int i = 0; i < device_notify_list_len; i++) {
-        error = vka_cspace_alloc_path(&vka, &badge_path);
-        assert(!error);
-        error = vka_cnode_mint(&badge_path, &async_path, seL4_AllRights, seL4_CapData_Badge_new(BIT(27) | BIT(device_notify_list[i].badge_bit)));
-        assert(!error);
-        *device_notify_list[i].cap = badge_path.capPtr;
-        device_notify_list[i].reg(device_notify_list[i].proxy, NULL);
-    }
 }
 
 int main_continued(void) {

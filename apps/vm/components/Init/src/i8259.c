@@ -31,11 +31,7 @@
 
 /* TODO: this exists due to this code originally being in a separate component
  * with its own thread. This is a temporary hack to make existing code work */
-extern seL4_CPtr haveint_aep;
 extern seL4_CPtr hw_irq_handlers[];
-static void haveint_emit() {
-    seL4_Notify(haveint_aep, 0);
-}
 
 /* PIC Machine state. */
 struct i8259_state {
@@ -219,7 +215,7 @@ static void pic_update_irq(struct i8259 *s) {
         s->output = 0;
 
     if (s->emitagain && s->output) {
-        haveint_emit();
+//        haveint_emit();
         s->emitagain = 0;
     }
 }

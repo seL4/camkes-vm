@@ -50,7 +50,6 @@ seL4_CPtr intready_aep();
 /* TODO: these exist for other components that have been collapsed into
  * the init componenet, but we have not yet removed their dependency
  * on having a async endpoint interface */
-volatile seL4_CPtr haveint_aep = 0;
 volatile seL4_CPtr hw_irq_handlers[16] = {0};
 
 static seL4_CPtr get_async_event_aep() {
@@ -506,9 +505,6 @@ static seL4_Word irq_badges[16] = {
 static int handle_async_event(seL4_Word badge) {
     int ret = 1;
     if (badge & BIT(27)) {
-        if ( (badge & VM_INT_MAN_BADGE) == VM_INT_MAN_BADGE) {
-            ret = 0;
-        }
         if ( (badge & VM_INIT_TIMER_BADGE) == VM_INIT_TIMER_BADGE) {
             uint32_t completed = init_timer_completed();
             if (completed & BIT(TIMER_PIT)) {
@@ -532,7 +528,7 @@ static int handle_async_event(seL4_Word badge) {
         }
     }
     /* return 0 to indicate an interrupt occured */
-    return ret;
+    return i8259_has_interrupt() ? 0 : 1;
 }
 
 typedef struct hw_irq {
@@ -577,19 +573,6 @@ static void init_irqs(hw_irq_t *irqs, int num) {
         assert(!error);
         hw_irq_handlers[irqs[i].dest] = irq.capPtr;
     }
-}
-
-static void make_async_aep() {
-    cspacepath_t async_path;
-    cspacepath_t badge_path;
-    int error;
-    seL4_CPtr async_event_aep = intready_aep();
-    vka_cspace_make_path(&vka, async_event_aep, &async_path);
-    error = vka_cspace_alloc_path(&vka, &badge_path);
-    assert(!error);
-    error = vka_cnode_mint(&badge_path, &async_path, seL4_AllRights, seL4_CapData_Badge_new(VM_INT_MAN_BADGE));
-    assert(!error);
-    haveint_aep = badge_path.capPtr;
 }
 
 int main_continued(void) {
@@ -658,7 +641,6 @@ int main_continued(void) {
     /**/
     BOOST_PP_REPEAT(VM_NUM_GUESTS, PER_VM_CONFIG, _)
 
-    make_async_aep();
     init_irqs(hw_irqs, num_hw_irqs);
 
     i8259_pre_init();

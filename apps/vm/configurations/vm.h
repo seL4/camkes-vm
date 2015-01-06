@@ -45,33 +45,32 @@
 
 #define VM_NUM_TIMER_CLIENTS VM_NUM_TIMERS
 
-/* The int manager async endpoint sets both the high and low bits of the badge
- * following standard protocal of high bit indicating some async message
- * low bit indicating which async event */
-#define VM_INT_MAN_BADGE 134217729 /* BIT(27) | BIT(0) */
+/* For all the async sources on the intready endpoint the high bit
+ * is set to indicate that an async event occured, and the low bits
+ * indicate which async events */
 
 /* The timer completions are also on the interrupt manager badge */
-#define VM_INIT_TIMER_BADGE 134217730 /* BIT(27) | BIT(1) */
+#define VM_INIT_TIMER_BADGE 134217729 /* BIT(27) | BIT(0) */
 
-#define VM_PIC_BADGE_IRQ_0 134217732 /* BIT(27) | BIT(2) */
-#define VM_PIC_BADGE_IRQ_1 134217736 /* BIT(27) | BIT(3) */
-#define VM_PIC_BADGE_IRQ_2 134217744 /* BIT(27) | BIT(4) */
-#define VM_PIC_BADGE_IRQ_3 134217760 /* BIT(27) | BIT(5) */
-#define VM_PIC_BADGE_IRQ_4 134217792 /* BIT(27) | BIT(6) */
-#define VM_PIC_BADGE_IRQ_5 134217856 /* BIT(27) | BIT(7) */
-#define VM_PIC_BADGE_IRQ_6 134217984 /* BIT(27) | BIT(8) */
-#define VM_PIC_BADGE_IRQ_7 134218240 /* BIT(27) | BIT(9) */
-#define VM_PIC_BADGE_IRQ_8 134218752 /* BIT(27) | BIT(10) */
-#define VM_PIC_BADGE_IRQ_9 134219776 /* BIT(27) | BIT(11) */
-#define VM_PIC_BADGE_IRQ_10 134221824 /* BIT(27) | BIT(12) */
-#define VM_PIC_BADGE_IRQ_11 134225920 /* BIT(27) | BIT(13) */
-#define VM_PIC_BADGE_IRQ_12 134234112 /* BIT(27) | BIT(14) */
-#define VM_PIC_BADGE_IRQ_13 134250496 /* BIT(27) | BIT(15) */
-#define VM_PIC_BADGE_IRQ_14 134283264 /* BIT(27) | BIT(16) */
-#define VM_PIC_BADGE_IRQ_15 134348800 /* BIT(27) | BIT(17) */
+#define VM_PIC_BADGE_IRQ_0 134217730 /* BIT(27) | BIT(1) */
+#define VM_PIC_BADGE_IRQ_1 134217732 /* BIT(27) | BIT(2) */
+#define VM_PIC_BADGE_IRQ_2 134217736 /* BIT(27) | BIT(3) */
+#define VM_PIC_BADGE_IRQ_3 134217744 /* BIT(27) | BIT(4) */
+#define VM_PIC_BADGE_IRQ_4 134217760 /* BIT(27) | BIT(5) */
+#define VM_PIC_BADGE_IRQ_5 134217792 /* BIT(27) | BIT(6) */
+#define VM_PIC_BADGE_IRQ_6 134217856 /* BIT(27) | BIT(7) */
+#define VM_PIC_BADGE_IRQ_7 134217984 /* BIT(27) | BIT(8) */
+#define VM_PIC_BADGE_IRQ_8 134218240 /* BIT(27) | BIT(9) */
+#define VM_PIC_BADGE_IRQ_9 134218752 /* BIT(27) | BIT(10) */
+#define VM_PIC_BADGE_IRQ_10 134219776 /* BIT(27) | BIT(11) */
+#define VM_PIC_BADGE_IRQ_11 134221824 /* BIT(27) | BIT(12) */
+#define VM_PIC_BADGE_IRQ_12 134225920 /* BIT(27) | BIT(13) */
+#define VM_PIC_BADGE_IRQ_13 134234112 /* BIT(27) | BIT(14) */
+#define VM_PIC_BADGE_IRQ_14 134250496 /* BIT(27) | BIT(15) */
+#define VM_PIC_BADGE_IRQ_15 134283264 /* BIT(27) | BIT(16) */
 
 /* First available badge for user bits */
-#define VM_FIRST_BADGE_BIT 18
+#define VM_FIRST_BADGE_BIT 17
 
 /* VM and per VM componenents */
 #define VM_COMP_DEF(num) \

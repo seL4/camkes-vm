@@ -65,19 +65,9 @@ typedef struct virtio_net {
     ethif_virtio_emul_t *emul;
     struct eth_driver *emul_driver;
     ps_io_ops_t ioops;
-    int num_tx_complete;
-    void *tx_complete[QUEUE_SIZE];
 } virtio_net_t;
 
 static virtio_net_t *virtio_net = NULL;
-
-static void virtio_complete_tx(virtio_net_t *net) {
-    while (net->num_tx_complete > 0) {
-        net->num_tx_complete--;
-        void *cookie = net->tx_complete[net->num_tx_complete];
-        net->emul_driver->i_cb.tx_complete(net->emul_driver->cb_cookie, cookie);
-    }
-}
 
 static int virtio_net_io_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
     virtio_net_t *net = (virtio_net_t*)cookie;
@@ -90,7 +80,6 @@ static int virtio_net_io_out(void *cookie, unsigned int port_no, unsigned int si
     virtio_net_t *net = (virtio_net_t*)cookie;
     unsigned int offset = port_no - net->iobase;
     ret = net->emul->io_out(net->emul, offset, size, value);
-    virtio_complete_tx(net);
     return ret;
 }
 
@@ -104,10 +93,7 @@ static int emul_raw_tx(struct eth_driver *driver, unsigned int num, uintptr_t *p
         tot_len += len[i];
     }
     ethdriver_tx(tot_len);
-    assert(net->num_tx_complete < QUEUE_SIZE);
-    net->tx_complete[net->num_tx_complete] = cookie;
-    net->num_tx_complete++;
-    return 0;
+    return ETHIF_TX_COMPLETE;
 }
 
 static void emul_raw_handle_irq(struct eth_driver *driver, int irq) {

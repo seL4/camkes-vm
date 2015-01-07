@@ -48,7 +48,6 @@
     connection seL4RPCCall eth_driver1(from vm1.ethdriver, to ethdriver0.client0); \
     connection seL4AsynchBind eth_rx_ready1(from ethdriver0.rx_ready0, to vm1.intready); \
     /* Connect ethernet driver to udpserver */ \
-    connection seL4RPCCall udpserver_putchar(from udpserver.putchar, to serial.vm1); \
     connection seL4SharedData eth_packet2(from ethdriver0.packet1, to udpserver.packet); \
     connection seL4RPCCall eth_driver2(from udpserver.ethdriver, to ethdriver0.client1); \
     connection seL4Asynch eth_rx_ready2(from ethdriver0.rx_ready1, to udpserver.eth_rx_ready); \

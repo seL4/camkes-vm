@@ -50,19 +50,10 @@
 #define VM_ASYNC_DEVICE_BADGES_0() \
     /**/
 
-#define VM_ASYNC_DEVICE_BADGES_1() \
-    /**/
-
-#define VM_ASYNC_DEVICE_BADGES_2() \
+#define VM_INIT_SOURCE_DEFS() \
     /**/
 
 #define VM_DEVICE_INIT_FN_0() \
-    /**/
-
-#define VM_DEVICE_INIT_FN_1() \
-    /**/
-
-#define VM_DEVICE_INIT_FN_2() \
     /**/
 
 #define PLAT_COMPONENT_DEF() \

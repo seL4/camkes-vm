@@ -47,6 +47,11 @@ connector seL4UDPRecv {
     to Dataport server template "seL4UDPRecv-to.template.c";
 }
 
+connector seL4VMNet {
+    from Dataport client1 template "seL4VMNet-from.template.c";
+    to Dataport client2 template "seL4VMNet-to.template.c";
+}
+
 component PieceOfHardware {
     hardware;
     provides IOPort pci_config_address;

@@ -53,6 +53,10 @@
     /* UDP connections for echo server */ \
     connection seL4UDPRecv udp_echo_recv(from echo.echo_recv, to udpserver.client_recv); \
     connection seL4UDPSend udp_echo_send(from echo.echo_send, to udpserver.client_send); \
+    /* Connect vm0 to vm2 with virtual ethernet */ \
+    connection seL4VMNet vm0_to_vm2_net(from vm0.vm2net, to vm2.vm0net); \
+    connection seL4AsynchBind vm0_net_ready(from vm0.vm2net_emit, to vm2.intready); \
+    connection seL4AsynchBind vm2_net_ready(from vm2.vm0net_emit, to vm0.intready); \
     /**/
 
 #define VM_CONFIGURATION_IOSPACES_0() ( \
@@ -135,6 +139,10 @@
     ethdriver0.rx_ready0_attributes = "134348800"; /* BIT(17) + BIT(27)*/ \
     udpserver.client_recv_attributes = "8,7"; \
     udpserver.client_send_attributes = "7"; \
+    vm0.vm2net_emit_attributes = "134479872"; /* BIT(18) + BIT(27) */ \
+    vm2.vm0net_emit_attributes = "134479872"; /* BIT(18) + BIT(27) */ \
+    vm0.vm2net_attributes ="06,00,00,20,12,13:13:0x9000"; \
+    vm2.vm0net_attributes ="06,00,00,20,12,14:13:0x9000"; \
     /**/
 
 #define VM_GUEST_PASSTHROUGH_DEVICES_0() \
@@ -179,6 +187,9 @@
 
 #define VM_INIT_COMPONENT() \
     component Init0 { \
+        include "ringbuf.h"; \
+        dataport Ringbuf_t vm2net; \
+        emits VMNet vm2net_emit; \
         VM_INIT_DEF() \
     } \
     component Init1 { \
@@ -187,11 +198,16 @@
         uses Ethdriver ethdriver; \
     } \
     component Init2 { \
+        include "ringbuf.h"; \
+        dataport Ringbuf_t vm0net; \
+        emits VMNet vm0net_emit; \
         VM_INIT_DEF() \
     } \
     /**/
 
-#define VM_ASYNC_DEVICE_BADGES_0() \
+#define VM_ASYNC_DEVICE_BADGES_0() ( \
+        (VM_FIRST_BADGE_BIT + 1, vm2net_notify) \
+    ) \
     /**/
 
 #define VM_ASYNC_DEVICE_BADGES_1() ( \
@@ -199,10 +215,21 @@
     ) \
     /**/
 
-#define VM_ASYNC_DEVICE_BADGES_2() \
+#define VM_ASYNC_DEVICE_BADGES_2() ( \
+        (VM_FIRST_BADGE_BIT + 1, vm0net_notify) \
+    ) \
     /**/
 
-#define VM_DEVICE_INIT_FN_0() \
+#define VM_INIT_SOURCE_DEFS() \
+    void __attribute__((weak)) vm0net_init(vmm_t *vmm) { assert(!"should not be called");} \
+    void __attribute__((weak)) vm2net_init(vmm_t *vmm) { assert(!"should not be called");} \
+    void __attribute__((weak)) vm0net_notify() { assert(!"should not be called"); } \
+    void __attribute__((weak)) vm2net_notify() { assert(!"should not be called"); } \
+    /**/
+
+#define VM_DEVICE_INIT_FN_0() ( \
+        vm2net_init \
+    ) \
     /**/
 
 #define VM_DEVICE_INIT_FN_1() ( \
@@ -210,7 +237,9 @@
     ) \
     /**/
 
-#define VM_DEVICE_INIT_FN_2() \
+#define VM_DEVICE_INIT_FN_2() ( \
+        vm0net_init \
+    ) \
     /**/
 
 #define PLAT_COMPONENT_DEF() \

@@ -41,6 +41,8 @@
 
 #define BRK_VIRTUAL_SIZE 400000000
 
+VM_INIT_SOURCE_DEFS()
+
 reservation_t muslc_brk_reservation;
 void *muslc_brk_reservation_start;
 vspace_t  *muslc_this_vspace;
@@ -267,6 +269,7 @@ BOOST_PP_REPEAT(VM_NUM_GUESTS, GUEST_PASSTHROUGH_OUTPUT, _)
  * build time but it is convenient to be able to inspect it programatically
  * instead of through insane macros
  */
+
 typedef struct device_notify {
     /* which extra bit to badge */
     uint32_t badge_bit;

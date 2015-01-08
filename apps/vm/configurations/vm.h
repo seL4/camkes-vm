@@ -18,12 +18,10 @@
 #include <boost/preprocessor/tuple.hpp>
 #include <boost/preprocessor/control.hpp>
 
-/* Include every possible configuration and assume they guard themselves
- * by insepcting the actual build configuration */
-#define c162_threevm_testing 1
-#include "c162_threevm_testing.h"
-#define nohardware_onevm 2
-#include "nohardware_onevm.h"
+#define VM_NUM_GUESTS CONFIG_APP_CAMKES_VM_NUM_VM
+
+#define VM_CONFIGURATION_HEADER() BOOST_PP_STRINGIZE(CAMKES_VM_CONFIG.h)
+#include VM_CONFIGURATION_HEADER()
 
 /* Now define a bunch of general definitions for constructing the VM */
 

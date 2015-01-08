@@ -8,11 +8,7 @@
  * @TAG(NICTA_GPL)
  */
 
-/* Configuration for three virtual machines running on the c162 */
-#if CAMKES_VM_CONFIG == c162_threevm_testing
-
-/* We want three guests */
-#define VM_NUM_GUESTS 3
+/* We expect 3 VMs */
 
 #define VM_CONFIGURATION_EXTRA_RAM
 #define VM_CONFIGURATION_EXTRA_RAM_0() (0x21000000,0x5000000)
@@ -241,5 +237,3 @@
     /**/
 
 #define HPET_IRQ() 20
-
-#endif

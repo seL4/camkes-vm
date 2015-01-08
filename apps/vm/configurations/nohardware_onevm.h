@@ -8,12 +8,7 @@
  * @TAG(NICTA_GPL)
  */
 
-/* Configuration for three virtual machines running on the c162 */
-
-#if CAMKES_VM_CONFIG == nohardware_onevm
-
-/* We want one guest */
-#define VM_NUM_GUESTS 1
+/* We expect 1 VM */
 
 #define PLAT_CONNECT_DEF() \
     /**/
@@ -76,5 +71,3 @@
 #define VM_ETHDRIVER_NUM_CLIENTS 0
 
 #define HPET_IRQ() 20
-
-#endif

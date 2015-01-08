@@ -72,9 +72,21 @@
 /* First available badge for user bits */
 #define VM_FIRST_BADGE_BIT 17
 
+/* Base definition of the Init component. This gets
+ * extended in the per Vm configuration */
+#define VM_INIT_DEF() \
+    control; \
+    uses PutChar putchar; \
+    uses VirtIOPort serial; \
+    uses PCIConfig pci_config; \
+    uses RTC system_rtc; \
+    consumes HaveInterrupt intready; \
+    uses Timer init_timer; \
+    /**/
+
 /* VM and per VM componenents */
 #define VM_COMP_DEF(num) \
-    component Init vm##num; \
+    component Init##num vm##num; \
     component SerialEmulator SerialEmul##num; \
     /**/
 

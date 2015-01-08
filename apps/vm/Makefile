@@ -27,6 +27,7 @@ Init_OFILES := archive.o
 
 # Construct configuration name
 VM_CONFIG := $(patsubst "%",%, ${CONFIG_APP_CAMKES_VM_CONFIG})
+VM_NUM_VM := $(patsubst "%",%, ${CONFIG_APP_CAMKES_VM_NUM_VM})
 
 # We want to run C99
 CFLAGS += -std=gnu99 "-DCAMKES_VM_CONFIG=${VM_CONFIG}" "-DBOOST_PP_VARIADICS"
@@ -34,6 +35,14 @@ CFLAGS += -std=gnu99 "-DCAMKES_VM_CONFIG=${VM_CONFIG}" "-DBOOST_PP_VARIADICS"
 Init_HFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/configurations/*.h))
 Init_HFILES += $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/Init/src/*.h))
 Init_LIBS := sel4camkes sel4vmm sel4utils cpio elf sel4vka sel4allocman sel4vspace pci cpio sel4simple sel4simple-stable sel4platsupport ethdrivers
+
+VM_LIST := $(shell seq 0 `expr ${VM_NUM_VM} - 1`)
+$(foreach var, $(VM_LIST), \
+    $(eval Init$(var)_HFILES := $(value Init_HFILES)); \
+    $(eval Init$(var)_CFILES := $(value Init_CFILES)); \
+    $(eval Init$(var)_OFILES := $(value Init_OFILES)); \
+    $(eval Init$(var)_LIBS := $(value Init_LIBS)); \
+)
 
 Ethdriver_HFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/configurations/*.h))
 Ethdriver_HFILES += $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/configurations/c162/*.h))

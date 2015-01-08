@@ -182,8 +182,21 @@
 #define VM_GUEST_IOSPACE_DOMAIN_2() 0x11
 
 #define VM_INIT_COMPONENT() \
-    maybe dataport Buf packet; \
-    maybe uses Ethdriver ethdriver; \
+    component Init0 { \
+        VM_INIT_DEF() \
+        maybe dataport Buf packet; \
+        maybe uses Ethdriver ethdriver; \
+    } \
+    component Init1 { \
+        VM_INIT_DEF() \
+        maybe dataport Buf packet; \
+        maybe uses Ethdriver ethdriver; \
+    } \
+    component Init2 { \
+        VM_INIT_DEF() \
+        maybe dataport Buf packet; \
+        maybe uses Ethdriver ethdriver; \
+    } \
     /**/
 
 #define VM_ASYNC_DEVICE_BADGES_0() \

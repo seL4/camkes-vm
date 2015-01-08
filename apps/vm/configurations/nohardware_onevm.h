@@ -47,6 +47,9 @@
 #define VM_GUEST_IOSPACE_DOMAIN_0() 0x0f
 
 #define VM_INIT_COMPONENT() \
+    component Init0 { \
+        VM_INIT_DEF() \
+    } \
     /**/
 
 #define VM_ASYNC_DEVICE_BADGES_0() \

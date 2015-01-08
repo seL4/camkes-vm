@@ -32,7 +32,7 @@
 #include <stdint.h>
 #include <sel4/sel4.h>
 #include <stdio.h>
-#include <Init.h>
+#include <camkes.h>
 #include "i8259.h"
 #include "timers.h"
 

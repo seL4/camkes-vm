@@ -49,6 +49,14 @@ config APP_CAMKES_VM_CONFIG
         You can add additional configurations by adding a new .h file and updating
         apps/vm/configurations/vm.h accordingly    
 
+config APP_CAMKES_VM_NUM_VM
+    int "Number of guests"
+    default 1
+    depends on APP_CAMKES_VM
+    help
+        This needs to be set to match your APP_CAMKES_VM_CONFIG
+        You probably should not change it
+
 config APP_CAMKES_VM_HPET_MSI
     bool "Use MSI delivery for HPET (requires hardware support)"
     depends on APP_CAMKES_VM

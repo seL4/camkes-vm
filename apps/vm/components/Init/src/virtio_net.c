@@ -19,7 +19,7 @@
 #include <simple/simple_helpers.h>
 #include <vka/capops.h>
 
-#include <Init.h>
+#include <camkes.h>
 #include <camkes/dataport.h>
 
 #include <ethdrivers/virtio/virtio_pci.h>

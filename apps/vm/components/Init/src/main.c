@@ -22,7 +22,7 @@
 #include <simple/simple_helpers.h>
 #include <vka/capops.h>
 
-#include <Init.h>
+#include <camkes.h>
 
 #include "vmm/vmm.h"
 #include "vmm/driver/pci_helper.h"

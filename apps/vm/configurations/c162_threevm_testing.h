@@ -180,18 +180,14 @@
 #define VM_INIT_COMPONENT() \
     component Init0 { \
         VM_INIT_DEF() \
-        maybe dataport Buf packet; \
-        maybe uses Ethdriver ethdriver; \
     } \
     component Init1 { \
         VM_INIT_DEF() \
-        maybe dataport Buf packet; \
-        maybe uses Ethdriver ethdriver; \
+        dataport Buf packet; \
+        uses Ethdriver ethdriver; \
     } \
     component Init2 { \
         VM_INIT_DEF() \
-        maybe dataport Buf packet; \
-        maybe uses Ethdriver ethdriver; \
     } \
     /**/
 

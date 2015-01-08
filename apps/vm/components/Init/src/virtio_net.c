@@ -35,12 +35,12 @@
 #include "vm.h"
 #include "i8259.h"
 
-#if VM_NUM_ETHDRIVERS > 0
-
 #define VIRTIO_VID 0x1af4
 #define VIRTIO_DID_START 0x1000
 
 #define QUEUE_SIZE 128
+
+volatile Buf*__attribute__((weak)) packet;
 
 void __attribute__((weak)) ethdriver_tx(int len) {
     assert(!"should not be here");
@@ -222,5 +222,3 @@ void make_virtio_net(vmm_t *vmm) {
     int len;
     while (ethdriver_rx(&len) != -1);
 }
-
-#endif

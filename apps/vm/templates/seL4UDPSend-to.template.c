@@ -8,8 +8,6 @@
  * @TAG(NICTA_BSD)
  */
 
-/*- import 'macros.jinja' as macros -*/
-
 #include <sel4/sel4.h>
 #include <camkes/dataport.h>
 #include <lwip/udp.h>

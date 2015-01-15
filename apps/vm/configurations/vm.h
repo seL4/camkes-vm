@@ -120,8 +120,9 @@
 /* If the platform configuration defined extra ram that we
  * generate the specifics of that generation for them */
 #ifdef VM_CONFIGURATION_EXTRA_RAM
-#define EXTRA_RAM_OUTPUT(a,b) BOOST_PP_STRINGIZE(a:b:12)
-#define VM_MAYBE_EXTRA_RAM(num) vm##num.mmio = BOOST_PP_EXPAND(EXTRA_RAM_OUTPUT CAT(VM_CONFIGURATION_EXTRA_RAM_,num)()) ;
+#define EXTRA_RAM_OUTPUT(a,b) BOOST_PP_STRINGIZE(a:b)
+#define EXTRA_RAM_OUTPUT_(r, data, elem) vm##data.untyped_mmio = BOOST_PP_EXPAND(EXTRA_RAM_OUTPUT elem);
+#define VM_MAYBE_EXTRA_RAM(num) BOOST_PP_LIST_FOR_EACH(EXTRA_RAM_OUTPUT_, num, BOOST_PP_TUPLE_TO_LIST(CAT(VM_CONFIGURATION_EXTRA_RAM_,num)()))
 #else
 #define VM_MAYBE_EXTRA_RAM(num)
 #endif

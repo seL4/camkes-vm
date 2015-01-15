@@ -11,9 +11,24 @@
 /* We expect 3 VMs */
 
 #define VM_CONFIGURATION_EXTRA_RAM
-#define VM_CONFIGURATION_EXTRA_RAM_0() (0x21000000,0x5000000)
-#define VM_CONFIGURATION_EXTRA_RAM_1() (0x27000000,0x5000000)
-#define VM_CONFIGURATION_EXTRA_RAM_2() (0x2D000000,0x5000000)
+#define VM_CONFIGURATION_EXTRA_RAM_0() ( \
+        (0x21000000,24), \
+        (0x22000000,25), \
+        (0x24000000,24) \
+    ) \
+    /**/
+#define VM_CONFIGURATION_EXTRA_RAM_1() ( \
+        (0x27000000,24), \
+        (0x28000000,25), \
+        (0x2A000000,24) \
+    ) \
+    /**/
+#define VM_CONFIGURATION_EXTRA_RAM_2() ( \
+        (0x2D000000,25), \
+        (0x2F000000,24), \
+        (0x30000000,24) \
+    ) \
+    /**/
 
 #define VM_PASSTHROUGH_IRQ_0() ( \
         (11, 1, 1, 10), \

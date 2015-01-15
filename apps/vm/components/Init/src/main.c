@@ -160,7 +160,7 @@ static void make_proxy_vka(vka_t *vka, allocman_t *allocman) {
     allocman_make_vka(&proxy->regular_vka, allocman);
 #define GET_EXTRA_RAM_OUTPUT(num, iteration, data) \
     if (strcmp(get_instance_name(),BOOST_PP_STRINGIZE(vm##iteration)) == 0) { \
-        proxy->last_paddr = BOOST_PP_TUPLE_ELEM(0, BOOST_PP_CAT(VM_CONFIGURATION_EXTRA_RAM_,iteration)()); \
+        proxy->last_paddr = BOOST_PP_TUPLE_ELEM(0, BOOST_PP_TUPLE_ELEM(0, BOOST_PP_CAT(VM_CONFIGURATION_EXTRA_RAM_,iteration)())); \
         proxy->have_mem = 1; \
     } \
     /**/

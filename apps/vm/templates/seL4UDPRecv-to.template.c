@@ -8,8 +8,6 @@
  * @TAG(NICTA_BSD)
  */
 
-/*? macros.show_includes(me.to_instance.type.includes) ?*/
-
 #include <sel4/sel4.h>
 #include <camkes/dataport.h>
 #include <lwip/udp.h>

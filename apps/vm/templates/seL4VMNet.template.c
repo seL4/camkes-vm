@@ -8,8 +8,6 @@
  * @TAG(NICTA_BSD)
  */
 
-/*- import 'macros.jinja' as macros -*/
-
 #include <autoconf.h>
 #include <camkes/dataport.h>
 #include <sel4/sel4.h>
@@ -41,8 +39,6 @@
 
 #define RINGBUF_SIZE sizeof(/*? show(interface.type) ?*/)
 #define BUFSLOTS (RINGBUF_SIZE / 2 / 2048)
-
-/*? macros.show_includes(instance.type.includes) ?*/
 
 /* Actual dataport is emitted in the per-component template. */
 /*- set p = Perspective(dataport=interface.name) -*/

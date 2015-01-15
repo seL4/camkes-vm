@@ -506,7 +506,6 @@ static seL4_Word irq_badges[16] = {
 };
 
 static int handle_async_event(seL4_Word badge) {
-    int ret = 1;
     if (badge & BIT(27)) {
         if ( (badge & VM_INIT_TIMER_BADGE) == VM_INIT_TIMER_BADGE) {
             uint32_t completed = init_timer_completed();

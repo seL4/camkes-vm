@@ -88,10 +88,9 @@ void /*? me.to_interface.name ?*/__run(void) {
     while (1) {
         /*- set cnode = alloc_cap('cnode', my_cnode, write=True) -*/
         /*- set reply_cap_slot = alloc_cap('reply_cap_slot', None) -*/
-        seL4_MessageInfo_t info;
         int len;
         int result UNUSED;
-        info = seL4_Wait(/*? ep ?*/, NULL);
+        seL4_Wait(/*? ep ?*/, NULL);
         result = seL4_CNode_SaveCaller(/*? cnode ?*/, /*? reply_cap_slot ?*/, 32);
         assert(result == seL4_NoError);
         lwip_lock();

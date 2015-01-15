@@ -179,7 +179,6 @@ static int emul_driver_init(struct eth_driver *driver, ps_io_ops_t io_ops, void 
 
 void /*? interface.name ?*/_notify() {
     int len;
-    int status;
     int notify = 0;
     /* scan for completed rx and tx packets */
     int idx;
@@ -194,7 +193,7 @@ void /*? interface.name ?*/_notify() {
         len = vmnet->rx_ring[idx].len;
         void *emul_buf = (void*)vmnet->emul_driver->i_cb.allocate_rx_buf(vmnet->emul_driver->cb_cookie, len, &cookie);
         if (emul_buf) {
-            memcpy(emul_buf, vmnet->rx_ring[idx].data, len);
+            memcpy(emul_buf, (void*)vmnet->rx_ring[idx].data, len);
             vmnet->emul_driver->i_cb.rx_complete(vmnet->emul_driver->cb_cookie, 1, &cookie, (unsigned int*)&len);
         }
         vmnet->rx_ring[idx].full = 0;
@@ -262,11 +261,11 @@ void /*? interface.name ?*/_init(vmm_t *vmm) {
     memset(net, 0, sizeof(*net));
     char *p = /*? p['dataport_symbol'] ?*/;
     /*- if buf_order -*/
-        net->tx_ring = p;
-        net->rx_ring = p + (RINGBUF_SIZE / 2);
+        net->tx_ring = (volatile buf_entry_t *)p;
+        net->rx_ring = (volatile buf_entry_t *)(p + (RINGBUF_SIZE / 2));
     /*- else -*/
-        net->tx_ring = p + (RINGBUF_SIZE / 2);
-        net->rx_ring = p;
+        net->tx_ring = (volatile buf_entry_t *)(p + (RINGBUF_SIZE / 2));
+        net->rx_ring = (volatile buf_entry_t *)p;
     /*- endif -*/
     net->iobase = /*? iobase ?*/;
     vmm_io_port_add_handler(&vmm->io_port, /*? iobase ?*/, /*? iobase ?*/ + MASK(6), net, vmnet_io_in, vmnet_io_out, "VIRTIO PCI NET");

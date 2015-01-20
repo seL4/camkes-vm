@@ -19,8 +19,11 @@
 
 /* Actual dataport is emitted in the per-component template. */
 /*- set p = Perspective(dataport=me.from_interface.name) -*/
-extern char /*? p['dataport_symbol'] ?*/[ROUND_UP_UNSAFE(sizeof(/*? show(me.from_interface.type) ?*/), PAGE_SIZE_4K)];
-extern volatile /*? show(me.from_interface.type) ?*/ * /*? me.from_interface.name ?*/;
+char /*? p['dataport_symbol'] ?*/[ROUND_UP_UNSAFE(sizeof(/*? show(me.from_interface.type) ?*/), PAGE_SIZE_4K)]
+    __attribute__((aligned(PAGE_SIZE_4K)))
+    __attribute__((section("shared_/*? me.from_interface.name ?*/")))
+    __attribute__((externally_visible));
+volatile /*? show(me.from_interface.type) ?*/ * /*? me.from_interface.name ?*/ = (volatile /*? show(me.from_interface.type) ?*/ *) /*? p['dataport_symbol'] ?*/;
 
 void /*? me.from_interface.name ?*/_send(void *p, unsigned int len, ip_addr_t addr, uint16_t port) {
     seL4_SetMR(0, len);

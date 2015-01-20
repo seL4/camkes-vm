@@ -42,8 +42,11 @@
 
 /* Actual dataport is emitted in the per-component template. */
 /*- set p = Perspective(dataport=interface.name) -*/
-extern char /*? p['dataport_symbol'] ?*/[ROUND_UP_UNSAFE(RINGBUF_SIZE, PAGE_SIZE_4K)];
-extern volatile /*? show(interface.type) ?*/ * /*? interface.name ?*/;
+char /*? p['dataport_symbol'] ?*/[ROUND_UP_UNSAFE(RINGBUF_SIZE, PAGE_SIZE_4K)]
+    __attribute__((aligned(PAGE_SIZE_4K)))
+    __attribute__((section("shared_/*? interface.name ?*/")))
+    __attribute__((externally_visible));
+volatile /*? show(interface.type) ?*/ * /*? interface.name ?*/ = (volatile /*? show(interface.type) ?*/ *) /*? p['dataport_symbol'] ?*/;
 
 /*- set settings = [] -*/
 

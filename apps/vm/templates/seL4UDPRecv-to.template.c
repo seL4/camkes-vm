@@ -19,8 +19,11 @@
 
 /* Actual dataport is emitted in the per-component template. */
 /*- set p = Perspective(dataport=me.to_interface.name) -*/
-extern char /*? p['dataport_symbol'] ?*/[ROUND_UP_UNSAFE(sizeof(/*? show(me.to_interface.type) ?*/), PAGE_SIZE_4K)];
-extern volatile /*? show(me.to_interface.type) ?*/ * /*? me.to_interface.name ?*/;
+char /*? p['dataport_symbol'] ?*/[ROUND_UP_UNSAFE(sizeof(/*? show(me.to_interface.type) ?*/), PAGE_SIZE_4K)]
+    __attribute__((aligned(PAGE_SIZE_4K)))
+    __attribute__((section("shared_/*? me.to_interface.name ?*/")))
+    __attribute__((externally_visible));
+volatile /*? show(me.to_interface.type) ?*/ * /*? me.to_interface.name ?*/ = (volatile /*? show(me.to_interface.type) ?*/ *) /*? p['dataport_symbol'] ?*/;
 
 void lwip_lock();
 void lwip_unlock();

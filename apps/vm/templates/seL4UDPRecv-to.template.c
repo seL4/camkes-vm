@@ -143,7 +143,7 @@ void /*? me.to_interface.name ?*/__init(void) {
 
 int /*? me.to_interface.name ?*/_wrap_ptr(dataport_ptr_t *p, void *ptr) {
     /* should not be used */
-    return 0;
+    return -1;
 }
 
 void * /*? me.to_interface.name ?*/_unwrap_ptr(dataport_ptr_t *p) {

@@ -63,7 +63,7 @@ volatile /*? show(interface.type) ?*/ * /*? interface.name ?*/ = (volatile /*? s
 
 int /*? interface.name ?*/_wrap_ptr(dataport_ptr_t *p, void *ptr) {
     /* should not be used */
-    return 0;
+    return -1;
 }
 
 void * /*? interface.name ?*/_unwrap_ptr(dataport_ptr_t *p) {

@@ -80,6 +80,7 @@ typedef struct proxy_vka {
     int have_mem;
     allocman_t *allocman;
     vka_t regular_vka;
+    vspace_t vspace;
 } proxy_vka_t;
 
 static proxy_vka_t proxy_vka;
@@ -112,7 +113,7 @@ int proxy_vka_utspace_alloc(void *data, const cspacepath_t *dest, seL4_Word type
     if (!node) {
         return -1;
     }
-    if (type == seL4_IA32_4K && vka->have_mem) {
+    if (type == seL4_IA32_4K && vka->have_mem && vka->vspace.map_pages) {
         error = simple_get_frame_cap(&camkes_simple, (void*)vka->last_paddr, seL4_PageBits, (cspacepath_t*)dest);
         if (error) {
             vka->have_mem = 0;
@@ -120,6 +121,11 @@ int proxy_vka_utspace_alloc(void *data, const cspacepath_t *dest, seL4_Word type
             node->frame = 1;
             node->cookie = vka->last_paddr;
             vka->last_paddr += PAGE_SIZE_4K;
+            /* briefly map this frame in so we can zero it */
+            void * base = vspace_map_pages(&vka->vspace, &dest->capPtr, NULL, seL4_AllRights, 1, PAGE_BITS_4K, 1);
+            assert(base);
+            memset(base, 0, PAGE_SIZE_4K);
+            vspace_unmap_pages(&vka->vspace, base, 1, PAGE_BITS_4K, VSPACE_PRESERVE);
             return 0;
         }
     }
@@ -153,10 +159,11 @@ uintptr_t proxy_vka_utspace_paddr(void *data, uint32_t target, seL4_Word type, s
     }
 }
 
-static void make_proxy_vka(vka_t *vka, allocman_t *allocman) {
+static void make_proxy_vka(vka_t *vka, allocman_t *allocman, vspace_t *vspace) {
 #ifdef VM_CONFIGURATION_EXTRA_RAM
     proxy_vka_t *proxy = &proxy_vka;
     proxy->allocman = allocman;
+    proxy->vspace = *vspace;
     allocman_make_vka(&proxy->regular_vka, allocman);
 #define GET_EXTRA_RAM_OUTPUT(num, iteration, data) \
     if (strcmp(get_instance_name(),BOOST_PP_STRINGIZE(vm##iteration)) == 0) { \
@@ -203,7 +210,7 @@ void pre_init(void) {
     );
     assert(allocman);
     error = allocman_add_simple_untypeds(allocman, &camkes_simple);
-    make_proxy_vka(&vka, allocman);
+    make_proxy_vka(&vka, allocman, &vspace);
 
     /* Initialize the vspace */
     error = sel4utils_bootstrap_vspace(&vspace, &vspace_data,

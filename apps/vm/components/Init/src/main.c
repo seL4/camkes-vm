@@ -136,7 +136,7 @@ int proxy_vka_utspace_alloc(void *data, const cspacepath_t *dest, seL4_Word type
         *res = (uint32_t)node;
         return  0;
     }
-    free(node);
+    allocman_mspace_free(vka->allocman, node, sizeof(*node));
     return error;
 }
 
@@ -602,6 +602,7 @@ int main_continued(void) {
     int num_hw_irqs;
 
     rtc_time_date_t time_date = system_rtc_time_date();
+    while (strcmp(get_instance_name(), "vm0") !=0);
     printf("Starting VM %s at: %04d:%02d:%02d %02d:%02d:%02d\n", get_instance_name(), time_date.year, time_date.month, time_date.day, time_date.hour, time_date.minute, time_date.second);
 
     ioops = make_pci_io_ops();

@@ -81,6 +81,7 @@ typedef struct proxy_vka {
     allocman_t *allocman;
     vka_t regular_vka;
     vspace_t vspace;
+    int recurse;
 } proxy_vka_t;
 
 static proxy_vka_t proxy_vka;
@@ -113,7 +114,8 @@ int proxy_vka_utspace_alloc(void *data, const cspacepath_t *dest, seL4_Word type
     if (!node) {
         return -1;
     }
-    if (type == seL4_IA32_4K && vka->have_mem && vka->vspace.map_pages) {
+    static int recurse = 0;
+    if (type == seL4_IA32_4K && vka->have_mem && vka->vspace.map_pages && !vka->recurse) {
         error = simple_get_frame_cap(&camkes_simple, (void*)vka->last_paddr, seL4_PageBits, (cspacepath_t*)dest);
         if (error) {
             vka->have_mem = 0;
@@ -121,11 +123,14 @@ int proxy_vka_utspace_alloc(void *data, const cspacepath_t *dest, seL4_Word type
             node->frame = 1;
             node->cookie = vka->last_paddr;
             vka->last_paddr += PAGE_SIZE_4K;
-            /* briefly map this frame in so we can zero it */
+            /* briefly map this frame in so we can zero it. Avoid recursively allocating
+             * for book keeping */
+            vka->recurse = 1;
             void * base = vspace_map_pages(&vka->vspace, &dest->capPtr, NULL, seL4_AllRights, 1, PAGE_BITS_4K, 1);
             assert(base);
             memset(base, 0, PAGE_SIZE_4K);
             vspace_unmap_pages(&vka->vspace, base, 1, PAGE_BITS_4K, VSPACE_PRESERVE);
+            vka->recurse = 0;
             return 0;
         }
     }
@@ -159,11 +164,18 @@ uintptr_t proxy_vka_utspace_paddr(void *data, uint32_t target, seL4_Word type, s
     }
 }
 
-static void make_proxy_vka(vka_t *vka, allocman_t *allocman, vspace_t *vspace) {
+static void proxy_give_vspace(vka_t *vka, vspace_t *vspace) {
+#ifdef VM_CONFIGURATION_EXTRA_RAM
+    proxy_vka_t *proxy = (proxy_vka_t*)vka->data;
+    proxy->vspace = *vspace;
+#endif
+}
+
+static void make_proxy_vka(vka_t *vka, allocman_t *allocman) {
 #ifdef VM_CONFIGURATION_EXTRA_RAM
     proxy_vka_t *proxy = &proxy_vka;
+    memset(proxy, 0, sizeof(*proxy));
     proxy->allocman = allocman;
-    proxy->vspace = *vspace;
     allocman_make_vka(&proxy->regular_vka, allocman);
 #define GET_EXTRA_RAM_OUTPUT(num, iteration, data) \
     if (strcmp(get_instance_name(),BOOST_PP_STRINGIZE(vm##iteration)) == 0) { \
@@ -210,12 +222,14 @@ void pre_init(void) {
     );
     assert(allocman);
     error = allocman_add_simple_untypeds(allocman, &camkes_simple);
-    make_proxy_vka(&vka, allocman, &vspace);
+    make_proxy_vka(&vka, allocman);
 
     /* Initialize the vspace */
     error = sel4utils_bootstrap_vspace(&vspace, &vspace_data,
             simple_get_init_cap(&camkes_simple, seL4_CapInitThreadPD), &vka, NULL, NULL, existing_frames);
     assert(!error);
+
+    proxy_give_vspace(&vka, &vspace);
 
     sel4utils_reserve_range_no_alloc(&vspace, &muslc_brk_reservation_memory, BRK_VIRTUAL_SIZE, seL4_AllRights, 1, &muslc_brk_reservation_start);
     muslc_this_vspace = &vspace;
@@ -602,7 +616,6 @@ int main_continued(void) {
     int num_hw_irqs;
 
     rtc_time_date_t time_date = system_rtc_time_date();
-    while (strcmp(get_instance_name(), "vm0") !=0);
     printf("Starting VM %s at: %04d:%02d:%02d %02d:%02d:%02d\n", get_instance_name(), time_date.year, time_date.month, time_date.day, time_date.hour, time_date.minute, time_date.second);
 
     ioops = make_pci_io_ops();

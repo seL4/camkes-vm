@@ -114,7 +114,6 @@ int proxy_vka_utspace_alloc(void *data, const cspacepath_t *dest, seL4_Word type
     if (!node) {
         return -1;
     }
-    static int recurse = 0;
     if (type == seL4_IA32_4K && vka->have_mem && vka->vspace.map_pages && !vka->recurse) {
         error = simple_get_frame_cap(&camkes_simple, (void*)vka->last_paddr, seL4_PageBits, (cspacepath_t*)dest);
         if (error) {
@@ -126,7 +125,7 @@ int proxy_vka_utspace_alloc(void *data, const cspacepath_t *dest, seL4_Word type
             /* briefly map this frame in so we can zero it. Avoid recursively allocating
              * for book keeping */
             vka->recurse = 1;
-            void * base = vspace_map_pages(&vka->vspace, &dest->capPtr, NULL, seL4_AllRights, 1, PAGE_BITS_4K, 1);
+            void * base = vspace_map_pages(&vka->vspace, (seL4_CPtr*)&dest->capPtr, NULL, seL4_AllRights, 1, PAGE_BITS_4K, 1);
             assert(base);
             memset(base, 0, PAGE_SIZE_4K);
             vspace_unmap_pages(&vka->vspace, base, 1, PAGE_BITS_4K, VSPACE_PRESERVE);

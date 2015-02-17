@@ -82,6 +82,8 @@ typedef struct proxy_vka {
     vka_t regular_vka;
     vspace_t vspace;
     int recurse;
+    void *temp_map_address;
+    reservation_t temp_map_reservation;
 } proxy_vka_t;
 
 static proxy_vka_t proxy_vka;
@@ -124,11 +126,12 @@ int proxy_vka_utspace_alloc(void *data, const cspacepath_t *dest, seL4_Word type
             vka->last_paddr += PAGE_SIZE_4K;
             /* briefly map this frame in so we can zero it. Avoid recursively allocating
              * for book keeping */
+            assert(!vka->recurse);
             vka->recurse = 1;
-            void * base = vspace_map_pages(&vka->vspace, (seL4_CPtr*)&dest->capPtr, NULL, seL4_AllRights, 1, PAGE_BITS_4K, 1);
-            assert(base);
-            memset(base, 0, PAGE_SIZE_4K);
-            vspace_unmap_pages(&vka->vspace, base, 1, PAGE_BITS_4K, VSPACE_PRESERVE);
+            error = vspace_map_pages_at_vaddr(&vka->vspace, (seL4_CPtr*)&dest->capPtr, NULL, vka->temp_map_address, 1, PAGE_BITS_4K, vka->temp_map_reservation);
+            assert(!error);
+            memset(vka->temp_map_address, 0, PAGE_SIZE_4K);
+            vspace_unmap_pages(&vka->vspace, vka->temp_map_address, 1, PAGE_BITS_4K, VSPACE_PRESERVE);
             vka->recurse = 0;
             return 0;
         }
@@ -163,10 +166,12 @@ uintptr_t proxy_vka_utspace_paddr(void *data, uint32_t target, seL4_Word type, s
     }
 }
 
-static void proxy_give_vspace(vka_t *vka, vspace_t *vspace) {
+static void proxy_give_vspace(vka_t *vka, vspace_t *vspace, void *vaddr, reservation_t res) {
 #ifdef VM_CONFIGURATION_EXTRA_RAM
     proxy_vka_t *proxy = (proxy_vka_t*)vka->data;
     proxy->vspace = *vspace;
+    proxy->temp_map_address = vaddr;
+    proxy->temp_map_reservation = res;
 #endif
 }
 
@@ -228,7 +233,19 @@ void pre_init(void) {
             simple_get_init_cap(&camkes_simple, seL4_CapInitThreadPD), &vka, NULL, NULL, existing_frames);
     assert(!error);
 
-    proxy_give_vspace(&vka, &vspace);
+    /* Create temporary mapping reservation, and map in a frame to
+     * create any book keeping */
+    reservation_t reservation;
+    reservation.res = allocman_mspace_alloc(allocman, sizeof(sel4utils_res_t), &error);
+    assert(reservation.res);
+    void *reservation_vaddr;
+    error = sel4utils_reserve_range_no_alloc(&vspace, reservation.res, PAGE_SIZE_4K, seL4_AllRights, 1, &reservation_vaddr);
+    assert(!error);
+    error = vspace_new_pages_at_vaddr(&vspace, reservation_vaddr, 1, seL4_PageBits, reservation);
+    assert(!error);
+    vspace_unmap_pages(&vspace, reservation_vaddr, 1, seL4_PageBits, VSPACE_FREE);
+
+    proxy_give_vspace(&vka, &vspace, reservation_vaddr, reservation);
 
     sel4utils_reserve_range_no_alloc(&vspace, &muslc_brk_reservation_memory, BRK_VIRTUAL_SIZE, seL4_AllRights, 1, &muslc_brk_reservation_start);
     muslc_this_vspace = &vspace;

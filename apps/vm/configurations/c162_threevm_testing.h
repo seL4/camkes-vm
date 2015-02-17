@@ -117,27 +117,28 @@
     ) \
     /**/
 
+
 #define VM_CONFIGURATION_IOPORT_0() \
     /**/
 
 #define VM_CONFIGURATION_IOPORT_1() ( \
-    (0x162e, 0x162f, 0, "PLD Registers"), \
-    (0x378, 0x37f, 0, "PLD Discrete I/O"), \
-    (0x3f0, 0x3f7, 0, "PLD Extended Discrete I/O"), \
-    (0x160E, 0x160F, 0, "CANbus 1 Two address"), \
-    (0x1680, 0x16A0, 0, "CANbus 1 Multi address"), \
-    (0x161E, 0x161F, 0, "CANbus 2 Two address"), \
-    (0x16C0, 0x16E0, 0, "CANbus 2 Multi address"), \
+    (0x162e, 0x162f, 1, "PLD Registers"), \
+    (0x378, 0x37f, 1, "PLD Discrete I/O"), \
+    (0x3f0, 0x3f7, 1, "PLD Extended Discrete I/O"), \
+    (0x160E, 0x160F, 1, "CANbus 1 Two address"), \
+    (0x1680, 0x16A0, 1, "CANbus 1 Multi address"), \
+    (0x161E, 0x161F, 1, "CANbus 2 Two address"), \
+    (0x16C0, 0x16E0, 1, "CANbus 2 Multi address"), \
     /* devices */ \
-    (0xe000, 0xe01f, 0,) \
+    (0xe000, 0xe01f, 0, "Some device") \
     ) \
     /**/
 
 #define VM_CONFIGURATION_IOPORT_2() ( \
-    (0x2f8, 0x2ff, 0, "COM2 Serial Port"), \
-    (0x2e8, 0x2ef, 0, "COM4 Serial Port"), \
+    (0x2f8, 0x2ff, 1, "COM2 Serial Port"), \
+    (0x2e8, 0x2ef, 1, "COM4 Serial Port"), \
     /* device */ \
-    (0xd040, 0xd05f, 0,) \
+    (0xd040, 0xd05f, 0, "Some device") \
     ) \
     /**/
 

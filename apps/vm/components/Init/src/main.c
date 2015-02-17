@@ -597,7 +597,7 @@ static void init_irqs(hw_irq_t *irqs, int num) {
     }
 }
 
-int main_continued(void) {
+void *main_continued(void *arg) {
     int error;
     int i;
     const char *kernel_image = NULL;
@@ -806,11 +806,11 @@ int main_continued(void) {
     /* Now go run the event loop */
     vmm_run(&vmm);
 
-    return 0;
+    return NULL;
 }
 
 int run(void) {
-    sel4utils_run_on_stack(&vspace, main_continued);
+    sel4utils_run_on_stack(&vspace, main_continued, NULL);
     assert(!"Should not get here");
 
     return 0;

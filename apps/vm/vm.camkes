@@ -128,7 +128,7 @@ assembly {
         hpet.irq_attributes = "24,0,0";
 #else
 #define QUOTE "
-#define _MAKE_IRQ_ATTRIB(x) QUOTE x,0,0 QUOTE ;
+#define _MAKE_IRQ_ATTRIB(x) QUOTE x,1,1 QUOTE ;
 #define MAKE_IRQ_ATTRIB(x) _MAKE_IRQ_ATTRIB(x)
         hpet.irq_attributes = MAKE_IRQ_ATTRIB(HPET_IRQ())
 #endif

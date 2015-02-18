@@ -279,9 +279,9 @@ uint64_t the_timer_time() {
     return _time(the_timer_get_badge() - 1);
 }
 
-void pre_init() {
+void post_init() {
     time_server_lock();
-    set_putchar(putchar_putchar);
+//    set_putchar(putchar_putchar);
     for (int i = 0; i < VM_NUM_TIMER_CLIENTS; i++) {
         client_state[i].id = i;
         client_state[i].completed = 0;

@@ -234,7 +234,7 @@ static void handle_char(uint8_t c) {
     /* some manually written state machine magic to detect switching of input direction */
     switch (statemachine) {
     case 0:
-        if (c == '\r') {
+        if (c == '\r' || c == '\n') {
             statemachine = 1;
         }
         give_guest_char(c);

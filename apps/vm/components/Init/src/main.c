@@ -257,12 +257,20 @@ typedef struct memory_range {
     size_t size;
 } memory_range_t;
 
-#ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE
+#if  defined(CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE) || defined(CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE_UNSAFE)
 static memory_range_t guest_ram_regions[] = {
     /* Define one of the standard ram regions
      * Making sure it is page aligned so it will
      * work from device memory */
+#ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE
     {0x8000, 0x9f000 - 0x8000},
+#else
+    /* Make the range as small as possible since
+     * we will not be allocating this one to one
+     * and we want to pray that linux cannot end
+     * up using it for DMA */
+    {0x8000, 0x81000 - 0x8000},
+#endif
 };
 #else
 static memory_range_t guest_ram_regions[] = {
@@ -278,7 +286,7 @@ static memory_range_t guest_fake_devices[] = {
     {0xe0000, 0x10000}, // PCI BIOS
     {0xc0000, 0xc8000 - 0xc0000}, // VIDEO BIOS
     {0xc8000, 0xe0000 - 0xc8000}, // Mapped hardware and MISC
-#ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE
+#if defined(CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE) || defined(CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE_UNSAFE)
     /* Fake a BIOS page. Done in one_to_one case as we don't
      * allocate a low memory frame already */
     {0x0, 0x1000},
@@ -717,7 +725,6 @@ void *main_continued(void *arg) {
     for (i = 0; i < ARRAY_SIZE(guest_ram_regions); i++) {
         /* try and put a device here */
         error = vmm_map_guest_device_at(&vmm, guest_ram_regions[i].base, guest_ram_regions[i].base, guest_ram_regions[i].size);
-        assert(!error);
     }
     /* We now run the normal loop to allocate ram regions. Because the addresses are
      * already in the vspace no additional frames will get mapped, but it will result
@@ -736,7 +743,7 @@ void *main_continued(void *arg) {
     /* Allocate guest ram. This is the main memory that the guest will actually get
      * told exists. Other memory may get allocated and mapped into the guest */
     int paddr_is_vaddr;
-#ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE
+#if defined(CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE) || defined(CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE_UNSAFE)
     paddr_is_vaddr = 1;
 #else
     paddr_is_vaddr = 0;

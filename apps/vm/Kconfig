@@ -33,6 +33,8 @@ choice
         Select how hardware DMA support is implemented.
     config APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE
         bool "One to one physical address mapping"
+    config APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE_UNSAFE
+        bool "Mostly one to one physical address mapping (UNSAFE)"
     config APP_CAMKES_VM_GUEST_DMA_IOMMU
         bool "IOMMU"
     config APP_CAMKES_VM_GUEST_DMA_NONE

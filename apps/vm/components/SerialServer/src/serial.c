@@ -67,7 +67,7 @@
 #define COLOUR_C "\033[;1;36m"
 #define COLOUR_RESET "\033[0m"
 
-#define GUEST_BUFFER_SIZE 64
+#define GUEST_BUFFER_SIZE 1024
 #define MAX_GUESTS 3
 #define GUEST_OUTPUT_BUFFER_SIZE 256
 
@@ -194,6 +194,12 @@ static void internal_putchar(int b, int c) {
     serial_unlock();
 }
 
+#define GUEST_INPUT_SIGNAL_OUTPUT(a , vm, b) BOOST_PP_CAT(guest##vm,_input_signal_emit),
+static void (*guest_input_signal_emit[])(void) = {
+    BOOST_PP_REPEAT(VM_NUM_GUESTS, GUEST_INPUT_SIGNAL_OUTPUT, _)
+};
+static int guest_read_since_emit[VM_NUM_GUESTS] = {1};
+
 static int internal_pollchar(int guest, int *out) {
     int ret = 0;
     serial_lock();
@@ -203,22 +209,21 @@ static int internal_pollchar(int guest, int *out) {
         *out = guest_buffers[guest][guest_buffer_start[guest]];
         guest_buffer_start[guest]++;
         guest_buffer_start[guest] %= GUEST_BUFFER_SIZE;
+        guest_read_since_emit[guest] = 1;
     }
     serial_unlock();
     return ret;
 }
-
-#define GUEST_INPUT_SIGNAL_OUTPUT(a , vm, b) BOOST_PP_CAT(guest##vm,_input_signal_emit),
-static void (*guest_input_signal_emit[])(void) = {
-    BOOST_PP_REPEAT(VM_NUM_GUESTS, GUEST_INPUT_SIGNAL_OUTPUT, _)
-};
 
 static void internal_guest_putchar(int guest, int c) {
     if ((guest_buffer_end[guest] + 1) % GUEST_BUFFER_SIZE != guest_buffer_start[guest]) {
         guest_buffers[guest][guest_buffer_end[guest]] = c;
         guest_buffer_end[guest]++;
         guest_buffer_end[guest] %= GUEST_BUFFER_SIZE;
-        guest_input_signal_emit[guest]();
+        if (guest_read_since_emit[guest]) {
+            guest_input_signal_emit[guest]();
+            guest_read_since_emit[guest] = 0;
+        }
     }
 }
 
@@ -332,11 +337,9 @@ static void reset_mcr() {
     write_mcr(MCR_DTR | MCR_RTS | MCR_AO1 | MCR_AO2);
 }
 
-static void clear_iir(int read) {
+static void clear_iir() {
     uint8_t iir;
-    int count = 0;
     while (! ((iir = read_iir()) & IIR_PENDING)) {
-        assert(count++ < 1000);
         switch(iir & IIR_REASON) {
         case IIR_MSR:
             read_msr();
@@ -345,8 +348,8 @@ static void clear_iir(int read) {
             break;
         case IIR_RDA:
         case IIR_TIME:
-            if (read) {
-                read_rbr();
+            while (read_lsr() & LSR_DATA_READY) {
+                handle_char(read_rbr());
             }
             break;
         case IIR_LSR:
@@ -362,10 +365,7 @@ static void enable_interrupt() {
 
 static void serial_irq(void *cookie) {
     serial_lock();
-    while (read_lsr() & LSR_DATA_READY) {
-        handle_char(read_rbr());
-    }
-    clear_iir(1);
+    clear_iir();
     serial_irq_reg_callback(serial_irq, cookie);
     serial_unlock();
 }
@@ -401,12 +401,12 @@ void pre_init(void) {
     disable_fifo();
     reset_lcr();
     reset_mcr();
-    clear_iir(1);
+    clear_iir();
     set_baud_rate(BAUD_RATE);
     reset_state();
     enable_fifo();
     enable_interrupt();
-    clear_iir(1);
+    clear_iir();
     // all done
     init_colours();
     set_putchar(serial_putchar);

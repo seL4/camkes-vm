@@ -560,6 +560,21 @@ static void serial_ioport_write(void *opaque, uint32_t addr, uint32_t val)
     }
 }
 
+static int serial_can_receive(SerialState *s)
+{
+    if(s->fcr & UART_FCR_FE) {
+        if(s->recv_fifo.count < UART_FIFO_LENGTH)
+        /* Advertise (fifo.itl - fifo.count) bytes when count < ITL, and 1 if above. If UART_FIFO_LENGTH - fifo.count is
+        advertised the effect will be to almost always fill the fifo completely before the guest has a chance to respond,
+        effectively overriding the ITL that the guest has set. */
+             return (s->recv_fifo.count <= s->recv_fifo.itl) ? s->recv_fifo.itl - s->recv_fifo.count : 1;
+        else
+             return 0;
+    } else {
+    return !(s->lsr & UART_LSR_DR);
+    }
+}
+
 static uint32_t serial_ioport_read(void *opaque, uint32_t addr)
 {
     SerialState *s = opaque;
@@ -574,6 +589,12 @@ static uint32_t serial_ioport_read(void *opaque, uint32_t addr)
         } else {
             if(s->fcr & UART_FCR_FE) {
                 ret = fifo_get(s,RECV_FIFO);
+                /* If there was more characters at the other end we should go get them */
+                int c;
+                while (serial_can_receive(s) && getchar_pollchar(&c)) {
+                    uint8_t character = (uint8_t)c;
+                    serial_receive1(s, &character, 1);
+                }
                 if (s->recv_fifo.count == 0) {
                     s->lsr &= ~(UART_LSR_DR | UART_LSR_BI);
                 } else {
@@ -644,21 +665,6 @@ static uint32_t serial_ioport_read(void *opaque, uint32_t addr)
     }
     DPRINTF("read addr=0x%02x val=0x%02x\n", addr, ret);
     return ret;
-}
-
-static int serial_can_receive(SerialState *s)
-{
-    if(s->fcr & UART_FCR_FE) {
-        if(s->recv_fifo.count < UART_FIFO_LENGTH)
-        /* Advertise (fifo.itl - fifo.count) bytes when count < ITL, and 1 if above. If UART_FIFO_LENGTH - fifo.count is
-        advertised the effect will be to almost always fill the fifo completely before the guest has a chance to respond,
-        effectively overriding the ITL that the guest has set. */
-             return (s->recv_fifo.count <= s->recv_fifo.itl) ? s->recv_fifo.itl - s->recv_fifo.count : 1;
-        else
-             return 0;
-    } else {
-    return !(s->lsr & UART_LSR_DR);
-    }
 }
 
 #if 0
@@ -998,11 +1004,9 @@ static void getchar_callback(void *cookie) {
     serial_lock();
     SerialState *s = (SerialState*)cookie;
     int c;
-    while(getchar_pollchar(&c)) {
+    while (serial_can_receive(s) && getchar_pollchar(&c)) {
         uint8_t character = (uint8_t)c;
-        if (serial_can_receive(s)) {
-            serial_receive1(s, &character, 1);
-        }
+        serial_receive1(s, &character, 1);
     }
     getchar_signal_reg_callback(getchar_callback, s);
     serial_unlock();

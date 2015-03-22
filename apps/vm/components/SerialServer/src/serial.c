@@ -198,7 +198,7 @@ static void internal_putchar(int b, int c) {
 static void (*guest_input_signal_emit[])(void) = {
     BOOST_PP_REPEAT(VM_NUM_GUESTS, GUEST_INPUT_SIGNAL_OUTPUT, _)
 };
-static int guest_read_since_emit[VM_NUM_GUESTS] = {1};
+static int guest_read_since_emit[VM_NUM_GUESTS];
 
 static int internal_pollchar(int guest, int *out) {
     int ret = 0;
@@ -409,6 +409,9 @@ void pre_init(void) {
     clear_iir();
     // all done
     init_colours();
+    for (int i = 0; i < VM_NUM_GUESTS; i++) {
+        guest_read_since_emit[i] = 1;
+    }
     set_putchar(serial_putchar);
     serial_irq_reg_callback(serial_irq, 0);
     /* Start regular heartbeat of 500ms */

@@ -18,6 +18,7 @@
 #include <sel4/arch/constants.h>
 #include <TimeServer.h>
 #include <platsupport/plat/hpet.h>
+#include <platsupport/arch/tsc.h>
 #include "vm.h"
 #include <boost/preprocessor/repeat.hpp>
 
@@ -65,7 +66,7 @@ static client_state_t client_state[VM_NUM_TIMER_CLIENTS];
 
 static uint64_t current_timeout = 0;
 
-//static uint64_t tsc_frequency = 0;
+static uint64_t tsc_frequency = 0;
 
 #define TIMER_COMPLETE_EMIT_OUTPUT(a, vm, b) BOOST_PP_CAT(BOOST_PP_CAT(timer, BOOST_PP_INC(vm)),_complete_emit),
 static void (*timer_complete_emit[])(void) = {
@@ -279,6 +280,10 @@ uint64_t the_timer_time() {
     return _time(the_timer_get_badge() - 1);
 }
 
+uint64_t the_timer_tsc_frequency() {
+    return tsc_frequency;
+}
+
 void post_init() {
     time_server_lock();
 //    set_putchar(putchar_putchar);
@@ -299,8 +304,8 @@ void post_init() {
     hpet_config_t config = (hpet_config_t){.vaddr = (void*)hpet, .irq = TIMER_IRQ, .ioapic_delivery = ioapic};
     timer = hpet_get_timer(&config);
     assert(timer);
-//    tsc_frequency = tsc_calculate_frequency(timer);
-//    assert(tsc_frequency);
+    tsc_frequency = tsc_calculate_frequency(timer);
+    assert(tsc_frequency);
     irq_reg_callback(timer_interrupt, NULL);
     time_server_unlock();
 }

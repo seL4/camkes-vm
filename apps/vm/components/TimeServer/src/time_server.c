@@ -21,6 +21,7 @@
 #include <platsupport/arch/tsc.h>
 #include "vm.h"
 #include <boost/preprocessor/repeat.hpp>
+#include <utils/math.h>
 
 #define MAX_CLIENT_TIMERS 5
 
@@ -33,8 +34,8 @@ seL4_Word the_timer_get_badge();
 #define TIMER_IRQ HPET_IRQ()
 #endif
 
-/* Prevent timeouts < 1 MS to prevent DoS attacks */
-#define MIN_TIMEOUT 1000000
+/* Frequency of timer interrupts that we use for processing timeouts */
+#define TIMER_FREQUENCY 100
 
 static pstimer_t *timer = NULL;
 
@@ -63,8 +64,6 @@ static client_timer_t *timer_head = NULL;
 
 /* declare the memory needed for the clients */
 static client_state_t client_state[VM_NUM_TIMER_CLIENTS];
-
-static uint64_t current_timeout = 0;
 
 static uint64_t tsc_frequency = 0;
 
@@ -110,9 +109,6 @@ static void signal_client(client_timer_t *timer, uint64_t current_time) {
         break;
     case TIMER_TYPE_PERIODIC:
         timer->timeout_time += timer->periodic_ns;
-        if (timer->timeout_time < current_time || (timer->timeout_time - current_time) < MIN_TIMEOUT) {
-            timer->timeout_time = current_time + MIN_TIMEOUT;
-        }
         insert_timer(timer);
         break;
     case TIMER_TYPE_ABSOLUTE:
@@ -128,34 +124,10 @@ static void signal_clients(uint64_t current_time) {
     }
 }
 
-static void reprogram_timer() {
-    if (!timer_head) {
-        timer_stop(timer);
-        current_timeout = 0;
-        return;
-    }
-    assert(timer_head->timer_type != TIMER_TYPE_OFF);
-    uint64_t timeout = timer_head->timeout_time;
-    if (timeout == current_timeout) {
-        return;
-    }
-    if (current_timeout == 0) {
-        timer_start(timer);
-    }
-    current_timeout = timeout;
-    if (!timer_oneshot_absolute(timer, timeout)) {
-        return;
-    }
-    /* deadline already passed. try again */
-    signal_client(timer_head, timer_get_time(timer));
-    reprogram_timer();
-}
-
 static void timer_interrupt(void *cookie) {
     time_server_lock();
     signal_clients(timer_get_time(timer));
     timer_handle_irq(timer, TIMER_IRQ);
-    reprogram_timer();
     irq_reg_callback(timer_interrupt, cookie);
     time_server_unlock();
 }
@@ -170,12 +142,8 @@ static int _oneshot_relative(int cid, int tid, uint64_t ns) {
         remove_timer(t);
     }
     t->timer_type = TIMER_TYPE_RELATIVE;
-    if (ns < MIN_TIMEOUT) {
-        ns = MIN_TIMEOUT;
-    }
     t->timeout_time = timer_get_time(timer) + ns;
     insert_timer(t);
-    reprogram_timer();
     time_server_unlock();
     return 0;
 }
@@ -191,12 +159,8 @@ static int _oneshot_absolute(int cid, int tid, uint64_t ns) {
     }
     t->timer_type = TIMER_TYPE_ABSOLUTE;
     uint64_t current_time = timer_get_time(timer);
-    if (current_time > ns || (ns - current_time) < MIN_TIMEOUT) {
-        ns = current_time + MIN_TIMEOUT;
-    }
     t->timeout_time = ns;
     insert_timer(t);
-    reprogram_timer();
     time_server_unlock();
     return 0;
 }
@@ -211,13 +175,9 @@ static int _periodic(int cid, int tid, uint64_t ns) {
         remove_timer(t);
     }
     t->timer_type = TIMER_TYPE_PERIODIC;
-    if (ns < MIN_TIMEOUT) {
-        ns = MIN_TIMEOUT;
-    }
     t->periodic_ns = ns;
     t->timeout_time = timer_get_time(timer) + ns;
     insert_timer(t);
-    reprogram_timer();
     time_server_unlock();
     return 0;
 }
@@ -231,7 +191,6 @@ static int _stop(int cid, int tid) {
     if (t->timer_type != TIMER_TYPE_OFF) {
         remove_timer(t);
         t->timer_type = TIMER_TYPE_OFF;
-        reprogram_timer();
     }
     time_server_unlock();
     return 0;
@@ -307,5 +266,8 @@ void post_init() {
     tsc_frequency = tsc_calculate_frequency(timer);
     assert(tsc_frequency);
     irq_reg_callback(timer_interrupt, NULL);
+    /* start timer */
+    timer_start(timer);
+    timer_periodic(timer, NS_IN_S / TIMER_FREQUENCY);
     time_server_unlock();
 }

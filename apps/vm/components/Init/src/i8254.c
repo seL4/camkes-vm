@@ -35,6 +35,7 @@
 #include <camkes.h>
 #include "i8259.h"
 #include "timers.h"
+#include <platsupport/arch/tsc.h>
 
 //#define DEBUG_PIT
 
@@ -78,6 +79,12 @@ typedef struct PITState {
 
 static PITState pit_state;
 
+static uint64_t tsc_frequency = 0;
+
+static uint64_t current_time_ns() {
+    return muldivu64(rdtsc_pure(), NS_IN_S, tsc_frequency);
+}
+
 static void pit_irq_timer_update(PITChannelState *s, int64_t current_time);
 
 /* defines nanoseconds per second */
@@ -116,8 +123,9 @@ static int pit_get_count(PITChannelState *s)
     int counter;
 
 //    d = muldiv64(qemu_get_clock_ns(vm_clock) - s->count_load_time, PIT_FREQ,
-    d = muldiv64(init_timer_time() - s->count_load_time, PIT_FREQ,
+    d = muldiv64(current_time_ns() - s->count_load_time, PIT_FREQ,
                  get_ticks_per_sec());
+
     switch(s->mode) {
     case 0:
     case 1:
@@ -292,7 +300,7 @@ static inline void pit_load_count(PITChannelState *s, int val)
     if (val == 0)
         val = 0x10000;
 //    s->count_load_time = qemu_get_clock_ns(vm_clock);
-    s->count_load_time = init_timer_time();
+    s->count_load_time = current_time_ns();
     s->count = val;
     pit_irq_timer_update(s, s->count_load_time);
 }
@@ -327,7 +335,7 @@ static void pit_ioport_write(void *opaque, uint32_t addr, uint32_t val)
                         /* status latch */
                         /* XXX: add BCD and null count */
 //                        s->status =  (pit_get_out1(s, qemu_get_clock_ns(vm_clock)) << 7) |
-                        s->status =  (pit_get_out1(s, init_timer_time()) << 7) |
+                        s->status =  (pit_get_out1(s, current_time_ns()) << 7) |
                             (s->rw_mode << 4) |
                             (s->mode << 1) |
                             s->bcd;
@@ -634,6 +642,7 @@ void pit_timer_interrupt(void) {
 }
 
 void pit_pre_init(void) {
+    tsc_frequency = init_timer_tsc_frequency();
     for (int i = 0; i < 3; i++) {
         pit_state.channels[i].irq_level = 0;
         pit_state.channels[i].timer_status = 0;

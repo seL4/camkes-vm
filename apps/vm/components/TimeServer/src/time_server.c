@@ -72,6 +72,10 @@ static void (*timer_complete_emit[])(void) = {
     BOOST_PP_REPEAT(VM_NUM_TIMERS, TIMER_COMPLETE_EMIT_OUTPUT, _)
 };
 
+static uint64_t current_time_ns() {
+    return muldivu64(rdtsc_pure(), NS_IN_S, tsc_frequency);
+}
+
 static void remove_timer(client_timer_t *timer) {
     if (timer->prev) {
         timer->prev->next = timer->next;
@@ -126,7 +130,7 @@ static void signal_clients(uint64_t current_time) {
 
 static void timer_interrupt(void *cookie) {
     time_server_lock();
-    signal_clients(timer_get_time(timer));
+    signal_clients(current_time_ns());
     timer_handle_irq(timer, TIMER_IRQ);
     irq_reg_callback(timer_interrupt, cookie);
     time_server_unlock();
@@ -142,7 +146,7 @@ static int _oneshot_relative(int cid, int tid, uint64_t ns) {
         remove_timer(t);
     }
     t->timer_type = TIMER_TYPE_RELATIVE;
-    t->timeout_time = timer_get_time(timer) + ns;
+    t->timeout_time = current_time_ns() + ns;
     insert_timer(t);
     time_server_unlock();
     return 0;
@@ -158,7 +162,7 @@ static int _oneshot_absolute(int cid, int tid, uint64_t ns) {
         remove_timer(t);
     }
     t->timer_type = TIMER_TYPE_ABSOLUTE;
-    uint64_t current_time = timer_get_time(timer);
+    uint64_t current_time = current_time_ns();
     t->timeout_time = ns;
     insert_timer(t);
     time_server_unlock();
@@ -176,7 +180,7 @@ static int _periodic(int cid, int tid, uint64_t ns) {
     }
     t->timer_type = TIMER_TYPE_PERIODIC;
     t->periodic_ns = ns;
-    t->timeout_time = timer_get_time(timer) + ns;
+    t->timeout_time = current_time_ns() + ns;
     insert_timer(t);
     time_server_unlock();
     return 0;
@@ -207,9 +211,7 @@ static unsigned int _completed(int cid) {
 
 static uint64_t _time(int cid) {
     uint64_t ret;
-    time_server_lock();
-    ret = timer_get_time(timer);
-    time_server_unlock();
+    ret = current_time_ns();
     return ret;
 }
 

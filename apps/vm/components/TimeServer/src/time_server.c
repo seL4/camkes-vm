@@ -162,7 +162,6 @@ static int _oneshot_absolute(int cid, int tid, uint64_t ns) {
         remove_timer(t);
     }
     t->timer_type = TIMER_TYPE_ABSOLUTE;
-    uint64_t current_time = current_time_ns();
     t->timeout_time = ns;
     insert_timer(t);
     time_server_unlock();

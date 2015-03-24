@@ -35,7 +35,7 @@ seL4_Word the_timer_get_badge();
 #endif
 
 /* Frequency of timer interrupts that we use for processing timeouts */
-#define TIMER_FREQUENCY 100
+#define TIMER_FREQUENCY 500
 
 static pstimer_t *timer = NULL;
 

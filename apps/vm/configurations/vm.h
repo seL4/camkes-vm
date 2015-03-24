@@ -93,8 +93,7 @@
     connection seL4RPCCall serial_vm##num(from vm##num.putchar, to serial.vm##num); \
     connection seL4RPCCall serial_serialemul##num(from SerialEmul##num.putchar, to serial.guest##num); \
     /* Connect the emulated serial input to the serial server */ \
-    connection seL4RPCCall serial_input##num(from SerialEmul##num.getchar, to serial.CAT(guest##num,_input)); \
-    connection seL4Asynch serial_input_ready##num(from serial.CAT(guest##num,_input_signal), to SerialEmul##num.getchar_signal); \
+    connection seL4ProdCon serial_input##num(from serial.CAT(guest##num,_buffer), to SerialEmul##num.char_buffer); \
     /* Temporarily connect the VM directly to the RTC */ \
     connection seL4RPCCall rtctest##num(from vm##num.system_rtc, to rtc.rtc); \
     /* Connect the emulated serial to the VM */ \

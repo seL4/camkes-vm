@@ -13,7 +13,6 @@ import "../../interfaces/VirtIOPort.idl4";
 import "../../interfaces/Timer.idl4";
 import "../../interfaces/LevelInterrupt.idl4";
 import "../../interfaces/PutChar.idl4";
-import "../../interfaces/GetChar.idl4";
 
 component SerialEmulator {
     has mutex serial;
@@ -21,8 +20,7 @@ component SerialEmulator {
     provides VirtIOPort serialport;
     uses LevelInterrupt serial_irq;
     emits Irq4 serial_edge_irq;
-    uses GetChar getchar;
-    consumes CharacterReady getchar_signal;
+    dataport Buf char_buffer;
 
     uses Timer serial_timer;
     consumes timer_complete serial_timer_interrupt;

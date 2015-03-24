@@ -67,7 +67,6 @@
 #define COLOUR_C "\033[;1;36m"
 #define COLOUR_RESET "\033[0m"
 
-#define GUEST_BUFFER_SIZE 1024
 #define MAX_GUESTS 3
 #define GUEST_OUTPUT_BUFFER_SIZE 256
 
@@ -75,10 +74,6 @@ static int last_out = -1;
 
 static int fifo_depth = 1;
 static int fifo_used = 0;
-
-static uint8_t guest_buffers[VM_NUM_GUESTS][GUEST_BUFFER_SIZE];
-static int guest_buffer_start[VM_NUM_GUESTS] = { 0 };
-static int guest_buffer_end[VM_NUM_GUESTS] = { 0 };
 
 static uint8_t output_buffers[VM_NUM_GUESTS * 2][GUEST_OUTPUT_BUFFER_SIZE];
 static int output_buffers_used[VM_NUM_GUESTS * 2] = { 0 };
@@ -194,37 +189,17 @@ static void internal_putchar(int b, int c) {
     serial_unlock();
 }
 
-#define GUEST_INPUT_SIGNAL_OUTPUT(a , vm, b) BOOST_PP_CAT(guest##vm,_input_signal_emit),
-static void (*guest_input_signal_emit[])(void) = {
-    BOOST_PP_REPEAT(VM_NUM_GUESTS, GUEST_INPUT_SIGNAL_OUTPUT, _)
-};
-static int guest_read_since_emit[VM_NUM_GUESTS];
+#define GUEST_ENQUEUE_PROTO(a, vm, b) int BOOST_PP_CAT(guest##vm,_buffer_enqueue)(void *,unsigned int);
+BOOST_PP_REPEAT(VM_NUM_GUESTS, GUEST_ENQUEUE_PROTO, _)
 
-static int internal_pollchar(int guest, int *out) {
-    int ret = 0;
-    serial_lock();
-    assert(guest < VM_NUM_GUESTS);
-    if (guest_buffer_start[guest] != guest_buffer_end[guest]) {
-        ret = 1;
-        *out = guest_buffers[guest][guest_buffer_start[guest]];
-        guest_buffer_start[guest]++;
-        guest_buffer_start[guest] %= GUEST_BUFFER_SIZE;
-        guest_read_since_emit[guest] = 1;
-    }
-    serial_unlock();
-    return ret;
-}
+#define GUEST_ENQUEUE(a , vm, b) BOOST_PP_CAT(guest##vm,_buffer_enqueue),
+static int (*guest_enqueue[])(void *data, unsigned int len) = {
+    BOOST_PP_REPEAT(VM_NUM_GUESTS, GUEST_ENQUEUE, _)
+};
 
 static void internal_guest_putchar(int guest, int c) {
-    if ((guest_buffer_end[guest] + 1) % GUEST_BUFFER_SIZE != guest_buffer_start[guest]) {
-        guest_buffers[guest][guest_buffer_end[guest]] = c;
-        guest_buffer_end[guest]++;
-        guest_buffer_end[guest] %= GUEST_BUFFER_SIZE;
-        if (guest_read_since_emit[guest]) {
-            guest_input_signal_emit[guest]();
-            guest_read_since_emit[guest] = 0;
-        }
-    }
+    uint8_t character = c;
+    guest_enqueue[guest](&character, 1);
 }
 
 static int statemachine = 1;
@@ -409,9 +384,6 @@ void pre_init(void) {
     clear_iir();
     // all done
     init_colours();
-    for (int i = 0; i < VM_NUM_GUESTS; i++) {
-        guest_read_since_emit[i] = 1;
-    }
     set_putchar(serial_putchar);
     serial_irq_reg_callback(serial_irq, 0);
     /* Start regular heartbeat of 500ms */
@@ -430,13 +402,6 @@ void pre_init(void) {
     } \
     void BOOST_PP_CAT(guest##n,_putchar)(int c) { \
         internal_putchar(n + VM_NUM_GUESTS, c); \
-    } \
-    int BOOST_PP_CAT(guest##n,_input_getchar)(void) { \
-        assert(!"use poll"); \
-        return 0; \
-    } \
-    int BOOST_PP_CAT(guest##n,_input_pollchar)(int *out) { \
-        return internal_pollchar(n, out); \
     } \
     /**/
 BOOST_PP_REPEAT(VM_NUM_GUESTS, INTERFACE_OUTPUT, _)

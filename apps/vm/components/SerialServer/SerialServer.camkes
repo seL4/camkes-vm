@@ -10,7 +10,6 @@
 
 #include <autoconf.h>
 import "../../interfaces/PutChar.idl4";
-import "../../interfaces/GetChar.idl4";
 import "../../interfaces/Timer.idl4";
 #include <configurations/vm.h>
 #include <boost/preprocessor/repeat.hpp>
@@ -18,8 +17,7 @@ import "../../interfaces/Timer.idl4";
 #define PER_VM_DEF(num, iteration, data) \
     provides PutChar vm##iteration; \
     provides PutChar guest##iteration; \
-    provides GetChar BOOST_PP_CAT(guest##iteration,_input); \
-    emits CharacterReady BOOST_PP_CAT(guest##iteration,_input_signal); \
+    dataport Buf BOOST_PP_CAT(guest##iteration,_buffer); \
     /**/
 
 component SerialServer {

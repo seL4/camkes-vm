@@ -590,10 +590,9 @@ static uint32_t serial_ioport_read(void *opaque, uint32_t addr)
             if(s->fcr & UART_FCR_FE) {
                 ret = fifo_get(s,RECV_FIFO);
                 /* If there was more characters at the other end we should go get them */
-                int c;
-                while (serial_can_receive(s) && getchar_pollchar(&c)) {
-                    uint8_t character = (uint8_t)c;
-                    serial_receive1(s, &character, 1);
+                uint8_t c;
+                while (serial_can_receive(s) && char_buffer_dequeue(&c, 1)) {
+                    serial_receive1(s, &c, 1);
                 }
                 if (s->recv_fifo.count == 0) {
                     s->lsr &= ~(UART_LSR_DR | UART_LSR_BI);
@@ -1003,12 +1002,10 @@ static void serial_timer_callback(void *cookie) {
 static void getchar_callback(void *cookie) {
     serial_lock();
     SerialState *s = (SerialState*)cookie;
-    int c;
-    while (serial_can_receive(s) && getchar_pollchar(&c)) {
-        uint8_t character = (uint8_t)c;
-        serial_receive1(s, &character, 1);
+    uint8_t c;
+    while (serial_can_receive(s) && char_buffer_dequeue(&c, 1)) {
+        serial_receive1(s, &c, 1);
     }
-    getchar_signal_reg_callback(getchar_callback, s);
     serial_unlock();
 }
 
@@ -1016,10 +1013,10 @@ void pre_init(void) {
     serial_lock();
     set_putchar(putchar_putchar);
     SerialState *s = &serialstate;
+    char_buffer_set_callback(getchar_callback, s);
     s->serial_level = 0;
     s->baudbase = 115200;
     serial_timer_interrupt_reg_callback(serial_timer_callback, s);
-    getchar_signal_reg_callback(getchar_callback, s);
     serial_init_core(s);
     serial_update_msl(s);
     serial_unlock();

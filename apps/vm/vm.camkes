@@ -52,6 +52,11 @@ connector seL4VMNet {
     to Dataport client2 template "seL4VMNet-to.template.c";
 }
 
+connector seL4ProdCon {
+    from Dataport server template "seL4ProdCon-from.template.c";
+    to Dataport client template "seL4ProdCon-to.template.c";
+}
+
 component PieceOfHardware {
     hardware;
     provides IOPort pci_config_address;

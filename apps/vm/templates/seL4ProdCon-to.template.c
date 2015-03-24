@@ -14,8 +14,6 @@
 #include <sync/sem-bare.h>
 #include <string.h>
 
-/*- set aep = alloc('aep', seL4_AsyncEndpointObject, read=True, write=True) -*/
-
 /* Actual dataport is emitted in the per-component template. */
 /*- set p = Perspective(dataport=me.to_interface.name) -*/
 char /*? p['dataport_symbol'] ?*/[ROUND_UP_UNSAFE(sizeof(/*? show(me.to_interface.type) ?*/), PAGE_SIZE_4K)]
@@ -42,23 +40,6 @@ static void set_start(uint32_t start) {
 
 static unsigned int get_size() {
     return sizeof(/*? show(me.from_interface.type) ?*/) - 8;
-}
-
-static void (*callback)(void *);
-static void *callback_cookie;
-
-void /*? me.to_interface.name ?*/_set_callback(void (*new_callback)(void*), void* cookie) {
-    callback = new_callback;
-    callback_cookie = cookie;
-}
-
-void /*? me.to_interface.name ?*/__run(void) {
-    while(1) {
-        seL4_Wait(/*? aep ?*/, NULL);
-        if (callback) {
-            callback(callback_cookie);
-        }
-    }
 }
 
 static unsigned int buffer_space_used() {

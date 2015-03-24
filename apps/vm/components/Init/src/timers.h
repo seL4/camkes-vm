@@ -24,4 +24,10 @@
 #define TIMER_SECOND_TIMER 3
 #define TIMER_SECOND_TIMER2 4
 
+/* serial timers */
+#define TIMER_FIFO_TIMEOUT 5
+#define TIMER_TRANSMIT_TIMER 6
+#define TIMER_MODEM_STATUS_TIMER 7
+#define TIMER_MORE_CHARS 8
+
 #endif

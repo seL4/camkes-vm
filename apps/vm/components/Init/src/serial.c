@@ -34,13 +34,10 @@
 #include <sel4/sel4.h>
 #include <stdio.h>
 #include <string.h>
-#include <SerialEmulator.h>
-
-/* Timer IDs for use with the timer server */
-#define TIMER_FIFO_TIMEOUT 0
-#define TIMER_TRANSMIT_TIMER 1
-#define TIMER_MODEM_STATUS_TIMER 2
-#define TIMER_MORE_CHARS 3
+#include <camkes.h>
+#include "i8259.h"
+#include "timers.h"
+#include <platsupport/arch/tsc.h>
 
 //#define DEBUG_SERIAL
 
@@ -192,6 +189,12 @@ static inline int64_t get_ticks_per_sec(void)
     return 1000000000LL;
 }
 
+static uint64_t tsc_frequency = 0;
+
+static uint64_t current_time_ns() {
+    return muldivu64(rdtsc_pure(), NS_IN_S, tsc_frequency);
+}
+
 static void fifo_clear(SerialState *s, int fifo)
 {
     SerialFIFO *f = (fifo) ? &s->recv_fifo : &s->xmit_fifo;
@@ -262,17 +265,10 @@ static void serial_update_irq(SerialState *s)
     s->iir = tmp_iir | (s->iir & 0xF0);
 
     if (tmp_iir != UART_IIR_NO_INT) {
-        serial_edge_irq_emit();
-/*        if (!s->serial_level) {
-            serial_irq_raise();
-            s->serial_level = 1;
-        }*/
+        i8259_level_set(4, 1);
 //        qemu_irq_raise(s->irq);
     } else {
-/*        if (s->serial_level) {
-            serial_irq_lower();
-            s->serial_level = 0;
-        }*/
+        i8259_level_set(4, 0);
 //        qemu_irq_lower(s->irq);
     }
 }
@@ -324,7 +320,7 @@ static void serial_update_msl(SerialState *s)
 //    int flags;
 
 //    qemu_del_timer(s->modem_status_poll);
-//    serial_timer_stop(TIMER_MODEM_STATUS_TIMER);
+//    init_timer_stop(TIMER_MODEM_STATUS_TIMER);
 
 //    if (qemu_chr_fe_ioctl(s->chr,CHR_IOCTL_SERIAL_GET_TIOCM, &flags) == -ENOTSUP) {
     if (0) {
@@ -356,14 +352,14 @@ static void serial_update_msl(SerialState *s)
        We'll be lazy and poll only every 10ms, and only poll it at all if MSI interrupts are turned on */
 
 //    if (s->poll_msl)
-//        serial_timer_oneshot_absolute(TIMER_MODEM_STATUS_TIMER, serial_timer_time() + get_ticks_per_sec() / 100);
+//        init_timer_oneshot_absolute(TIMER_MODEM_STATUS_TIMER, current_time_ns() + get_ticks_per_sec() / 100);
 //        qemu_mod_timer(s->modem_status_poll, qemu_get_clock_ns(vm_clock) + get_ticks_per_sec() / 100);
 }
 
 static void serial_xmit(void *opaque)
 {
     SerialState *s = opaque;
-//    uint64_t new_xmit_ts = serial_timer_time();
+//    uint64_t new_xmit_ts = current_time_ns();
 
     if (s->tsr_retry <= 0) {
         if (s->fcr & UART_FCR_FE) {
@@ -394,14 +390,14 @@ static void serial_xmit(void *opaque)
     else {
         /* skip all the layers ouf C abstraction and just call the camkes
          * component directly */
-        putchar_putchar(s->tsr);
+        guest_putchar_putchar(s->tsr);
         s->tsr_retry = 0;
     }
 
-//    s->last_xmit_ts = serial_timer_time();
+//    s->last_xmit_ts = current_time_ns();
     if (!(s->lsr & UART_LSR_THRE))
         serial_xmit(s);
-//        serial_timer_oneshot_absolute(TIMER_TRANSMIT_TIMER, s->last_xmit_ts + s->char_transmit_time);
+//        init_timer_oneshot_absolute(TIMER_TRANSMIT_TIMER, s->last_xmit_ts + s->char_transmit_time);
 //        qemu_mod_timer(s->transmit_timer, s->last_xmit_ts + s->char_transmit_time);
 
     if (s->lsr & UART_LSR_THRE) {
@@ -453,7 +449,7 @@ static void serial_ioport_write(void *opaque, uint32_t addr, uint32_t val)
                      serial_update_msl(s);
                 } else {
 //                     qemu_del_timer(s->modem_status_poll);
-//                     serial_timer_stop(TIMER_MODEM_STATUS_TIMER);
+//                     init_timer_stop(TIMER_MODEM_STATUS_TIMER);
                      s->poll_msl = 0;
                 }
             }
@@ -477,7 +473,7 @@ static void serial_ioport_write(void *opaque, uint32_t addr, uint32_t val)
 
         if (val & UART_FCR_RFR) {
 //            qemu_del_timer(s->fifo_timeout_timer);
-            serial_timer_stop(TIMER_FIFO_TIMEOUT);
+            init_timer_stop(TIMER_FIFO_TIMEOUT);
             s->timeout_ipending=0;
             fifo_clear(s,RECV_FIFO);
         }
@@ -547,7 +543,7 @@ static void serial_ioport_write(void *opaque, uint32_t addr, uint32_t val)
                 /* Update the modem status after a one-character-send wait-time, since there may be a response
                    from the device/computer at the other end of the serial line */
 //                qemu_mod_timer(s->modem_status_poll, qemu_get_clock_ns(vm_clock) + s->char_transmit_time);
-//                serial_timer_oneshot_absolute(TIMER_MODEM_STATUS_TIMER, serial_timer_time() + s->char_transmit_time);
+//                init_timer_oneshot_absolute(TIMER_MODEM_STATUS_TIMER, current_time_ns() + s->char_transmit_time);
             }
         }
         break;
@@ -594,7 +590,7 @@ static uint32_t serial_ioport_read(void *opaque, uint32_t addr)
                     s->lsr &= ~(UART_LSR_DR | UART_LSR_BI);
                 } else {
 //                    qemu_mod_timer(s->fifo_timeout_timer, qemu_get_clock_ns (vm_clock) + s->char_transmit_time * 4);
-                    serial_timer_oneshot_absolute(TIMER_FIFO_TIMEOUT, serial_timer_time() + s->char_transmit_time * 4);
+                    init_timer_oneshot_absolute(TIMER_FIFO_TIMEOUT, current_time_ns() + s->char_transmit_time * 4);
                 }
                 s->timeout_ipending = 0;
             } else {
@@ -706,7 +702,7 @@ static void serial_receive1(void *opaque, const uint8_t *buf, int size)
         s->lsr |= UART_LSR_DR;
         /* call the timeout receive callback in 4 char transmit time */
 //        qemu_mod_timer(s->fifo_timeout_timer, qemu_get_clock_ns (vm_clock) + s->char_transmit_time * 4);
-        serial_timer_oneshot_absolute(TIMER_FIFO_TIMEOUT, serial_timer_time() + s->char_transmit_time * 4);
+        init_timer_oneshot_absolute(TIMER_FIFO_TIMEOUT, current_time_ns() + s->char_transmit_time * 4);
     } else {
         if (s->lsr & UART_LSR_DR)
             s->lsr |= UART_LSR_OE;
@@ -790,7 +786,7 @@ static void serial_reset(void *opaque)
     fifo_clear(s,XMIT_FIFO);
 
 //    s->last_xmit_ts = qemu_get_clock_ns(vm_clock);
-    s->last_xmit_ts = serial_timer_time();
+    s->last_xmit_ts = current_time_ns();
 
     s->thr_ipending = 0;
     s->last_break_enable = 0;
@@ -978,10 +974,8 @@ device_init(serial_register_devices)
 
 static SerialState serialstate;
 
-static void serial_timer_callback(void *cookie) {
-    serial_lock();
-    SerialState *s = (SerialState*)cookie;
-    uint32_t completed = serial_timer_completed();
+void serial_timer_interrupt(uint32_t completed) {
+    SerialState *s = (SerialState*)&serialstate;
     if (completed & BIT(TIMER_FIFO_TIMEOUT)) {
         fifo_timeout_int(s);
     }
@@ -993,63 +987,51 @@ static void serial_timer_callback(void *cookie) {
     }
     if (completed & BIT(TIMER_MORE_CHARS)) {
         uint8_t c;
-        while (serial_can_receive(s) && char_buffer_dequeue(&c, 1)) {
+        while (serial_can_receive(s) && serial_buffer_dequeue(&c, 1)) {
             serial_receive1(s, &c, 1);
         }
         if (!serial_can_receive(s)) {
             /* Set up a timeout so we go get more chars later */
-            serial_timer_oneshot_relative(TIMER_MORE_CHARS, 3 * NS_IN_MS);
+            init_timer_oneshot_relative(TIMER_MORE_CHARS, 3 * NS_IN_MS);
         }
     }
-    serial_timer_interrupt_reg_callback(serial_timer_callback, cookie);
-    serial_unlock();
 }
 
-static void getchar_callback(void *cookie) {
-    serial_lock();
-    SerialState *s = (SerialState*)cookie;
+void serial_character_interrupt() {
+    SerialState *s = (SerialState*)&serialstate;
     uint8_t c;
-    while (serial_can_receive(s) && char_buffer_dequeue(&c, 1)) {
+    while (serial_can_receive(s) && serial_buffer_dequeue(&c, 1)) {
         serial_receive1(s, &c, 1);
     }
     if (!serial_can_receive(s)) {
         /* Set up a timeout so we go get more chars later */
-        serial_timer_oneshot_relative(TIMER_MORE_CHARS, 3 * NS_IN_MS);
+        init_timer_oneshot_relative(TIMER_MORE_CHARS, 3 * NS_IN_MS);
     }
-    serial_unlock();
 }
 
-void pre_init(void) {
-    serial_lock();
-    set_putchar(putchar_putchar);
+void serial_pre_init(void) {
     SerialState *s = &serialstate;
-    char_buffer_set_callback(getchar_callback, s);
     s->serial_level = 0;
+    tsc_frequency = init_timer_tsc_frequency();
     s->baudbase = 115200;
-    serial_timer_interrupt_reg_callback(serial_timer_callback, s);
     serial_init_core(s);
     serial_update_msl(s);
-    serial_unlock();
 }
 
-int serialport_port_in(unsigned int port_no, unsigned int size, unsigned int *result) {
+int serial_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
     if (size != 1) {
         LOG_ERROR("serial only supports reads of size 1");
         return -1;
     }
-    serial_lock();
     *result = serial_ioport_read(&serialstate, port_no);
-    serial_unlock();
     return 0;
 }
 
-int serialport_port_out(unsigned int port_no, unsigned int size, unsigned int value) {
+int serial_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value) {
     if (size != 1) {
         LOG_ERROR("serial only supports writes of size 1");
         return -1;
     }
-    serial_lock();
     serial_ioport_write(&serialstate, port_no, value);
-    serial_unlock();
     return 0;
 }

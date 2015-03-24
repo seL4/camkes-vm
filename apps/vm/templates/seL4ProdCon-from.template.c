@@ -15,8 +15,6 @@
 
 /*? macros.show_includes(me.from_instance.type.includes) ?*/
 
-/*- set aep = alloc('aep', seL4_AsyncEndpointObject, write=True, grant=True) -*/
-
 /* Actual dataport is emitted in the per-component template. */
 /*- set p = Perspective(dataport=me.from_interface.name) -*/
 char /*? p['dataport_symbol'] ?*/[ROUND_UP_UNSAFE(sizeof(/*? show(me.from_interface.type) ?*/), PAGE_SIZE_4K)]
@@ -26,6 +24,8 @@ char /*? p['dataport_symbol'] ?*/[ROUND_UP_UNSAFE(sizeof(/*? show(me.from_interf
 volatile /*? show(me.from_interface.type) ?*/ * /*? me.from_interface.name ?*/ = (volatile /*? show(me.from_interface.type) ?*/ *) /*? p['dataport_symbol'] ?*/;
 
 static int last_read_index = -1;
+
+static void (*notify_function)() = NULL;
 
 #define DATAPORT_BASE ( (uintptr_t)/*? p['dataport_symbol'] ?*/)
 #define WORD_INDEX(x) ( (uint32_t*) (DATAPORT_BASE + (x) * sizeof(uint32_t)) )
@@ -66,6 +66,10 @@ void /*? me.from_interface.name ?*/__init() {
     set_start(0);
 }
 
+void /*? me.from_interface.name ?*/_set_notify(void (*func)()) {
+    notify_function = func;
+}
+
 int /*? me.from_interface.name ?*/_enqueue(void *p, unsigned int len) {
     unsigned int remain = buffer_space_remain();
     if (remain < len) {
@@ -77,9 +81,9 @@ int /*? me.from_interface.name ?*/_enqueue(void *p, unsigned int len) {
     /* ensure modifications are seen */
     __sync_synchronize();
     /* see if we need to notify user */
-    if (read_index != last_read_index) {
+    if (read_index != last_read_index && notify_function) {
         last_read_index = read_index;
-        seL4_Notify(/*? aep ?*/, 0);
+        notify_function();
     }
     return 0;
 }

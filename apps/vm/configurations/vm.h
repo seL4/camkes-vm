@@ -27,19 +27,15 @@
 
 #define CAT BOOST_PP_CAT
 
-/* The timer layout is
- * timer 1 timer for serial server
- * blocks of 3 timers for each VM
- */
-#define VTIMER_FIRST 2
-#define VTIMER_NUM   2
-#define VTIMERNUM_I(t, n) BOOST_PP_ADD(VTIMER_FIRST,BOOST_PP_ADD(t, BOOST_PP_MUL(VTIMER_NUM, n)))
+/* Each VM has 1 timer assigned to it, and the serial server also uses 1 */
+#define VTIMER_FIRST 1
+#define VTIMER_NUM   1
+#define VTIMERNUM_I(t, n) BOOST_PP_INC(BOOST_PP_ADD(VTIMER_FIRST, BOOST_PP_ADD(t, BOOST_PP_MUL(VTIMER_NUM, n))))
 #define VTIMERNUM(t, n) VTIMERNUM_I(t, n)
 #define VTIMER(t, n) VTIMER_I(t, n)
 #define VTIMER_I(t, n) BOOST_PP_CAT(timer, VTIMERNUM(t, n))
-/* We start counting timers at 1 instead of 0 due to not wanting to use the 0
- * badge. Therefore we add 1 here and not VTIMER_FIRST */
-#define VM_NUM_TIMERS BOOST_PP_ADD(1, BOOST_PP_MUL(VTIMER_NUM, VM_NUM_GUESTS))
+
+#define VM_NUM_TIMERS BOOST_PP_ADD(VTIMER_FIRST, BOOST_PP_MUL(VTIMER_NUM, VM_NUM_GUESTS))
 
 #define VM_NUM_TIMER_CLIENTS VM_NUM_TIMERS
 
@@ -67,47 +63,43 @@
 #define VM_PIC_BADGE_IRQ_14 134250496 /* BIT(27) | BIT(15) */
 #define VM_PIC_BADGE_IRQ_15 134283264 /* BIT(27) | BIT(16) */
 
+#define VM_PIC_BADGE_SERIAL_HAS_DATA 134348800 /* BIT(27) | BIT(17) */
+
 /* First available badge for user bits */
-#define VM_FIRST_BADGE_BIT 17
+#define VM_FIRST_BADGE_BIT 18
 
 /* Base definition of the Init component. This gets
  * extended in the per Vm configuration */
 #define VM_INIT_DEF() \
     control; \
     uses PutChar putchar; \
-    uses VirtIOPort serial; \
+    uses PutChar guest_putchar; \
     uses PCIConfig pci_config; \
     uses RTC system_rtc; \
     consumes HaveInterrupt intready; \
     uses Timer init_timer; \
+    dataport Buf serial_buffer; \
     /**/
 
 /* VM and per VM componenents */
 #define VM_COMP_DEF(num) \
     component Init##num vm##num; \
-    component SerialEmulator SerialEmul##num; \
     /**/
 
 #define VM_CONNECT_DEF(num) \
     /* Connect all the components to the serial server */ \
     connection seL4RPCCall serial_vm##num(from vm##num.putchar, to serial.vm##num); \
-    connection seL4RPCCall serial_serialemul##num(from SerialEmul##num.putchar, to serial.guest##num); \
+    connection seL4RPCCall serial_guest_vm##num(from vm##num.guest_putchar, to serial.guest##num); \
     /* Connect the emulated serial input to the serial server */ \
-    connection seL4ProdCon serial_input##num(from serial.CAT(guest##num,_buffer), to SerialEmul##num.char_buffer); \
+    connection seL4ProdCon serial_input##num(from serial.CAT(guest##num,_buffer), to vm##num.serial_buffer); \
+    connection seL4AsynchBind serial_input_ready##num(from serial.CAT(guest##num,_has_data), to vm##num.intready); \
     /* Temporarily connect the VM directly to the RTC */ \
     connection seL4RPCCall rtctest##num(from vm##num.system_rtc, to rtc.rtc); \
-    /* Connect the emulated serial to the VM */ \
-    connection seL4RPCCall serial##num(from vm##num.serial, to SerialEmul##num.serialport); \
     /* Connect the VM to the timer server */ \
     connection seL4RPCCall CAT(pit##num,_timer)(from vm##num.init_timer, to time_server.the_timer); \
     connection seL4AsynchBind CAT(pit##num,_timer_interrupt)(from time_server.CAT(VTIMER(0, num),_complete), to vm##num.intready); \
-    /* Connect the emulated serial to the timer server */ \
-    connection seL4RPCCall CAT(serial##num,_timer0)(from SerialEmul##num.serial_timer, to time_server.the_timer); \
-    connection seL4Asynch CAT(serial##num,_timer0_interrupt)(from time_server.CAT(VTIMER(1,num),_complete), to SerialEmul##num.serial_timer_interrupt); \
     /* Connect config space to main VM */ \
     connection seL4RPCCall pciconfig##num(from vm##num.pci_config, to pci_config.pci_config); \
-    /* Connect the emulated serial to the PIC emulator */ \
-    connection seL4AsynchBind irq4_edge_##num(from SerialEmul##num.serial_edge_irq, to vm##num.intready); \
     /**/
 
 #ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE
@@ -145,10 +137,7 @@
 
 #define VM_CONFIG_DEF(num) \
     vm##num.init_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(0, num)); \
-    SerialEmul##num.serial_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(1, num)); \
-    SerialEmul##num.serial_edge_irq_attributes = BOOST_PP_STRINGIZE(VM_PIC_BADGE_IRQ_4); \
-    SerialEmul##num.serialport_priority = 242; \
-    SerialEmul##num.serial_timer_interrupt_priority = 242; \
+    serial.CAT(guest##num,_has_data_attributes) = BOOST_PP_STRINGIZE(VM_PIC_BADGE_SERIAL_HAS_DATA); \
     time_server.CAT(VTIMER(0, num),_complete_attributes) = BOOST_PP_STRINGIZE(VM_INIT_TIMER_BADGE); \
     vm##num.cnode_size_bits = 21; \
     vm##num.simple = true; \

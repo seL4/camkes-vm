@@ -204,6 +204,7 @@ static void make_proxy_vka(vka_t *vka, allocman_t *allocman) {
 
 void pit_pre_init(void);
 void rtc_pre_init(void);
+void serial_pre_init(void);
 
 void pre_init(void) {
     int error;
@@ -379,22 +380,17 @@ typedef struct ioport_desc {
     const char *desc;
 } ioport_desc_t;
 
-static int camkes_serial_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
-    return serial_port_in(port_no, size, result);
-}
-
-static int camkes_serial_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value) {
-    return serial_port_out(port_no, size, value);
-}
-
 int i8254_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
 int i8254_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
 
 int cmos_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
 int cmos_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
 
+int serial_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
+int serial_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
+
 ioport_desc_t ioport_handlers[] = {
-    {X86_IO_SERIAL_1_START,   X86_IO_SERIAL_1_END,   camkes_serial_port_in, camkes_serial_port_out, "COM1 Serial Port"},
+    {X86_IO_SERIAL_1_START,   X86_IO_SERIAL_1_END,   serial_port_in, serial_port_out, "COM1 Serial Port"},
 //    {X86_IO_SERIAL_3_START,   X86_IO_SERIAL_3_END,   NULL, NULL, "COM3 Serial Port"},
     {X86_IO_PIC_1_START,      X86_IO_PIC_1_END,      i8259_port_in, i8259_port_out, "8259 Programmable Interrupt Controller (1st, Master)"},
     {X86_IO_PIC_2_START,      X86_IO_PIC_2_END,      i8259_port_in, i8259_port_out, "8259 Programmable Interrupt Controller (2nd, Slave)"},
@@ -530,6 +526,7 @@ static device_notify_t *device_notify_list = NULL;
 
 void pit_timer_interrupt(void);
 void rtc_timer_interrupt(uint32_t);
+void serial_timer_interrupt(uint32_t);
 
 static seL4_Word irq_badges[16] = {
     VM_PIC_BADGE_IRQ_0,
@@ -560,6 +557,12 @@ static int handle_async_event(seL4_Word badge) {
             if (completed & (BIT(TIMER_PERIODIC_TIMER) | BIT(TIMER_COALESCED_TIMER) | BIT(TIMER_SECOND_TIMER) | BIT(TIMER_SECOND_TIMER2))) {
                 rtc_timer_interrupt(completed);
             }
+            if (completed & (BIT(TIMER_FIFO_TIMEOUT) | BIT(TIMER_TRANSMIT_TIMER) | BIT(TIMER_MODEM_STATUS_TIMER) | BIT(TIMER_MORE_CHARS))) {
+                serial_timer_interrupt(completed);
+            }
+        }
+        if (badge & VM_PIC_BADGE_SERIAL_HAS_DATA) {
+            serial_character_interrupt();
         }
         for (int i = 0; i < 16; i++) {
             if ( (badge & irq_badges[i]) == irq_badges[i]) {
@@ -691,6 +694,7 @@ void *main_continued(void *arg) {
     init_irqs(hw_irqs, num_hw_irqs);
 
     i8259_pre_init();
+    serial_pre_init();
     pit_pre_init();
     rtc_pre_init();
 

@@ -251,7 +251,7 @@
     ethdriver0.cnode_size_bits = 12; \
     ethdriver0.iospace = "0x12:0x1:0x0:0"; \
     ethdriver0.simple_untyped20_pool = 2; \
-    ethdriver0.rx_ready0_attributes = "134348800"; /* BIT(17) + BIT(27)*/ \
+    ethdriver0.rx_ready0_attributes = "134742016"; /* BIT(19) + BIT(27)*/ \
     udpserver.client_recv_attributes = "8,7"; \
     udpserver.client_send_attributes = "7"; \
     vm0.vm2net_emit_attributes = "134479872"; /* BIT(18) + BIT(27) */ \
@@ -333,17 +333,17 @@
     /**/
 
 #define VM_ASYNC_DEVICE_BADGES_0() ( \
-        (VM_FIRST_BADGE_BIT + 1, vm2net_notify) \
+        (VM_FIRST_BADGE_BIT, vm2net_notify) \
     ) \
     /**/
 
 #define VM_ASYNC_DEVICE_BADGES_1() ( \
-        (VM_FIRST_BADGE_BIT, virtio_net_notify) \
+        (VM_FIRST_BADGE_BIT + 1, virtio_net_notify) \
     ) \
     /**/
 
 #define VM_ASYNC_DEVICE_BADGES_2() ( \
-        (VM_FIRST_BADGE_BIT + 1, vm0net_notify) \
+        (VM_FIRST_BADGE_BIT, vm0net_notify) \
     ) \
     /**/
 

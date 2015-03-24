@@ -18,6 +18,7 @@ import "../../interfaces/Timer.idl4";
     provides PutChar vm##iteration; \
     provides PutChar guest##iteration; \
     dataport Buf BOOST_PP_CAT(guest##iteration,_buffer); \
+    emits HasData BOOST_PP_CAT(guest##iteration,_has_data); \
     /**/
 
 component SerialServer {

@@ -189,7 +189,10 @@ static void internal_putchar(int b, int c) {
     serial_unlock();
 }
 
-#define GUEST_ENQUEUE_PROTO(a, vm, b) int BOOST_PP_CAT(guest##vm,_buffer_enqueue)(void *,unsigned int);
+#define GUEST_ENQUEUE_PROTO(a, vm, b) int BOOST_PP_CAT(guest##vm,_buffer_enqueue)(void *,unsigned int); \
+    int BOOST_PP_CAT(guest##vm,_buffer_set_notify)(void(*)()); \
+    void BOOST_PP_CAT(guest##vm,_has_data_emit)(); \
+    /**/
 BOOST_PP_REPEAT(VM_NUM_GUESTS, GUEST_ENQUEUE_PROTO, _)
 
 #define GUEST_ENQUEUE(a , vm, b) BOOST_PP_CAT(guest##vm,_buffer_enqueue),
@@ -384,6 +387,8 @@ void pre_init(void) {
     clear_iir();
     // all done
     init_colours();
+#define GUEST_SET_NOTIFY(a, vm, b) BOOST_PP_CAT(guest##vm,_buffer_set_notify)(BOOST_PP_CAT(guest##vm,_has_data_emit));
+    BOOST_PP_REPEAT(VM_NUM_GUESTS, GUEST_SET_NOTIFY, _)
     set_putchar(serial_putchar);
     serial_irq_reg_callback(serial_irq, 0);
     /* Start regular heartbeat of 500ms */

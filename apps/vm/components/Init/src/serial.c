@@ -166,6 +166,7 @@ typedef struct SerialState {
 //    MemoryRegion io;
 
     int serial_level;
+    int chars_sent;
 } SerialState;
 
 #if 0
@@ -359,7 +360,7 @@ static void serial_update_msl(SerialState *s)
 static void serial_xmit(void *opaque)
 {
     SerialState *s = opaque;
-//    uint64_t new_xmit_ts = current_time_ns();
+    uint64_t new_xmit_ts = current_time_ns();
 
     if (s->tsr_retry <= 0) {
         if (s->fcr & UART_FCR_FE) {
@@ -376,28 +377,31 @@ static void serial_xmit(void *opaque)
         /* in loopback mode, say that we just received a char */
         serial_receive1(s, &s->tsr, 1);
 //    } else if (qemu_chr_fe_write(s->chr, &s->tsr, 1) != 1) {
-//        if ((s->tsr_retry > 0) && (s->tsr_retry <= MAX_XMIT_RETRY)) {
-//            s->tsr_retry++;
+    } else if (s->chars_sent >= 16) {
+        if (s->tsr_retry <= MAX_XMIT_RETRY) {
+            s->tsr_retry++;
+            init_timer_oneshot_absolute(TIMER_TRANSMIT_TIMER, new_xmit_ts + s->char_transmit_time);
 //            qemu_mod_timer(s->transmit_timer,  new_xmit_ts + s->char_transmit_time);
-//            return;
-//        } else if (s->poll_msl < 0) {
+            return;
+        } else if (s->poll_msl < 0) {
             /* If we exceed MAX_XMIT_RETRY and the backend is not a real serial port, then
             drop any further failed writes instantly, until we get one that goes through.
             This is to prevent guests that log to unconnected pipes or pty's from stalling. */
-//            s->tsr_retry = -1;
-//        }
+            s->tsr_retry = -1;
+        }
     }
     else {
         /* skip all the layers ouf C abstraction and just call the camkes
          * component directly */
         guest_putchar_putchar(s->tsr);
+        s->chars_sent++;
         s->tsr_retry = 0;
     }
 
-//    s->last_xmit_ts = current_time_ns();
+    s->last_xmit_ts = current_time_ns();
     if (!(s->lsr & UART_LSR_THRE))
-        serial_xmit(s);
-//        init_timer_oneshot_absolute(TIMER_TRANSMIT_TIMER, s->last_xmit_ts + s->char_transmit_time);
+//        serial_xmit(s);
+        init_timer_oneshot_absolute(TIMER_TRANSMIT_TIMER, s->last_xmit_ts + s->char_transmit_time);
 //        qemu_mod_timer(s->transmit_timer, s->last_xmit_ts + s->char_transmit_time);
 
     if (s->lsr & UART_LSR_THRE) {
@@ -980,6 +984,7 @@ void serial_timer_interrupt(uint32_t completed) {
         fifo_timeout_int(s);
     }
     if (completed & BIT(TIMER_TRANSMIT_TIMER)) {
+        s->chars_sent = 0;
         serial_xmit(s);
     }
     if (completed & BIT(TIMER_MODEM_STATUS_TIMER)) {

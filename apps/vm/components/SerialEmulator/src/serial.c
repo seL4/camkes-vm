@@ -40,6 +40,7 @@
 #define TIMER_FIFO_TIMEOUT 0
 #define TIMER_TRANSMIT_TIMER 1
 #define TIMER_MODEM_STATUS_TIMER 2
+#define TIMER_MORE_CHARS 3
 
 //#define DEBUG_SERIAL
 
@@ -589,11 +590,6 @@ static uint32_t serial_ioport_read(void *opaque, uint32_t addr)
         } else {
             if(s->fcr & UART_FCR_FE) {
                 ret = fifo_get(s,RECV_FIFO);
-                /* If there was more characters at the other end we should go get them */
-                uint8_t c;
-                while (serial_can_receive(s) && char_buffer_dequeue(&c, 1)) {
-                    serial_receive1(s, &c, 1);
-                }
                 if (s->recv_fifo.count == 0) {
                     s->lsr &= ~(UART_LSR_DR | UART_LSR_BI);
                 } else {
@@ -995,6 +991,16 @@ static void serial_timer_callback(void *cookie) {
     if (completed & BIT(TIMER_MODEM_STATUS_TIMER)) {
         serial_update_msl(s);
     }
+    if (completed & BIT(TIMER_MORE_CHARS)) {
+        uint8_t c;
+        while (serial_can_receive(s) && char_buffer_dequeue(&c, 1)) {
+            serial_receive1(s, &c, 1);
+        }
+        if (!serial_can_receive(s)) {
+            /* Set up a timeout so we go get more chars later */
+            serial_timer_oneshot_relative(TIMER_MORE_CHARS, 3 * NS_IN_MS);
+        }
+    }
     serial_timer_interrupt_reg_callback(serial_timer_callback, cookie);
     serial_unlock();
 }
@@ -1005,6 +1011,10 @@ static void getchar_callback(void *cookie) {
     uint8_t c;
     while (serial_can_receive(s) && char_buffer_dequeue(&c, 1)) {
         serial_receive1(s, &c, 1);
+    }
+    if (!serial_can_receive(s)) {
+        /* Set up a timeout so we go get more chars later */
+        serial_timer_oneshot_relative(TIMER_MORE_CHARS, 3 * NS_IN_MS);
     }
     serial_unlock();
 }

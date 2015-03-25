@@ -147,6 +147,8 @@
     vm##num.init_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(0, num)); \
     SerialEmul##num.serial_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(1, num)); \
     SerialEmul##num.serial_edge_irq_attributes = BOOST_PP_STRINGIZE(VM_PIC_BADGE_IRQ_4); \
+    SerialEmul##num.serialport_priority = 242; \
+    SerialEmul##num.serial_timer_interrupt_priority = 242; \
     time_server.CAT(VTIMER(0, num),_complete_attributes) = BOOST_PP_STRINGIZE(VM_INIT_TIMER_BADGE); \
     vm##num.cnode_size_bits = 21; \
     vm##num.simple = true; \

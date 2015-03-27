@@ -109,6 +109,21 @@
     /* UDP connections for echo server */ \
     connection seL4UDPRecv udp_echo_recv(from echo.echo_recv, to udpserver.client_recv); \
     connection seL4UDPSend udp_echo_send(from echo.echo_send, to udpserver.client_send); \
+    /* Connect hello to the vchan component */ \
+    connection seL4Asynch vchan_event(from vchan_0.vevent_sv, to hello.vevent); \
+    connection seL4RPCCall hvchan(from hello.vchan_con, to vchan_0.vchan_com); \
+    connection seL4SharedData hvchan_sharemem_0(from hello.share_mem, to vchan_0.share_mem); \
+    /* Connect hello and vchan to the serial server (pretend to be vm1) */ \
+    connection seL4RPCCall hserial(from hello.putchar, to serial.vm1); \
+    connection seL4RPCCall vchanserial(from vchan_0.putchar, to serial.vm1); \
+    /* Connect vm1 to the vchan component */ \
+    connection seL4RPCCall vchan_1(from vm1.vchan_con, to vchan_0.vchan_com); \
+    connection seL4SharedData vchan_sharemem_1(from vm1.share_mem, to vchan_0.share_mem); \
+    connection seL4Asynch vchan_event_init_1(from vchan_0.vevent_cl, to vm1.vevent); \
+    /* Also connect vm0 to the vchan component to get around compilation problems */ \
+    connection seL4RPCCall vchan(from vm0.vchan_con, to vchan_0.vchan_com); \
+    connection seL4SharedData vchan_sharemem(from vm0.share_mem, to vchan_0.share_mem); \
+    connection seL4Asynch vchan_event_init(from vchan_0.vevent_cl, to vm0.vevent); \
     /**/
 
 /* Define any IOSpaces that need be created and populated with mappings
@@ -267,11 +282,37 @@
 
 #define VM_INIT_COMPONENT() \
     component Init0 { \
+        include "vmm/vchan_sharemem.h"; \
+        uses VchanInterface vchan_con; \
+        consumes VchanEvent vevent; \
+        dataport vchan_headers_t share_mem; \
         VM_INIT_DEF() \
     } \
     component Init1 { \
+        include "vmm/vchan_sharemem.h"; \
+        uses VchanInterface vchan_con; \
+        consumes VchanEvent vevent; \
+        dataport vchan_headers_t share_mem; \
         VM_INIT_DEF() \
     } \
+    /**/
+
+#define VCHAN_COMPONENT_DEF() \
+    static camkes_vchan_con_t vchan_camkes_component = { \
+    .connect = &vchan_con_new_connection, \
+    .disconnect = &vchan_con_rem_connection, \
+    .get_buf = &vchan_con_get_buf, \
+    .status = &vchan_con_status,\
+    .alert_status = &vchan_con_alert_status, \
+    .reg_callback = &vevent_reg_callback, \
+    .alert = &vchan_con_ping, \
+    .component_dom_num = 0, \
+    }; \
+    /**/
+
+#define VCHAN_COMPONENT_INIT_MEM() \
+    vchan_camkes_component.data_buf = (void *) share_mem; \
+    init_camkes_vchan(&vchan_camkes_component); \
     /**/
 
 #define VM_ASYNC_DEVICE_BADGES_0() \
@@ -290,6 +331,8 @@
     /**/
 
 #define PLAT_COMPONENT_DEF() \
+    component Vchan vchan_0; \
+    component HelloWorld hello; \
     component Ethdriver ethdriver0; \
     component HWEthDriver HWEthDriver; \
     component Echo echo; \

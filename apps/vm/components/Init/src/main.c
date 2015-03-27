@@ -31,6 +31,7 @@
 #include "vmm/platform/boot_guest.h"
 #include "vmm/platform/guest_vspace.h"
 
+#include "vmm/vmm_manager.h"
 #include "vm.h"
 #include "virtio_net.h"
 #include "i8259.h"
@@ -251,6 +252,7 @@ void pre_init(void) {
     sel4utils_reserve_range_no_alloc(&vspace, &muslc_brk_reservation_memory, BRK_VIRTUAL_SIZE, seL4_AllRights, 1, &muslc_brk_reservation_start);
     muslc_this_vspace = &vspace;
     muslc_brk_reservation = (reservation_t){.res = &muslc_brk_reservation_memory};
+
 }
 
 typedef struct memory_range {
@@ -642,6 +644,8 @@ void *main_continued(void *arg) {
     hw_irq_t *hw_irqs = NULL;
     int num_hw_irqs;
 
+    vchan_vmcall_init();
+
     rtc_time_date_t time_date = system_rtc_time_date();
     printf("Starting VM %s at: %04d:%02d:%02d %02d:%02d:%02d\n", get_instance_name(), time_date.year, time_date.month, time_date.day, time_date.hour, time_date.minute, time_date.second);
 
@@ -825,6 +829,9 @@ void *main_continued(void *arg) {
     }
 
     vmm_plat_init_guest_boot_structure(&vmm, kernel_cmdline);
+
+    error = reg_new_handler(&vmm, &vchan_handler, VMM_MANAGER_TOKEN);
+    assert(!error);
 
     /* Final VMM setup now that everything is defined and loaded */
     error = vmm_finalize(&vmm);

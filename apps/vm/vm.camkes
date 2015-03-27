@@ -21,6 +21,7 @@ import <PCIConfig.idl4>;
 import <Timer.idl4>;
 import <RTC.idl4>;
 import <Ethdriver.idl4>;
+import <VchanInterface.idl4>;
 
 import "PIC.camkes";
 import "HPET.camkes";
@@ -35,6 +36,9 @@ import "components/SerialServer/SerialServer.camkes";
 import "components/Ethdriver/Ethdriver.camkes";
 import "components/UDPServer/UDPServer.camkes";
 import "components/Echo/Echo.camkes";
+import "components/Vchan/Vchan.camkes";
+import "components/HelloWorld/HelloWorld.camkes";
+
 
 connector seL4GlobalAsynch {
     from Event notifier template "seL4GlobalAsynch-from.template.c";

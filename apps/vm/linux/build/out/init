@@ -1,0 +1,27 @@
+#!/bin/sh
+# devtmpfs does not get automounted for initramfs
+/bin/mount -t devtmpfs devtmpfs /dev
+exec 0</dev/console
+exec 1>/dev/console
+exec 2>/dev/console
+
+# Initialising the Vchan driver
+insmod /lib/modules/3.15.0/kernel/drivers/vmm/vmm_manager.ko
+if [ "$?" -lt "0" ]; then
+	echo "vmm driver initialisation FAILED with $?" > /dev/kmsg
+else
+	mknod /dev/vmm_manager c 248 0
+	# echo "Starting tests" 2>&1 > /dev/kmsg
+	# /bin/vmm_manager_tests > /dev/kmsg
+	# if [ "$?" -eq "0" ]; then
+		# echo "vmm driver tests concluded with no errors" > /dev/kmsg
+	# fi
+	# var=`/bin/vm_guest_manip num`
+	# if [ "$var" -eq "0" ]; then
+		# /bin/sel4_vchan_testsuite > /dev/kmsg
+	# else
+		# echo "$var skipping tests.." > /dev/kmsg
+	# fi
+fi
+
+exec /sbin/init $*

@@ -30,5 +30,5 @@ component SerialServer {
     uses Timer timeout;
 
     uses IOPort serial_port;
-    consumes Irq4 serial_irq;    
+    consumes Irq4 serial_irq;
 }

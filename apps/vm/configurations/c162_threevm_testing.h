@@ -372,6 +372,13 @@
     ) \
     /**/
 
+#define VCHAN_COMPONENT_DEF() \
+    static camkes_vchan_con_t vchan_camkes_component = { \
+    }; \
+    /**/
+#define VCHAN_COMPONENT_INIT_MEM() \
+    /**/
+
 #define PLAT_COMPONENT_DEF() \
     component Ethdriver ethdriver0; \
     component HWEthDriver HWEthDriver; \
@@ -392,3 +399,4 @@
     /**/
 
 #define HPET_IRQ() 20
+

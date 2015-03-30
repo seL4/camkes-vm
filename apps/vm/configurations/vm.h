@@ -96,8 +96,7 @@
     /* Temporarily connect the VM directly to the RTC */ \
     connection seL4RPCCall rtctest##num(from vm##num.system_rtc, to rtc.rtc); \
     /* Connect the VM to the timer server */ \
-    connection seL4RPCCall CAT(pit##num,_timer)(from vm##num.init_timer, to time_server.the_timer); \
-    connection seL4GlobalAsynch CAT(pit##num,_timer_interrupt)(from time_server.CAT(VTIMER(0, num),_complete), to vm##num.intready); \
+    connection seL4TimeServer CAT(pit##num,_timer)(from vm##num.init_timer, to time_server.the_timer); \
     /* Connect config space to main VM */ \
     connection seL4RPCCall pciconfig##num(from vm##num.pci_config, to pci_config.pci_config); \
     /**/
@@ -136,12 +135,12 @@
 #define VM_IRQS(num) BOOST_PP_LIST_FOR_EACH(VM_IRQ_OUTPUT, num, BOOST_PP_TUPLE_TO_LIST(CAT(VM_PASSTHROUGH_IRQ_, num)()))
 
 #define VM_CONFIG_DEF(num) \
+    vm##num.init_timer_global_endpoint = BOOST_PP_STRINGIZE(vm##num); \
+    vm##num.init_timer_badge = BOOST_PP_STRINGIZE(VM_INIT_TIMER_BADGE); \
     vm##num.init_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(0, num)); \
     vm##num.intready_global_endpoint = BOOST_PP_STRINGIZE(vm##num); \
     serial.CAT(guest##num,_has_data_global_endpoint) = BOOST_PP_STRINGIZE(vm##num); \
     serial.CAT(guest##num,_has_data_badge) = BOOST_PP_STRINGIZE(VM_PIC_BADGE_SERIAL_HAS_DATA); \
-    time_server.CAT(VTIMER(0, num),_complete_global_endpoint) = BOOST_PP_STRINGIZE(vm##num); \
-    time_server.CAT(VTIMER(0, num),_complete_badge) = BOOST_PP_STRINGIZE(VM_INIT_TIMER_BADGE); \
     vm##num.cnode_size_bits = 21; \
     vm##num.simple = true; \
     VM_IRQS(num) \

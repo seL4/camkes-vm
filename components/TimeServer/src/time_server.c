@@ -67,10 +67,7 @@ static client_state_t client_state[VM_NUM_TIMER_CLIENTS];
 
 static uint64_t tsc_frequency = 0;
 
-#define TIMER_COMPLETE_EMIT_OUTPUT(a, vm, b) BOOST_PP_CAT(BOOST_PP_CAT(timer, BOOST_PP_INC(vm)),_complete_emit),
-static void (*timer_complete_emit[])(void) = {
-    BOOST_PP_REPEAT(VM_NUM_TIMERS, TIMER_COMPLETE_EMIT_OUTPUT, _)
-};
+void the_timer_emit(unsigned int);
 
 static uint64_t current_time_ns() {
     return muldivu64(rdtsc_pure(), NS_IN_S, tsc_frequency);
@@ -104,7 +101,7 @@ static void insert_timer(client_timer_t *timer) {
 }
 
 static void signal_client(client_timer_t *timer, uint64_t current_time) {
-    timer_complete_emit[timer->client_id]();
+    the_timer_emit(timer->client_id + 1);
     client_state[timer->client_id].completed |= BIT(timer->id);
     remove_timer(timer);
     switch(timer->timer_type) {

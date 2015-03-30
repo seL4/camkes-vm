@@ -14,17 +14,11 @@ import <PutChar.idl4>;
 #include <configurations/vm.h>
 #include <boost/preprocessor/repeat.hpp>
 
-#define TIMER_DEF(num, iteration, data) \
-    emits timer_complete BOOST_PP_CAT(timer, BOOST_PP_CAT(BOOST_PP_INC(iteration), _complete)); \
-    /**/
-
 component TimeServer {
     has mutex time_server;
     uses PutChar putchar;
 
     provides Timer the_timer;
-
-    BOOST_PP_REPEAT(VM_NUM_TIMERS, TIMER_DEF, _)
 
     consumes HPETMSI irq;
     dataport Buf hpet;

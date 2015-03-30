@@ -22,12 +22,12 @@ import <Timer.idl4>;
     /**/
 
 component SerialServer {
+    control;
     has mutex serial;
 
     BOOST_PP_REPEAT(VM_NUM_GUESTS, PER_VM_DEF, _)
 
     uses Timer timeout;
-    consumes timer_complete timeout_complete;
 
     uses IOPort serial_port;
     consumes Irq4 serial_irq;    

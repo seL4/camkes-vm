@@ -11,6 +11,7 @@
 #include <autoconf.h>
 #include <stdio.h>
 
+#include <sel4/sel4.h>
 #include <SerialServer.h>
 #include <boost/preprocessor/repeat.hpp>
 #include "vm.h"
@@ -359,7 +360,6 @@ static void timer_callback(void *data) {
             flush_buffer(i);
         }
     }
-    timeout_complete_reg_callback(timer_callback, 0);
     serial_unlock();
 }
 
@@ -369,6 +369,15 @@ static void init_colours() {
         output_colours[i] = all_output_colours[i];
         output_colours[i + VM_NUM_GUESTS] = all_output_colours[i + MAX_GUESTS];
     }
+}
+
+int run(void) {
+    seL4_CPtr aep = timeout_aep();
+    while(1) {
+        seL4_Wait(aep, NULL);
+        timer_callback(NULL);
+    }
+    return 0;
 }
 
 void pre_init(void) {
@@ -392,7 +401,6 @@ void pre_init(void) {
     set_putchar(serial_putchar);
     serial_irq_reg_callback(serial_irq, 0);
     /* Start regular heartbeat of 500ms */
-    timeout_complete_reg_callback(timer_callback, 0);
     timeout_periodic(0, 500000000);
     serial_unlock();
 }

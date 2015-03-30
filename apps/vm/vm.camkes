@@ -61,6 +61,11 @@ connector seL4ProdCon {
     to Dataport client template "seL4ProdCon-to.template.c";
 }
 
+connector seL4TimeServer {
+    from Procedure client template "seL4TimeServer-from.template.c";
+    to Procedure server template "seL4TimeServer-to.template.c";
+}
+
 component PieceOfHardware {
     hardware;
     provides IOPort pci_config_address;
@@ -111,8 +116,7 @@ assembly {
         connection seL4HardwareIOPort rtc_cmos_data(from rtc.cmos_data, to cmos.cmos_data);
 
         /* COnnect the serial server to the timer server */
-        connection seL4RPCCall serialserver_timer(from serial.timeout, to time_server.the_timer);
-        connection seL4Asynch serialserver_timeout(from time_server.timer1_complete, to serial.timeout_complete);
+        connection seL4TimeServer serialserver_timer(from serial.timeout, to time_server.the_timer);
 
         /* Connect io ports to pci config space */
         connection seL4HardwareIOPort config_address_ports(from pci_config.config_address, to poh.pci_config_address);
@@ -131,6 +135,8 @@ assembly {
     }
     configuration {
         serial.timeout_attributes = "1";
+        serial.timeout_global_endpoint = "serial_server";
+        serial.timeout_badge = "1";
 
         hpet.hpet_attributes = "0xFED00000:0x1000";
 #ifdef CONFIG_APP_CAMKES_VM_HPET_MSI

@@ -19,7 +19,7 @@
         /*- if s.attribute == "%s_global_endpoint" % (interface) -*/
             /*- set name = s.value.strip('"') -*/
             /*- do _name.append(name) -*/
-        /*- elif s. attribute == "%s_badge" % (interface) -*/
+        /*- elif s.attribute == "%s_badge" % (interface) -*/
             /*- set badge = s.value.strip('"') -*/
             /*- do _badge.append(badge) -*/
         /*- endif -*/
@@ -52,12 +52,7 @@
 /*- do _stash(stash_name, aep_object) -*/
 
 /*# Create the badged endpoint #*/
-/*- if not is_reader -*/
-    /*- if int(badge,10) == 0 -*/
-        /*- do panic('blah') -*/
-    /*- endif -*/
-/*- endif -*/
-/*- set aep = alloc_cap('%s_aep_object_cap' % (name), aep_object, read=is_reader, write=True) -*/
+/*- set aep = alloc_cap('%s_%s_aep_object_cap' % (name, bade), aep_object, read=is_reader, write=True) -*/
 /*- do cap_space.cnode[aep].set_badge(int(badge, 10)) -*/
 
 /*- do stash('aep', aep) -*/

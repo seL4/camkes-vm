@@ -9,8 +9,8 @@
  */
 
 #include <autoconf.h>
-import "../../interfaces/Ethdriver.idl4";
-import "../../interfaces/PutChar.idl4";
+import <Ethdriver.idl4>;
+import <PutChar.idl4>;
 #include <configurations/vm.h>
 #include <boost/preprocessor/repeat.hpp>
 

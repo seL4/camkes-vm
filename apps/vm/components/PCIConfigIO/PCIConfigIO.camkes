@@ -9,8 +9,8 @@
  */
 
 #include <autoconf.h>
-import "../../interfaces/PCIConfig.idl4";
-import "../../interfaces/PutChar.idl4";
+import <PCIConfig.idl4>;
+import <PutChar.idl4>;
 
 component PCIConfigIO {
     has mutex lock;

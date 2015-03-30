@@ -8,8 +8,8 @@
  * @TAG(NICTA_GPL)
  */
 
-import "../../interfaces/Ethdriver.idl4";
-import "../../interfaces/PutChar.idl4";
+import <Ethdriver.idl4>;
+import <PutChar.idl4>;
 
 component UDPServer {
     uses PutChar putchar;

@@ -15,12 +15,12 @@
 
 import <std_connector.camkes>;
 
-import "interfaces/VirtIOPort.idl4";
-import "interfaces/InterruptGenerator.idl4";
-import "interfaces/PCIConfig.idl4";
-import "interfaces/Timer.idl4";
-import "interfaces/RTC.idl4";
-import "interfaces/Ethdriver.idl4";
+import <VirtIOPort.idl4>;
+import <InterruptGenerator.idl4>;
+import <PCIConfig.idl4>;
+import <Timer.idl4>;
+import <RTC.idl4>;
+import <Ethdriver.idl4>;
 
 import "PIC.camkes";
 import "HPET.camkes";
@@ -29,7 +29,7 @@ import "Serial.camkes";
 
 import "components/Init/Init.camkes";
 import "components/PCIConfigIO/PCIConfigIO.camkes";
-import "components/TimeServer/TimeServer.camkes";
+import <TimeServer/TimeServer.camkes>;
 import "components/RTC/RTC.camkes";
 import "components/SerialServer/SerialServer.camkes";
 import "components/Ethdriver/Ethdriver.camkes";

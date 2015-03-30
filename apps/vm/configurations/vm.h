@@ -92,12 +92,12 @@
     connection seL4RPCCall serial_guest_vm##num(from vm##num.guest_putchar, to serial.guest##num); \
     /* Connect the emulated serial input to the serial server */ \
     connection seL4ProdCon serial_input##num(from serial.CAT(guest##num,_buffer), to vm##num.serial_buffer); \
-    connection seL4AsynchBind serial_input_ready##num(from serial.CAT(guest##num,_has_data), to vm##num.intready); \
+    connection seL4GlobalAsynch serial_input_ready##num(from serial.CAT(guest##num,_has_data), to vm##num.intready); \
     /* Temporarily connect the VM directly to the RTC */ \
     connection seL4RPCCall rtctest##num(from vm##num.system_rtc, to rtc.rtc); \
     /* Connect the VM to the timer server */ \
     connection seL4RPCCall CAT(pit##num,_timer)(from vm##num.init_timer, to time_server.the_timer); \
-    connection seL4AsynchBind CAT(pit##num,_timer_interrupt)(from time_server.CAT(VTIMER(0, num),_complete), to vm##num.intready); \
+    connection seL4GlobalAsynch CAT(pit##num,_timer_interrupt)(from time_server.CAT(VTIMER(0, num),_complete), to vm##num.intready); \
     /* Connect config space to main VM */ \
     connection seL4RPCCall pciconfig##num(from vm##num.pci_config, to pci_config.pci_config); \
     /**/

@@ -109,7 +109,7 @@
     /* Connect ethernet driver to vm 1 */ \
     connection seL4SharedData eth_packet1(from ethdriver0.packet0, to vm1.packet); \
     connection seL4RPCCall eth_driver1(from vm1.ethdriver, to ethdriver0.client0); \
-    connection seL4AsynchBind eth_rx_ready1(from ethdriver0.rx_ready0, to vm1.intready); \
+    connection seL4GlobalAsynch eth_rx_ready1(from ethdriver0.rx_ready0, to vm1.intready); \
     /* Connect ethernet driver to udpserver */ \
     connection seL4SharedData eth_packet2(from ethdriver0.packet1, to udpserver.packet); \
     connection seL4RPCCall eth_driver2(from udpserver.ethdriver, to ethdriver0.client1); \
@@ -122,8 +122,8 @@
     connection seL4UDPSend udp_echo_send(from echo.echo_send, to udpserver.client_send); \
     /* Connect vm0 to vm2 with virtual ethernet */ \
     connection seL4VMNet vm0_to_vm2_net(from vm0.vm2net, to vm2.vm0net); \
-    connection seL4AsynchBind vm0_net_ready(from vm0.vm2net_emit, to vm2.intready); \
-    connection seL4AsynchBind vm2_net_ready(from vm2.vm0net_emit, to vm0.intready); \
+    connection seL4GlobalAsynch vm0_net_ready(from vm0.vm2net_emit, to vm2.intready); \
+    connection seL4GlobalAsynch vm2_net_ready(from vm2.vm0net_emit, to vm0.intready); \
     /**/
 
 /* Define any IOSpaces that need be created and populated with mappings

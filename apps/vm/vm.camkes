@@ -36,6 +36,11 @@ import "components/Ethdriver/Ethdriver.camkes";
 import "components/UDPServer/UDPServer.camkes";
 import "components/Echo/Echo.camkes";
 
+connector seL4GlobalAsynch {
+    from Event notifier template "seL4GlobalAsynch-from.template.c";
+    to Event server template "seL4GlobalAsynch-to.template.c";
+}
+
 connector seL4UDPSend {
     from Dataport client template "seL4UDPSend-from.template.c";
     to Dataport server template "seL4UDPSend-to.template.c";

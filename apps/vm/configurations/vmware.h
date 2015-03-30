@@ -22,8 +22,8 @@
 #define PLAT_CONNECT_DEF() \
     /* Connect vm0 to vm1 with virtual ethernet */ \
     connection seL4VMNet vm0_to_vm1_net(from vm0.vm1net, to vm1.vm0net); \
-    connection seL4AsynchBind vm0_net_ready(from vm0.vm1net_emit, to vm1.intready); \
-    connection seL4AsynchBind vm1_net_ready(from vm1.vm0net_emit, to vm0.intready); \
+    connection seL4GlobalAsynch vm0_net_ready(from vm0.vm1net_emit, to vm1.intready); \
+    connection seL4GlobalAsynch vm1_net_ready(from vm1.vm0net_emit, to vm0.intready); \
     /**/
 
 #define VM_CONFIGURATION_IOSPACES_0() ( \

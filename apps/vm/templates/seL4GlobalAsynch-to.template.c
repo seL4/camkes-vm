@@ -13,7 +13,11 @@
 
 /*? macros.show_includes(me.to_instance.type.includes) ?*/
 
-/*- set aep = alloc('aep', seL4_AsyncEndpointObject, read=True, write=True) -*/
+/*- set is_reader = True -*/
+/*- set instance = me.to_instance.name -*/
+/*- set interface = me.to_interface.name -*/
+/*- include 'global-endpoint.template.c' -*/
+/*- set aep = pop('aep') -*/
 
 seL4_CPtr /*? me.to_interface.name ?*/_aep(void) {
     return /*? aep ?*/;

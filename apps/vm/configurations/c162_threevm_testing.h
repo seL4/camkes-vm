@@ -251,11 +251,14 @@
     ethdriver0.cnode_size_bits = 12; \
     ethdriver0.iospace = "0x12:0x1:0x0:0"; \
     ethdriver0.simple_untyped20_pool = 2; \
-    ethdriver0.rx_ready0_attributes = "134742016"; /* BIT(19) + BIT(27)*/ \
+    ethdriver0.rx_ready0_global_endpoint = "vm0"; \
+    ethdriver0.rx_ready0_badge = "134742016"; /* BIT(19) + BIT(27)*/ \
     udpserver.client_recv_attributes = "8,7"; \
     udpserver.client_send_attributes = "7"; \
-    vm0.vm2net_emit_attributes = "134479872"; /* BIT(18) + BIT(27) */ \
-    vm2.vm0net_emit_attributes = "134479872"; /* BIT(18) + BIT(27) */ \
+    vm0.vm2net_emit_global_endpoint = "vm2"; \
+    vm2.vm0net_emit_global_endpoint = "vm0"; \
+    vm0.vm2net_emit_badge = "134479872"; /* BIT(18) + BIT(27) */ \
+    vm2.vm0net_emit_badge = "134479872"; /* BIT(18) + BIT(27) */ \
     vm0.vm2net_attributes ="06,00,00,20,12,13:13:0x9000"; \
     vm2.vm0net_attributes ="06,00,00,20,12,14:13:0x9000"; \
     /**/

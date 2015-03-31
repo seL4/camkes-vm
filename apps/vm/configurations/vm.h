@@ -137,8 +137,11 @@
 
 #define VM_CONFIG_DEF(num) \
     vm##num.init_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(0, num)); \
-    serial.CAT(guest##num,_has_data_attributes) = BOOST_PP_STRINGIZE(VM_PIC_BADGE_SERIAL_HAS_DATA); \
-    time_server.CAT(VTIMER(0, num),_complete_attributes) = BOOST_PP_STRINGIZE(VM_INIT_TIMER_BADGE); \
+    vm##num.intready_global_endpoint = BOOST_PP_STRINGIZE(vm##num); \
+    serial.CAT(guest##num,_has_data_global_endpoint) = BOOST_PP_STRINGIZE(vm##num); \
+    serial.CAT(guest##num,_has_data_badge) = BOOST_PP_STRINGIZE(VM_PIC_BADGE_SERIAL_HAS_DATA); \
+    time_server.CAT(VTIMER(0, num),_complete_global_endpoint) = BOOST_PP_STRINGIZE(vm##num); \
+    time_server.CAT(VTIMER(0, num),_complete_badge) = BOOST_PP_STRINGIZE(VM_INIT_TIMER_BADGE); \
     vm##num.cnode_size_bits = 21; \
     vm##num.simple = true; \
     VM_IRQS(num) \

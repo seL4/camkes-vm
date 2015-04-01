@@ -9,5 +9,5 @@
  */
 
 procedure TestCall {
-    smallstring echo_string(in smallstring s);
+    string echo_string(in string s);
 };

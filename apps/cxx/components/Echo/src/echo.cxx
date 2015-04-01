@@ -26,7 +26,7 @@ static char *echo_string(const char *s) {
 }
 
 extern "C" {
-char * s_echo_string(char *s) {
+char * s_echo_string(const char *s) {
     return echo_string(s);
 }
 }

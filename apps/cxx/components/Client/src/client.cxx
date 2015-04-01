@@ -24,7 +24,7 @@ T echo_fun(T thing, T (*echo)(T)) {
 int echo_int(int i) { return i; }
 
 static int cxx_run() {
-    printf("Echo gave us: %s\n", echo_fun<char *>((char*)"hello world", s_echo_string));
+    printf("Echo gave us: %s\n", echo_fun<const char *>((const char*)"hello world", (const char*(*)(const char*))s_echo_string));
     return 0;
 }
 

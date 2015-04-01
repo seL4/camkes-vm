@@ -8,11 +8,8 @@
  * @TAG(NICTA_GPL)
  */
 
-#include <autoconf.h>
 import <Timer.idl4>;
 import <PutChar.idl4>;
-#include <configurations/vm.h>
-#include <boost/preprocessor/repeat.hpp>
 
 component TimeServer {
     has mutex time_server;
@@ -22,4 +19,6 @@ component TimeServer {
 
     consumes HPETMSI irq;
     dataport Buf hpet;
+
+    attribute int max_clients;
 }

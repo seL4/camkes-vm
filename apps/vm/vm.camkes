@@ -138,6 +138,8 @@ assembly {
         serial.timeout_global_endpoint = "serial_server";
         serial.timeout_badge = "1";
 
+        time_server.max_clients = 9;
+
         hpet.hpet_attributes = "0xFED00000:0x1000";
 #ifdef CONFIG_APP_CAMKES_VM_HPET_MSI
         hpet.irq_attributes = "24,0,0";

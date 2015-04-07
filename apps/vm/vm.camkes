@@ -33,7 +33,7 @@ import "components/PCIConfigIO/PCIConfigIO.camkes";
 import <TimeServer/TimeServer.camkes>;
 import <RTC/RTC.camkes>;
 import <SerialServer/SerialServer.camkes>;
-import "components/Ethdriver/Ethdriver.camkes";
+import <Ethdriver/Ethdriver.camkes>;
 import "components/UDPServer/UDPServer.camkes";
 import "components/Echo/Echo.camkes";
 import "components/Vchan/Vchan.camkes";

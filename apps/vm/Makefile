@@ -30,6 +30,7 @@ VM_NUM_VM := $(patsubst "%",%, ${CONFIG_APP_CAMKES_VM_NUM_VM})
 include TimeServer/TimeServer.mk
 include SerialServer/SerialServer.mk
 include RTC/RTC.mk
+include Ethdriver/Ethdriver.mk
 
 # We want to run C99
 CFLAGS += -std=gnu99 "-DCAMKES_VM_CONFIG=${VM_CONFIG}" "-DBOOST_PP_VARIADICS" -I${SOURCE_DIR}/configurations
@@ -48,11 +49,6 @@ $(foreach var, $(VM_LIST), \
     $(eval Init$(var)_OFILES := $(value Init_OFILES)); \
     $(eval Init$(var)_LIBS := $(value Init_LIBS)); \
 )
-
-Ethdriver_HFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/configurations/*.h))
-Ethdriver_HFILES += $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/configurations/c162/*.h))
-Ethdriver_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/Ethdriver/src/*.c))
-Ethdriver_LIBS := sel4camkes sel4utils sel4vka sel4allocman sel4vspace sel4simple sel4platsupport ethdrivers
 
 Echo_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/Echo/src/*.c))
 

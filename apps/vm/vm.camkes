@@ -24,7 +24,7 @@ import <Ethdriver.idl4>;
 import <VchanInterface.idl4>;
 
 import "PIC.camkes";
-import "HPET.camkes";
+import "PIT.camkes";
 import "CMOS.camkes";
 import "Serial.camkes";
 
@@ -97,7 +97,7 @@ assembly {
         component RTC rtc;
 
         /* Hardware components that are not actuall instantiated */
-        component HPET hpet;
+        component PIT pit;
         component CMOS cmos;
         component Serial hw_serial;
         /* Hack to get hardware definitions sensibly in camkes for the cmoment */
@@ -129,9 +129,10 @@ assembly {
         /* Connections defined by the platform specification */
         PLAT_CONNECT_DEF()
 
-        /* Connect the hardware hpet to the timer driver */
-        connection seL4HardwareMMIO hpet_base(from time_server.hpet, to hpet.hpet);
-        connection seL4IOAPICHardwareInterrupt hpet_irq(from hpet.irq, to time_server.irq);
+        /* Connect the hardware pit to the timer driver */
+        connection seL4HardwareIOPort pit_command(from time_server.pit_command, to pit.command);
+        connection seL4HardwareIOPort pit_channel0(from time_server.pit_channel0, to pit.channel0);
+        connection seL4IOAPICHardwareInterrupt pit_irq(from pit.irq, to time_server.irq);
 
         /* Connect the hardware serial to the serial server */
         connection seL4HardwareIOPort serial_ioport(from serial.serial_port, to hw_serial.serial);
@@ -144,15 +145,9 @@ assembly {
 
         time_server.max_clients = 9;
 
-        hpet.hpet_attributes = "0xFED00000:0x1000";
-#ifdef CONFIG_APP_CAMKES_VM_HPET_MSI
-        hpet.irq_attributes = "24,0,0";
-#else
-#define QUOTE "
-#define _MAKE_IRQ_ATTRIB(x) QUOTE x,1,1 QUOTE ;
-#define MAKE_IRQ_ATTRIB(x) _MAKE_IRQ_ATTRIB(x)
-        hpet.irq_attributes = MAKE_IRQ_ATTRIB(HPET_IRQ())
-#endif
+        pit.command_attributes = "0x43:0x43";
+        pit.channel0_attributes = "0x40:0x40";
+        pit.irq_attributes = "2,0,0";
 
         /* Serial port definitions */
         hw_serial.serial_attributes="0x3f8:3ff";

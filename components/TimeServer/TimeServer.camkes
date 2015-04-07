@@ -17,8 +17,9 @@ component TimeServer {
 
     provides Timer the_timer;
 
-    consumes HPETMSI irq;
-    dataport Buf hpet;
+    uses IOPort pit_command;
+    uses IOPort pit_channel0;
+    consumes PITIRQ irq;
 
     attribute int max_clients;
 }

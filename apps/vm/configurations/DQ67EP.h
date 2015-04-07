@@ -328,6 +328,4 @@
     } \
     /**/
 
-#define HPET_IRQ() 20
-
 #define VM_ETHDRIVER_NUM_CLIENTS 0

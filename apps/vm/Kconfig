@@ -59,11 +59,6 @@ config APP_CAMKES_VM_NUM_VM
         This needs to be set to match your APP_CAMKES_VM_CONFIG
         You probably should not change it
 
-config APP_CAMKES_VM_HPET_MSI
-    bool "Use MSI delivery for HPET (requires hardware support)"
-    depends on APP_CAMKES_VM
-    default y
-
 config APP_CAMKES_VM_ECHO_STATIC_IP
     prompt "Echo server IP Address"
     string

@@ -8,8 +8,10 @@
  * @TAG(NICTA_GPL)
  */
 
-component HPET {
+component PIT {
     hardware;
-    emits HPETMSI irq;
-    dataport Buf hpet;
+    provides IOPort command;
+    provides IOPort channel0;
+    emits PITIRQ irq;
 }
+

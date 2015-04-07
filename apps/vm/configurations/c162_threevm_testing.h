@@ -398,5 +398,4 @@
     ) \
     /**/
 
-#define HPET_IRQ() 20
 

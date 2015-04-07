@@ -35,7 +35,7 @@ import <RTC/RTC.camkes>;
 import <SerialServer/SerialServer.camkes>;
 import <Ethdriver/Ethdriver.camkes>;
 import <UDPServer/UDPServer.camkes>;
-import "components/Echo/Echo.camkes";
+import <Echo/Echo.camkes>;
 import "components/Vchan/Vchan.camkes";
 import <HelloWorld/HelloWorld.camkes>;
 

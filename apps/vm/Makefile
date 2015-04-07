@@ -33,6 +33,7 @@ include RTC/RTC.mk
 include Ethdriver/Ethdriver.mk
 include UDPServer/UDPServer.mk
 include HelloWorld/HelloWorld.mk
+include Echo/Echo.mk
 
 # We want to run C99
 CFLAGS += -std=gnu99 "-DCAMKES_VM_CONFIG=${VM_CONFIG}" "-DBOOST_PP_VARIADICS" -I${SOURCE_DIR}/configurations
@@ -51,8 +52,6 @@ $(foreach var, $(VM_LIST), \
     $(eval Init$(var)_OFILES := $(value Init_OFILES)); \
     $(eval Init$(var)_LIBS := $(value Init_LIBS)); \
 )
-
-Echo_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/Echo/src/*.c))
 
 SerialEmulator_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/SerialEmulator/src/*.c))
 

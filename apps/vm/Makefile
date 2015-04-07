@@ -28,6 +28,7 @@ VM_CONFIG := $(patsubst "%",%, ${CONFIG_APP_CAMKES_VM_CONFIG})
 VM_NUM_VM := $(patsubst "%",%, ${CONFIG_APP_CAMKES_VM_NUM_VM})
 
 include TimeServer/TimeServer.mk
+include SerialServer/SerialServer.mk
 
 # We want to run C99
 CFLAGS += -std=gnu99 "-DCAMKES_VM_CONFIG=${VM_CONFIG}" "-DBOOST_PP_VARIADICS" -I${SOURCE_DIR}/configurations
@@ -59,8 +60,6 @@ UDPServer_LIBS := sel4camkes ethdrivers lwip
 
 SerialEmulator_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/SerialEmulator/src/*.c))
 
-SerialServer_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/SerialServer/src/*.c))
-SerialServer_HFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/configurations/*.h))
 PCIConfigIO_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/PCIConfigIO/src/*.c))
 
 RTC_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/RTC/src/*.c))

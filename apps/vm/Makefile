@@ -35,6 +35,7 @@ include UDPServer/UDPServer.mk
 include HelloWorld/HelloWorld.mk
 include Echo/Echo.mk
 include Vchan/Vchan.mk
+include PCIConfigIO/PCIConfigIO.mk
 
 # We want to run C99
 CFLAGS += -std=gnu99 "-DCAMKES_VM_CONFIG=${VM_CONFIG}" "-DBOOST_PP_VARIADICS" -I${SOURCE_DIR}/configurations
@@ -54,8 +55,6 @@ $(foreach var, $(VM_LIST), \
 )
 
 SerialEmulator_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/SerialEmulator/src/*.c))
-
-PCIConfigIO_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/PCIConfigIO/src/*.c))
 
 
 CAMKES_FLAGS += --cpp-flag="-DBOOST_PP_VARIADICS" --cpp-flag=-I${SOURCE_DIR} --cpp-flag="-DCAMKES_VM_CONFIG=${VM_CONFIG}" --cache-dir=${PWD}/build/camkes_cache

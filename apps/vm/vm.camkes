@@ -29,7 +29,7 @@ import "CMOS.camkes";
 import "Serial.camkes";
 
 import "components/Init/Init.camkes";
-import "components/PCIConfigIO/PCIConfigIO.camkes";
+import <PCIConfigIO/PCIConfigIO.camkes>;
 import <TimeServer/TimeServer.camkes>;
 import <RTC/RTC.camkes>;
 import <SerialServer/SerialServer.camkes>;

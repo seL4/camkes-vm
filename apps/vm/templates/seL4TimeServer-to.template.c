@@ -51,6 +51,8 @@
     /*- endif -*/
 /*- endfor -*/
 
+/*- do badges.sort() -*/
+
 void /*? me.to_interface.name ?*/_emit(unsigned int badge) {
     /*# create a lookup table under the assumption that the
         badges are sensibly made as low as possible #*/
@@ -62,6 +64,10 @@ void /*? me.to_interface.name ?*/_emit(unsigned int badge) {
     assert(badge < ARRAY_SIZE(lookup));
     assert(lookup[badge]);
     lookup[badge]();
+}
+
+int /*? me.to_interface.name ?*/_largest_badge(void) {
+    return /*? badges[len(badges) - 1] ?*/;
 }
 
 /*# We want to get the badge information from the 'from' side of this template #*/

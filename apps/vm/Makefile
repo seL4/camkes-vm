@@ -31,6 +31,8 @@ include TimeServer/TimeServer.mk
 include SerialServer/SerialServer.mk
 include RTC/RTC.mk
 include Ethdriver/Ethdriver.mk
+include UDPServer/UDPServer.mk
+include HelloWorld/HelloWorld.mk
 
 # We want to run C99
 CFLAGS += -std=gnu99 "-DCAMKES_VM_CONFIG=${VM_CONFIG}" "-DBOOST_PP_VARIADICS" -I${SOURCE_DIR}/configurations
@@ -52,9 +54,6 @@ $(foreach var, $(VM_LIST), \
 
 Echo_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/Echo/src/*.c))
 
-UDPServer_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/UDPServer/src/*.c))
-UDPServer_LIBS := sel4camkes ethdrivers lwip
-
 SerialEmulator_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/SerialEmulator/src/*.c))
 
 PCIConfigIO_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/PCIConfigIO/src/*.c))
@@ -65,10 +64,6 @@ Vchan_HFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/configurat
 Vchan_HFILES += $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/Vchan/include/*.h))
 Vchan_LIBS := sel4camkes sel4vmm sel4utils sel4vka sel4allocman sel4vspace sel4simple sel4simple-stable sel4platsupport
 
-HelloWorld_CFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/HelloWorld/src/*.c))
-HelloWorld_HFILES := $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/configurations/*.h))
-HelloWorld_HFILES += $(patsubst $(SOURCE_DIR)/%,%,$(wildcard $(SOURCE_DIR)/components/HelloWorld/include/*.h))
-HelloWorld_LIBS := sel4camkes sel4vmm sel4utils sel4vka sel4allocman sel4vspace sel4simple sel4simple-stable
 CAMKES_FLAGS += --cpp-flag="-DBOOST_PP_VARIADICS" --cpp-flag=-I${SOURCE_DIR} --cpp-flag="-DCAMKES_VM_CONFIG=${VM_CONFIG}" --cache-dir=${PWD}/build/camkes_cache
 
 include ${PWD}/tools/camkes/camkes.mk

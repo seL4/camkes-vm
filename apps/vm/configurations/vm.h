@@ -11,12 +11,15 @@
 #include <autoconf.h>
 #include <boost/preprocessor/arithmetic.hpp>
 #include <boost/preprocessor/cat.hpp>
-#include <boost/preprocessor/list/for_each.hpp>
+#include <boost/preprocessor/list.hpp>
 #include <boost/preprocessor/comparison.hpp>
 #include <boost/preprocessor/stringize.hpp>
 #include <boost/preprocessor/expand.hpp>
 #include <boost/preprocessor/tuple.hpp>
 #include <boost/preprocessor/control.hpp>
+
+#define _VAR_STRINGIZE(...) #__VA_ARGS__
+#define VAR_STRINGIZE(...) _VAR_STRINGIZE(__VA_ARGS__)
 
 #define VM_NUM_GUESTS CONFIG_APP_CAMKES_VM_NUM_VM
 
@@ -101,6 +104,20 @@
     connection seL4RPCCall pciconfig##num(from vm##num.pci_config, to pci_config.pci_config); \
     /**/
 
+#define VM_CONFIG_LIST(num, func, list, name) \
+    vm##num.name = \
+        VAR_STRINGIZE( \
+            BOOST_PP_LIST_ENUM( \
+                BOOST_PP_LIST_TRANSFORM( \
+                    func, \
+                    num, \
+                    BOOST_PP_TUPLE_TO_LIST(CAT(list,num)()) \
+                ) \
+            ) \
+        ) \
+    ; \
+/**/
+
 #ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE
 #define VM_MAYBE_ZONE_DMA(num) vm##num.mmio = "0x8000:0x97000:12";
 #else
@@ -110,29 +127,29 @@
 /* If the platform configuration defined extra ram that we
  * generate the specifics of that generation for them */
 #ifdef VM_CONFIGURATION_EXTRA_RAM
-#define EXTRA_RAM_OUTPUT(a,b) BOOST_PP_STRINGIZE(a:b)
-#define EXTRA_RAM_OUTPUT_(r, data, elem) vm##data.untyped_mmio = BOOST_PP_EXPAND(EXTRA_RAM_OUTPUT elem);
-#define VM_MAYBE_EXTRA_RAM(num) BOOST_PP_LIST_FOR_EACH(EXTRA_RAM_OUTPUT_, num, BOOST_PP_TUPLE_TO_LIST(CAT(VM_CONFIGURATION_EXTRA_RAM_,num)()))
+#define EXTRA_RAM_OUTPUT(a,b) a:b
+#define EXTRA_RAM_OUTPUT_(r, data, elem) BOOST_PP_EXPAND(EXTRA_RAM_OUTPUT elem)
+#define VM_MAYBE_EXTRA_RAM(num) VM_CONFIG_LIST(num, EXTRA_RAM_OUTPUT_, VM_CONFIGURATION_EXTRA_RAM_, untyped_mmios)
 #else
 #define VM_MAYBE_EXTRA_RAM(num)
 #endif
 
 /* Generate IOSpace capabilities if using the IOMMU */
 #ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_IOMMU
-#define IOSPACE_OUTPUT(r, data, elem) vm##data.iospace = elem;
-#define VM_MAYBE_IOSPACE(num) BOOST_PP_LIST_FOR_EACH(IOSPACE_OUTPUT,num,BOOST_PP_TUPLE_TO_LIST(CAT(VM_CONFIGURATION_IOSPACES_,num)()))
+#define IOSPACE_OUTPUT(r, data, elem) elem
+#define VM_MAYBE_IOSPACE(num) VM_CONFIG_LIST(num, IOSPACE_OUTPUT, VM_CONFIGURATION_IOSPACES_, iospaces)
 #else
 #define VM_MAYBE_IOSPACE(num)
 #endif
 
-#define MMIO_OUTPUT(r, data, elem) vm##data.mmio = elem;
-#define VM_MMIO(num) BOOST_PP_LIST_FOR_EACH(MMIO_OUTPUT, num, BOOST_PP_TUPLE_TO_LIST(CAT(VM_CONFIGURATION_MMIO_, num)()))
+#define MMIO_OUTPUT(r, data, elem) elem
+#define VM_MMIO(num) VM_CONFIG_LIST(num, MMIO_OUTPUT, VM_CONFIGURATION_MMIO_, mmios)
 
-#define IOPORT_OUTPUT(r, data, elem) vm##data.ioport = BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(0,elem):BOOST_PP_TUPLE_ELEM(1,elem));
-#define VM_IOPORT(num) BOOST_PP_LIST_FOR_EACH(IOPORT_OUTPUT, num, BOOST_PP_TUPLE_TO_LIST(CAT(VM_CONFIGURATION_IOPORT_, num)()))
+#define IOPORT_OUTPUT(r, data, elem) BOOST_PP_TUPLE_ELEM(0,elem):BOOST_PP_TUPLE_ELEM(1,elem)
+#define VM_IOPORT(num) VM_CONFIG_LIST(num, IOPORT_OUTPUT, VM_CONFIGURATION_IOPORT_, ioports)
 
-#define VM_IRQ_OUTPUT(r, data, elem) vm##data.irq = BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(0, elem));
-#define VM_IRQS(num) BOOST_PP_LIST_FOR_EACH(VM_IRQ_OUTPUT, num, BOOST_PP_TUPLE_TO_LIST(CAT(VM_PASSTHROUGH_IRQ_, num)()))
+#define VM_IRQ_OUTPUT(r, data, elem) BOOST_PP_TUPLE_ELEM(0, elem)
+#define VM_IRQS(num) VM_CONFIG_LIST(num, VM_IRQ_OUTPUT, VM_PASSTHROUGH_IRQ_, irqs)
 
 #define VM_CONFIG_DEF(num) \
     vm##num.init_timer_global_endpoint = BOOST_PP_STRINGIZE(vm##num); \

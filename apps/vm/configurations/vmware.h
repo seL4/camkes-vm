@@ -28,9 +28,9 @@
 
 #define VM_CONFIGURATION_IOSPACES_0() ( \
     /* USB */ \
-    "0xf:0x2:0x00:0", \
+    0xf:0x2:0x00:0, \
     /* Ethernet */ \
-    "0xf:0x2:0x01:0" \
+    0xf:0x2:0x01:0 \
     /**/
 
 #define VM_CONFIGURATION_IOSPACES_1() \

@@ -135,15 +135,15 @@
  */
 #define VM_CONFIGURATION_IOSPACES_0() ( \
     /* Eth1 */ \
-    "0xf:0x1:0x0:1", \
+    0xf:0x1:0x0:1, \
     /* USB */ \
-    "0xf:0x0:0x1d:0" \
+    0xf:0x0:0x1d:0 \
     ) \
     /**/
 
 #define VM_CONFIGURATION_IOSPACES_1() ( \
     /* I2C */ \
-    "0x10:0x0:0x1f:3" \
+    0x10:0x0:0x1f:3 \
     ) \
     /**/
 
@@ -164,16 +164,16 @@
  */
 #define VM_CONFIGURATION_MMIO_0() ( \
     /* Eth1 */ \
-    "0xf1a80000:0x80000:12", \
-    "0xf1c08000:0x4000:12", \
+    0xf1a80000:0x80000:12, \
+    0xf1c08000:0x4000:12, \
     /* USB */ \
-    "0xf2c07000:0x400:12" \
+    0xf2c07000:0x400:12 \
     ) \
     /**/
 
 #define VM_CONFIGURATION_MMIO_1() ( \
     /* I2C */ \
-    "0xf2c05000:0x100:12" \
+    0xf2c05000:0x100:12 \
     ) \
     /**/
 

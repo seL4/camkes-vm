@@ -84,7 +84,7 @@ component HWEthDriver {
 
 #define REPEAT_WRAPPER(num, iteration, data) data(iteration)
 
-assembly {
+component VM {
     composition {
 
         /* Perform the VM component definitions */

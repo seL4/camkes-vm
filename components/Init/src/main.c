@@ -627,6 +627,10 @@ static void init_irqs(hw_irq_t *irqs, int num) {
     }
 }
 
+int fake_vchan_handler(vmm_vcpu_t *vcpu) {
+    return 0;
+}
+
 void *main_continued(void *arg) {
     int error;
     int i;
@@ -834,6 +838,9 @@ void *main_continued(void *arg) {
 
 #ifdef VCHAN_COMPONENT_DEF
     error = reg_new_handler(&vmm, &vchan_handler, VMM_MANAGER_TOKEN);
+    assert(!error);
+#else
+    error = reg_new_handler(&vmm, &fake_vchan_handler, VMM_MANAGER_TOKEN);
     assert(!error);
 #endif
 

@@ -30,6 +30,8 @@
 
 #include <camkes.h>
 
+#ifdef VCHAN_COMPONENT_DEF
+
 static int vm_args(uintptr_t phys, void *vaddr, size_t size, size_t offset, void *cookie);
 static int vchan_sync_copy(uintptr_t phys, void *vaddr, size_t size, size_t offset, void *cookie);
 
@@ -414,3 +416,5 @@ int vchan_handler(vmm_vcpu_t *vcpu) {
     /* Return success */
     return 0;
 }
+
+#endif

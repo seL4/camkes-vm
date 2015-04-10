@@ -29,9 +29,6 @@
 #define VM_GUEST_PASSTHROUGH_DEVICES_0() \
     /**/
 
-#define VCHAN_COMPONENT_DEF() \
-    /**/
-
 #define KERNEL_IMAGE "bzimage"
 #define ROOTFS "rootfs.cpio"
 #define VM_GUEST_CMDLINE "console=ttyS0,115200 console=tty0 root=/dev/mem i8042.nokbd=y i8042.nomux=y i8042.noaux=y io_delay=udelay noisapnp pci=nomsi"

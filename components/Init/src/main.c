@@ -644,7 +644,9 @@ void *main_continued(void *arg) {
     hw_irq_t *hw_irqs = NULL;
     int num_hw_irqs;
 
+#ifdef VCHAN_COMPONENT_DEF
     vchan_vmcall_init();
+#endif
 
     rtc_time_date_t time_date = system_rtc_time_date();
     printf("Starting VM %s at: %04d:%02d:%02d %02d:%02d:%02d\n", get_instance_name(), time_date.year, time_date.month, time_date.day, time_date.hour, time_date.minute, time_date.second);
@@ -830,8 +832,10 @@ void *main_continued(void *arg) {
 
     vmm_plat_init_guest_boot_structure(&vmm, kernel_cmdline);
 
+#ifdef VCHAN_COMPONENT_DEF
     error = reg_new_handler(&vmm, &vchan_handler, VMM_MANAGER_TOKEN);
     assert(!error);
+#endif
 
     /* Final VMM setup now that everything is defined and loaded */
     error = vmm_finalize(&vmm);

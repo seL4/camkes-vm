@@ -105,17 +105,20 @@
     /**/
 
 #define VM_CONFIG_LIST(num, func, list, name) \
-    vm##num.name = \
-        VAR_STRINGIZE( \
-            BOOST_PP_LIST_ENUM( \
-                BOOST_PP_LIST_TRANSFORM( \
-                    func, \
-                    num, \
-                    BOOST_PP_TUPLE_TO_LIST(CAT(list,num)()) \
+    BOOST_PP_EXPR_IF( \
+        BOOST_PP_COMPL(BOOST_PP_LIST_IS_NIL(BOOST_PP_TUPLE_TO_LIST(CAT(list, num)()))), \
+        vm##num.name = \
+            VAR_STRINGIZE( \
+                BOOST_PP_LIST_ENUM( \
+                    BOOST_PP_LIST_TRANSFORM( \
+                        func, \
+                        num, \
+                        BOOST_PP_TUPLE_TO_LIST(CAT(list,num)()) \
+                    ) \
                 ) \
             ) \
-        ) \
-    ; \
+        ; \
+    ) \
 /**/
 
 #ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE

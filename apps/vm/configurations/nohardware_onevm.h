@@ -32,13 +32,11 @@
     vm0.kernel_image = KERNEL_IMAGE; \
     vm0.kernel_relocs = KERNEL_IMAGE; \
     vm0.initrd_image = ROOTFS; \
+    vm0.iospace_domain = 0x0f; \
     /**/
 
 #define VM_GUEST_PASSTHROUGH_DEVICES_0() \
     /**/
-
-#define VM_GUEST_IOSPACE_DOMAIN_0() 0x0f
-
 
 #define VM_INIT_COMPONENT() \
     component Init0 { \

@@ -636,7 +636,6 @@ void *main_continued(void *arg) {
     int i;
     int have_initrd = 0;
     ps_io_port_ops_t ioops;
-    int iospace_domain;
     ioport_desc_t UNUSED *vm_ioports;
     int num_vm_ioports;
     void (**device_init_list)(vmm_t*) = NULL;
@@ -681,7 +680,6 @@ void *main_continued(void *arg) {
         guest_passthrough_devices = guest_passthrough_devices_vm##iteration; \
         vm_ioports = ioport_handlers_vm##iteration; \
         num_vm_ioports = ARRAY_SIZE(ioport_handlers_vm##iteration); \
-        iospace_domain = BOOST_PP_CAT(VM_GUEST_IOSPACE_DOMAIN_, iteration)(); \
         device_notify_list = BOOST_PP_CAT(device_notify_vm, iteration); \
         device_notify_list_len = ARRAY_SIZE(BOOST_PP_CAT(device_notify_vm, iteration)); \
         device_init_list = BOOST_PP_CAT(device_init_fn_vm, iteration); \

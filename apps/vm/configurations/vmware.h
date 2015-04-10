@@ -69,10 +69,12 @@
     vm0.kernel_image = VM_GUEST_IMAGE; \
     vm0.kernel_relocs = VM_GUEST_IMAGE; \
     vm0.initrd_image = VM_GUEST_ROOTFS; \
+    vm0.iospace_domain = 0x0f; \
     vm1.kernel_cmdline = VM_GUEST_CMDLINE; \
     vm1.kernel_image = VM_GUEST_IMAGE; \
     vm1.kernel_relocs = VM_GUEST_IMAGE; \
     vm1.initrd_image = VM_GUEST_ROOTFS; \
+    vm1.iospace_domain = 0x10; \
     /**/
 
 #define VM_GUEST_PASSTHROUGH_DEVICES_0() \
@@ -87,9 +89,6 @@
  * to the end */
 #define VM_GUEST_RELOCS_0() VM_GUEST_IMAGE_0()
 #define VM_GUEST_RELOCS_1() VM_GUEST_IMAGE_0()
-
-#define VM_GUEST_IOSPACE_DOMAIN_0() 0x0f
-#define VM_GUEST_IOSPACE_DOMAIN_1() 0x10
 
 #define VM_INIT_COMPONENT() \
     component Init0 { \

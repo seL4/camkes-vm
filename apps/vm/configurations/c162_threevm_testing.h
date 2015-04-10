@@ -270,14 +270,17 @@
     vm0.kernel_image = C162_KERNEL_IMAGE; \
     vm0.kernel_relocs = C162_KERNEL_IMAGE; \
     vm0.initrd_image = c162_ROOTFS; \
+    vm0.iospace_domain = 0x0f; \
     vm1.kernel_cmdline = VM_GUEST_CMDLINE; \
     vm1.kernel_image = C162_KERNEL_IMAGE; \
     vm1.kernel_relocs = C162_KERNEL_IMAGE; \
     vm1.initrd_image = c162_ROOTFS; \
+    vm0.iospace_domain = 0x10; \
     vm2.kernel_cmdline = VM_GUEST_CMDLINE; \
     vm2.kernel_image = C162_KERNEL_IMAGE; \
     vm2.kernel_relocs = C162_KERNEL_IMAGE; \
     vm2.initrd_image = c162_ROOTFS; \
+    vm0.iospace_domain = 0x11; \
     /**/
 
 /* List of pci devices that should be given as passthrough to the guest
@@ -304,10 +307,6 @@
 #define VM_GUEST_PASSTHROUGH_DEVICES_2() \
     {.ven = 0x8086, .dev = 0x150e, .fun = 1, .irq = 11}, /* Network */ \
     /**/
-
-#define VM_GUEST_IOSPACE_DOMAIN_0() 0x0f
-#define VM_GUEST_IOSPACE_DOMAIN_1() 0x10
-#define VM_GUEST_IOSPACE_DOMAIN_2() 0x11
 
 #define VM_INIT_COMPONENT() \
     component Init0 { \

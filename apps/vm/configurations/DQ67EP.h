@@ -272,6 +272,7 @@
     vm0.kernel_image = DQ67EP_KERNEL_IMAGE; \
     vm0.kernel_relocs = DQ67EP_KERNEL_IMAGE; \
     vm0.initrd_image = DQ67EP_ROOTFS; \
+    vm0.iospace_domain = 0x0f; \
     /**/
 
 /* List of pci devices that should be given as passthrough to the guest
@@ -301,8 +302,6 @@
 
 #define PLAT_CONNECT_DEF() \
     /**/
-
-#define VM_GUEST_IOSPACE_DOMAIN_0() 0x0f
 
 #define PLAT_COMPONENT_DEF() \
     /**/

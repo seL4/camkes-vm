@@ -636,7 +636,6 @@ void *main_continued(void *arg) {
     int i;
     const char *kernel_image = NULL;
     const char *initrd_image = NULL;
-    const char *kernel_cmdline = NULL;
     const char *kernel_relocs = NULL;
     int have_initrd = 0;
     ps_io_port_ops_t ioops;
@@ -686,7 +685,6 @@ void *main_continued(void *arg) {
         vm_ioports = ioport_handlers_vm##iteration; \
         num_vm_ioports = ARRAY_SIZE(ioport_handlers_vm##iteration); \
         kernel_image = BOOST_PP_CAT(VM_GUEST_IMAGE_, iteration)(); \
-        kernel_cmdline = BOOST_PP_CAT(VM_GUEST_IMAGE_, iteration)() " " BOOST_PP_CAT(VM_GUEST_CMDLINE_, iteration)(); \
         initrd_image = BOOST_PP_CAT(VM_GUEST_ROOTFS_, iteration)(); \
         have_initrd = !(strcmp(initrd_image, "") == 0); \
         kernel_relocs = BOOST_PP_CAT(VM_GUEST_RELOCS_, iteration)(); \

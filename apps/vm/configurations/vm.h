@@ -82,6 +82,7 @@
     consumes HaveInterrupt intready; \
     uses Timer init_timer; \
     dataport Buf serial_buffer; \
+    attribute string kernel_cmdline; \
     /**/
 
 /* VM and per VM componenents */

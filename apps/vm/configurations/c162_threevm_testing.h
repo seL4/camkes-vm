@@ -228,6 +228,8 @@
     ) \
     /**/
 
+#define VM_GUEST_CMDLINE "console=ttyS0,115200 console=tty0 root=/dev/mem i8042.nokbd=y i8042.nomux=y i8042.noaux=y io_delay=udelay noisapnp pci=nomsi"
+
 /* camkes definitions that will get placed in the configuration section
  * of the camkes assembly. Most of the definitions here are to do with
  * the udp server and vm to vm communication that is specific to this
@@ -261,6 +263,9 @@
     vm2.vm0net_emit_badge = "134479872"; /* BIT(18) + BIT(27) */ \
     vm0.vm2net_attributes ="06,00,00,20,12,13:13:0x9000"; \
     vm2.vm0net_attributes ="06,00,00,20,12,14:13:0x9000"; \
+    vm0.kernel_cmdline = VM_GUEST_CMDLINE; \
+    vm1.kernel_cmdline = VM_GUEST_CMDLINE; \
+    vm2.kernel_cmdline = VM_GUEST_CMDLINE; \
     /**/
 
 /* List of pci devices that should be given as passthrough to the guest
@@ -291,7 +296,6 @@
 /* All our guests use the same kernel image, rootfs and cmdline */
 #define C162_KERNEL_IMAGE "bzimage"
 #define C162_ROOTFS "rootfs.cpio"
-#define VM_GUEST_CMDLINE "console=ttyS0,115200 console=tty0 root=/dev/mem i8042.nokbd=y i8042.nomux=y i8042.noaux=y io_delay=udelay noisapnp pci=nomsi"
 
 #define VM_GUEST_IMAGE_0() C162_KERNEL_IMAGE
 #define VM_GUEST_IMAGE_1() C162_KERNEL_IMAGE
@@ -306,10 +310,6 @@
 #define VM_GUEST_RELOCS_0() VM_GUEST_IMAGE_0()
 #define VM_GUEST_RELOCS_1() VM_GUEST_IMAGE_1()
 #define VM_GUEST_RELOCS_2() VM_GUEST_IMAGE_2()
-
-#define VM_GUEST_CMDLINE_0() VM_GUEST_CMDLINE
-#define VM_GUEST_CMDLINE_1() VM_GUEST_CMDLINE
-#define VM_GUEST_CMDLINE_2() VM_GUEST_CMDLINE
 
 #define VM_GUEST_IOSPACE_DOMAIN_0() 0x0f
 #define VM_GUEST_IOSPACE_DOMAIN_1() 0x10

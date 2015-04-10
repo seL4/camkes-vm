@@ -54,6 +54,8 @@
     ) \
     /**/
 
+#define VM_GUEST_IMAGE "bzimage"
+#define VM_GUEST_ROOTFS "rootfs.cpio"
 #define VM_GUEST_CMDLINE  "console=ttyS0,115200 console=tty0 root=/dev/mem i8042.nokbd=y i8042.nomux=y i8042.noaux=y io_delay=udelay noisapnp"
 
 #define PLAT_CONFIG_DEF() \
@@ -64,7 +66,13 @@
     vm0.vm1net_attributes ="06,00,00,20,12,13:13:0x9000"; \
     vm1.vm0net_attributes ="06,00,00,20,12,14:13:0x9000"; \
     vm0.kernel_cmdline = VM_GUEST_CMDLINE; \
+    vm0.kernel_image = VM_GUEST_IMAGE; \
+    vm0.kernel_relocs = VM_GUEST_IMAGE; \
+    vm0.initrd_image = VM_GUEST_ROOTFS; \
     vm1.kernel_cmdline = VM_GUEST_CMDLINE; \
+    vm1.kernel_image = VM_GUEST_IMAGE; \
+    vm1.kernel_relocs = VM_GUEST_IMAGE; \
+    vm1.initrd_image = VM_GUEST_ROOTFS; \
     /**/
 
 #define VM_GUEST_PASSTHROUGH_DEVICES_0() \
@@ -74,12 +82,6 @@
 
 #define VM_GUEST_PASSTHROUGH_DEVICES_1() \
     /**/
-
-#define VM_GUEST_IMAGE_0() "bzimage"
-#define VM_GUEST_IMAGE_1() "bzimage"
-
-#define VM_GUEST_ROOTFS_0() "rootfs.cpio"
-#define VM_GUEST_ROOTFS_1() "rootfs.cpio"
 
 /* We use a compressed image with the relocs attached
  * to the end */

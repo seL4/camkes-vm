@@ -634,9 +634,6 @@ int fake_vchan_handler(vmm_vcpu_t *vcpu) {
 void *main_continued(void *arg) {
     int error;
     int i;
-    const char *kernel_image = NULL;
-    const char *initrd_image = NULL;
-    const char *kernel_relocs = NULL;
     int have_initrd = 0;
     ps_io_port_ops_t ioops;
     int iospace_domain;
@@ -684,10 +681,6 @@ void *main_continued(void *arg) {
         guest_passthrough_devices = guest_passthrough_devices_vm##iteration; \
         vm_ioports = ioport_handlers_vm##iteration; \
         num_vm_ioports = ARRAY_SIZE(ioport_handlers_vm##iteration); \
-        kernel_image = BOOST_PP_CAT(VM_GUEST_IMAGE_, iteration)(); \
-        initrd_image = BOOST_PP_CAT(VM_GUEST_ROOTFS_, iteration)(); \
-        have_initrd = !(strcmp(initrd_image, "") == 0); \
-        kernel_relocs = BOOST_PP_CAT(VM_GUEST_RELOCS_, iteration)(); \
         iospace_domain = BOOST_PP_CAT(VM_GUEST_IOSPACE_DOMAIN_, iteration)(); \
         device_notify_list = BOOST_PP_CAT(device_notify_vm, iteration); \
         device_notify_list_len = ARRAY_SIZE(BOOST_PP_CAT(device_notify_vm, iteration)); \
@@ -698,6 +691,7 @@ void *main_continued(void *arg) {
     } \
     /**/
     BOOST_PP_REPEAT(VM_NUM_GUESTS, PER_VM_CONFIG, _)
+    have_initrd = !(strcmp(initrd_image, "") == 0);
 
     init_irqs(hw_irqs, num_hw_irqs);
 

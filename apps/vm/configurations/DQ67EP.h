@@ -245,6 +245,9 @@
    ) \
     /**/
 
+/* All our guests use the same kernel image, rootfs and cmdline */
+#define DQ67EP_KERNEL_IMAGE "bzimage-DQ67EP"
+#define DQ67EP_ROOTFS "DQ67EP.cpio"
 #define VM_GUEST_CMDLINE "initrd=rootfs.cpio console=ttyS0,115200 i8042.nokbd=y i8042.nomux=y i8042.noaux=y io_delay=udelay noisapnp pci=nomsi noacpi"
 
 /* 
@@ -266,6 +269,9 @@
 #define PLAT_CONFIG_DEF() \
     vm0.simple_untyped24_pool = 16; \
     vm0.kernel_cmdline = VM_GUEST_CMDLINE; \
+    vm0.kernel_image = DQ67EP_KERNEL_IMAGE; \
+    vm0.kernel_relocs = DQ67EP_KERNEL_IMAGE; \
+    vm0.initrd_image = DQ67EP_ROOTFS; \
     /**/
 
 /* List of pci devices that should be given as passthrough to the guest
@@ -295,18 +301,6 @@
 
 #define PLAT_CONNECT_DEF() \
     /**/
-
-/* All our guests use the same kernel image, rootfs and cmdline */
-#define DQ67EP_KERNEL_IMAGE "bzimage-DQ67EP"
-#define DQ67EP_ROOTFS "DQ67EP.cpio"
-
-#define VM_GUEST_IMAGE_0() DQ67EP_KERNEL_IMAGE
-
-#define VM_GUEST_ROOTFS_0() DQ67EP_ROOTFS
-
-/* We use a compressed image with the relocs attached
- * to the end */
-#define VM_GUEST_RELOCS_0() VM_GUEST_IMAGE_0()
 
 #define VM_GUEST_IOSPACE_DOMAIN_0() 0x0f
 

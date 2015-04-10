@@ -48,34 +48,27 @@
 #define VM_CONFIGURATION_IOPORT_1() \
     /**/
 
+#define KERNEL_IMAGE "bzimage"
+#define ROOTFS "rootfs.cpio"
 #define VM_GUEST_CMDLINE "console=ttyS0,115200 console=tty0 root=/dev/mem i8042.nokbd=y i8042.nomux=y i8042.noaux=y io_delay=udelay noisapnp pci=nomsi"
 
 #define PLAT_CONFIG_DEF() \
     vm0.simple_untyped24_pool = 6; \
     vm1.simple_untyped24_pool = 6; \
     vm0.kernel_cmdline = VM_GUEST_CMDLINE; \
+    vm0.kernel_image = KERNEL_IMAGE; \
+    vm0.kernel_relocs = KERNEL_IMAGE; \
+    vm0.initrd_image = ROOTFS; \
     vm1.kernel_cmdline = VM_GUEST_CMDLINE; \
+    vm1.kernel_image = KERNEL_IMAGE; \
+    vm1.kernel_relocs = KERNEL_IMAGE; \
+    vm1.initrd_image = ROOTFS; \
     /**/
 
 #define VM_GUEST_PASSTHROUGH_DEVICES_0() \
     /**/
 #define VM_GUEST_PASSTHROUGH_DEVICES_1() \
     /**/
-
-
-#define KERNEL_IMAGE "bzimage"
-#define ROOTFS "rootfs.cpio"
-
-#define VM_GUEST_IMAGE_0() KERNEL_IMAGE
-#define VM_GUEST_IMAGE_1() KERNEL_IMAGE
-
-#define VM_GUEST_ROOTFS_0() ROOTFS
-#define VM_GUEST_ROOTFS_1() ROOTFS
-
-/* We use a compressed image with the relocs attached
- * to the end */
-#define VM_GUEST_RELOCS_0() VM_GUEST_IMAGE_0()
-#define VM_GUEST_RELOCS_1() VM_GUEST_IMAGE_1()
 
 #define VM_GUEST_IOSPACE_DOMAIN_0() 0x0f
 #define VM_GUEST_IOSPACE_DOMAIN_1() 0x10

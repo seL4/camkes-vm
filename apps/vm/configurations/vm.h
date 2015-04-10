@@ -83,6 +83,9 @@
     uses Timer init_timer; \
     dataport Buf serial_buffer; \
     attribute string kernel_cmdline; \
+    attribute string kernel_image; \
+    attribute string kernel_relocs; \
+    attribute string initrd_image; \
     /**/
 
 /* VM and per VM componenents */

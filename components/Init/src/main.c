@@ -183,7 +183,7 @@ static void make_proxy_vka(vka_t *vka, allocman_t *allocman) {
     proxy->allocman = allocman;
     allocman_make_vka(&proxy->regular_vka, allocman);
 #define GET_EXTRA_RAM_OUTPUT(num, iteration, data) \
-    if (strcmp(get_instance_name(),BOOST_PP_STRINGIZE(vm##iteration)) == 0) { \
+    if (strcmp(get_instance_name(),BOOST_PP_STRINGIZE(vm_vm##iteration)) == 0) { \
         proxy->last_paddr = BOOST_PP_TUPLE_ELEM(0, BOOST_PP_TUPLE_ELEM(0, BOOST_PP_CAT(VM_CONFIGURATION_EXTRA_RAM_,iteration)())); \
         proxy->have_mem = 1; \
     } \
@@ -676,7 +676,7 @@ void *main_continued(void *arg) {
     int num_guest_passthrough_devices;
     host_pci_device_t *guest_passthrough_devices;
 #define PER_VM_CONFIG(num, iteration, data) \
-    if (strcmp(get_instance_name(), BOOST_PP_STRINGIZE(vm##iteration)) == 0) { \
+    if (strcmp(get_instance_name(), BOOST_PP_STRINGIZE(vm_vm##iteration)) == 0) { \
         num_guest_passthrough_devices = ARRAY_SIZE(guest_passthrough_devices_vm##iteration); \
         guest_passthrough_devices = guest_passthrough_devices_vm##iteration; \
         vm_ioports = ioport_handlers_vm##iteration; \

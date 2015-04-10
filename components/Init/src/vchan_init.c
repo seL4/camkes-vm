@@ -107,7 +107,7 @@ static void vchan_callback(void *addr) {
 int get_vm_num() {
     int res;
     char *name = (char *) get_instance_name();
-    int ret = sscanf(name, "vm%d", &res);
+    int ret = sscanf(name, "vm_vm%d", &res);
     if(ret == 0) {
         DPRINTF(2, "vchan_driver: failed to get run num\n");
         return -1;

@@ -332,7 +332,7 @@ void post_init(void) {
     error = vka_cspace_alloc_path(&vka, &iospace);
     assert(!error);
 #define PER_ETH_CONFIG(num, iteration, data) \
-    if (strcmp(get_instance_name(), BOOST_PP_STRINGIZE(ethdriver##iteration)) == 0) { \
+    if (strcmp(get_instance_name(), BOOST_PP_STRINGIZE(vm_ethdriver##iteration)) == 0) { \
         iospace_id = BOOST_PP_CAT(VM_ETHDRIVER_IOSPACE_,iteration)(); \
         pci_bdf = BOOST_PP_CAT(VM_ETHDRIVER_PCI_BDF_,iteration)(); \
         clients = BOOST_PP_CAT(clients_,iteration); \

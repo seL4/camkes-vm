@@ -232,6 +232,8 @@
 #define PLAT_CONFIG_DEF() \
     vm0.simple_untyped24_pool = 2; \
     vm1.simple_untyped24_pool = 2; \
+    vm0.guest_ram_mb = 80; \
+    vm1.guest_ram_mb = 80; \
     HWEthDriver.mmio_attributes = "0xf1b80000:0x80000"; \
     HWEthDriver.irq_attributes = "16,1,1"; \
     ethdriver0.simple = true; \

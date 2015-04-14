@@ -87,6 +87,7 @@
     attribute string kernel_relocs; \
     attribute string initrd_image; \
     attribute int iospace_domain; \
+    attribute int guest_ram_mb; \
     /**/
 
 /* VM and per VM componenents */

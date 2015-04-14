@@ -752,7 +752,7 @@ void *main_continued(void *arg) {
 #else
     paddr_is_vaddr = 0;
 #endif
-    error = vmm_alloc_guest_ram(&vmm, CONFIG_APP_CAMKES_VM_GUEST_RAM * 1024 * 1024, paddr_is_vaddr);
+    error = vmm_alloc_guest_ram(&vmm, guest_ram_mb * 1024 * 1024, paddr_is_vaddr);
     assert(!error);
 
     /* Perform device discovery and give passthrough device information */

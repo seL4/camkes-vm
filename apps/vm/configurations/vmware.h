@@ -61,6 +61,8 @@
 #define PLAT_CONFIG_DEF() \
     vm0.simple_untyped24_pool = 7; \
     vm1.simple_untyped24_pool = 7; \
+    vm0.guest_ram_mb = 80; \
+    vm1.guest_ram_mb = 80; \
     vm0.vm1net_emit_attributes = "134479872"; /* BIT(18) + BIT(27) */ \
     vm1.vm0net_emit_attributes = "134479872"; /* BIT(18) + BIT(27) */ \
     vm0.vm1net_attributes ="06,00,00,20,12,13:13:0x9000"; \

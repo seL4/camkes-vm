@@ -55,6 +55,8 @@
 #define PLAT_CONFIG_DEF() \
     vm0.simple_untyped24_pool = 6; \
     vm1.simple_untyped24_pool = 6; \
+    vm0.guest_ram_mb = 80; \
+    vm1.guest_ram_mb = 80; \
     vm0.kernel_cmdline = VM_GUEST_CMDLINE; \
     vm0.kernel_image = KERNEL_IMAGE; \
     vm0.kernel_relocs = KERNEL_IMAGE; \

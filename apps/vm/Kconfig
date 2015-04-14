@@ -16,15 +16,6 @@ menuconfig APP_CAMKES_VM
     help 
         Main application entry point for seL4 VMM. Should be run as the initial seL4 thread.
 
-config APP_CAMKES_VM_GUEST_RAM
-    int "Amount of RAM to give to guest OS, in megabytes."
-    depends on APP_CAMKES_VM
-    default 80
-    help
-        The amount of ram, in megabytes (in MB, a.k.a 1048576 bytes) to give to the guest OS.
-        GUI desktop environments require more RAM, while minimal console busybox ones would
-        require less.
-
 choice
     prompt "DMA Support Implementation"
     depends on APP_CAMKES_VM

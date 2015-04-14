@@ -55,7 +55,6 @@ endmenu
 menu "VM Configuration"
     choice
         prompt "DMA Support Implementation"
-        depends on APP_CAMKES_VM
         default APP_CAMKES_VM_GUEST_DMA_IOMMU
         help
             Select how hardware DMA support is implemented.

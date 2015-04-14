@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # CAmkES project configuration
-# Tue Apr 14 15:39:25 2015
+# Tue Apr 14 17:52:06 2015
 #
 
 #
@@ -153,6 +153,10 @@ CONFIG_APP_VM_C162_TWOVM=y
 #
 # VM Configuration
 #
+# CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE is not set
+# CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE_UNSAFE is not set
+CONFIG_APP_CAMKES_VM_GUEST_DMA_IOMMU=y
+# CONFIG_APP_CAMKES_VM_GUEST_DMA_NONE is not set
 
 #
 # CAmkES Options

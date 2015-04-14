@@ -48,6 +48,7 @@ endmenu
 menu "Applications"
     source "apps/capdl-loader-experimental/Kconfig"
     source "apps/vm/Kconfig"
+    source "apps/c162_twovm/Kconfig"
     source "apps/cxx/Kconfig"
 endmenu
 

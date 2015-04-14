@@ -26,10 +26,11 @@ ${BUILD_DIR}/src/vm_vm0/static/archive.o: ${ARCHIVE_DEPS}
 	$(Q)mkdir -p $(dir $@)
 	@echo "[CPIO] $@"
 	$(Q)${COMMON_PATH}/files_to_obj.sh $@ _cpio_archive $^
-	@echo "[CPIO] done."	
+	@echo "[CPIO] done."
 
 ${BUILD_DIR}/src/vm_vm1/static/archive.o: ${ARCHIVE_DEPS}
 	$(Q)mkdir -p $(dir $@)
 	@echo "[CPIO] $@"
 	$(Q)${COMMON_PATH}/files_to_obj.sh $@ _cpio_archive $^
-	@echo "[CPIO] done."	
+	@echo "[CPIO] done."
+

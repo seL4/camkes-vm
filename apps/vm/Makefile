@@ -16,6 +16,7 @@ TEMPLATES := templates
 
 # Construct configuration name
 VM_CONFIG := $(patsubst "%",%, ${CONFIG_APP_CAMKES_VM_CONFIG})
+VM_NUM_VM := $(patsubst "%",%, ${CONFIG_APP_CAMKES_VM_NUM_VM})
 
 include TimeServer/TimeServer.mk
 include SerialServer/SerialServer.mk

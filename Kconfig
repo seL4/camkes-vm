@@ -51,5 +51,23 @@ menu "Applications"
     source "apps/cxx/Kconfig"
 endmenu
 
+menu "VM Configuration"
+    choice
+        prompt "DMA Support Implementation"
+        depends on APP_CAMKES_VM
+        default APP_CAMKES_VM_GUEST_DMA_IOMMU
+        help
+            Select how hardware DMA support is implemented.
+        config APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE
+            bool "One to one physical address mapping"
+        config APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE_UNSAFE
+            bool "Mostly one to one physical address mapping (UNSAFE)"
+        config APP_CAMKES_VM_GUEST_DMA_IOMMU
+            bool "IOMMU"
+        config APP_CAMKES_VM_GUEST_DMA_NONE
+            bool "None"
+    endchoice
+endmenu
+
 source "tools/camkes/Kconfig"
 source "$COMMON_PATH/Kconfig"

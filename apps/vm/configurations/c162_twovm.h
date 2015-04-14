@@ -242,6 +242,7 @@
     ethdriver0.simple_untyped20_pool = 2; \
     udpserver.client_recv_attributes = "8,7"; \
     udpserver.client_send_attributes = "7"; \
+    udpserver.udp_ip_addr = "10.13.1.215"; \
     vm0.kernel_cmdline = VM_GUEST_CMDLINE; \
     vm0.kernel_image = C162_KERNEL_IMAGE; \
     vm0.kernel_relocs = C162_KERNEL_IMAGE; \

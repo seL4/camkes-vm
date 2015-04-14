@@ -21,4 +21,5 @@ component UDPServer {
 
     dataport Buf client_recv;
     dataport Buf client_send;
+    attribute string udp_ip_addr;
 }

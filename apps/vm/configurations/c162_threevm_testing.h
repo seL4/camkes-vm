@@ -263,6 +263,7 @@
     ethdriver0.rx_ready0_badge = "134742016"; /* BIT(19) + BIT(27)*/ \
     udpserver.client_recv_attributes = "8,7"; \
     udpserver.client_send_attributes = "7"; \
+    udpserver.udp_ip_addr = "10.13.1.215"; \
     vm0.vm2net_emit_global_endpoint = "vm2"; \
     vm2.vm0net_emit_global_endpoint = "vm0"; \
     vm0.vm2net_emit_badge = "134479872"; /* BIT(18) + BIT(27) */ \

@@ -126,7 +126,7 @@ void pre_init(void) {
     lwip_driver = ethif_new_lwip_driver_no_malloc(io_ops, &io_ops.dma_manager, ethdriver_init, NULL, &_lwip_driver);
     assert(lwip_driver);
     ipaddr_aton("0.0.0.0",      &gw);
-    ipaddr_aton(CONFIG_APP_CAMKES_VM_ECHO_STATIC_IP,  &ipaddr);
+    ipaddr_aton(udp_ip_addr,  &ipaddr);
     ipaddr_aton("255.255.255.0", &netmask);
     lwip_init();
     netif = netif_add(&_netif, &ipaddr, &netmask, &gw, lwip_driver, ethif_get_ethif_init(lwip_driver),

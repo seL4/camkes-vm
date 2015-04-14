@@ -36,6 +36,7 @@
  * applies to. This is the mechanism by which different VMs can be given different
  * resources */
 
+#define VM_NUM_GUESTS 2
 
 /* If VM_CONFIGURATION_EXTRA_RAM is defined then the corresponding _N definitions
  * will be used to find ranges for extra ram. These are boost lists and contain

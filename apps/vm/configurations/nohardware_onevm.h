@@ -10,6 +10,8 @@
 
 /* We expect 1 VM */
 
+#define VM_NUM_GUESTS 1
+
 #define PLAT_CONNECT_DEF() \
     /**/
 

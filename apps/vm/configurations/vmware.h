@@ -8,6 +8,8 @@
  * @TAG(NICTA_GPL)
  */
 
+#define VM_NUM_GUESTS 2
+
 #define VM_PASSTHROUGH_IRQ_0() ( \
         (18, 1, 1, 10), \
         (10, 1, 1, 11) \

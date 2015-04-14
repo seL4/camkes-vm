@@ -12,7 +12,7 @@
     with a proof of concept component connected via vchan to vm0
 */
 
-#define VM_NUM_GUESTS CONFIG_APP_CAMKES_VM_NUM_VM
+#define VM_NUM_GUESTS 2
 
 #define PLAT_CONNECT_DEF() \
     connection seL4RPCCall vchan(from vm0.vchan_con, to vchan_0.vchan_com); \

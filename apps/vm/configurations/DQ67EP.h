@@ -8,6 +8,8 @@
  * @TAG(NICTA_GPL)
  */
 
+#define VM_NUM_GUESTS 1
+
 /* 
  * Configuration for one virtual machine running on a DQ67EP 
  * motherboard and an Intel i7-2600S 

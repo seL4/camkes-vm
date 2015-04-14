@@ -239,7 +239,7 @@
     HWEthDriver.irq_attributes = "16,1,1"; \
     ethdriver0.simple = true; \
     ethdriver0.cnode_size_bits = 12; \
-    ethdriver0.iospace = "0x12:0x1:0x0:0"; \
+    ethdriver0.iospaces = "0x12:0x1:0x0:0"; \
     ethdriver0.simple_untyped20_pool = 2; \
     udpserver.client_recv_attributes = "8,7"; \
     udpserver.client_send_attributes = "7"; \

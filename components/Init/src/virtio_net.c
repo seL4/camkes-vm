@@ -137,7 +137,7 @@ void virtio_net_notify() {
         void *cookie;
         void *emul_buf = (void*)virtio_net->emul_driver->i_cb.allocate_rx_buf(virtio_net->emul_driver->cb_cookie, len, &cookie);
         if (emul_buf) {
-            memcpy(emul_buf, packet, len);
+            memcpy(emul_buf, (void*)packet, len);
             virtio_net->emul_driver->i_cb.rx_complete(virtio_net->emul_driver->cb_cookie, 1, &cookie, (unsigned int*)&len);
         }
         if (status == 1) {

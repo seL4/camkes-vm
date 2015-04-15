@@ -9,9 +9,33 @@
  */
 
 import <VM/vm.camkes>;
+import <Echo/Echo.camkes>;
 
 assembly {
     composition {
+        /* Our echo component */
+        component Echo echo;
+        /* UDP server */
+        component UDPServer udpserver;
+        /* The VM sub component */
         component VM vm;
+
+        /* Connect ethernet driver to udpserver */
+        connection seL4SharedData eth_packet(from vm.ethdriver0_packet0, to udpserver.packet);
+        connection seL4RPCCall eth_driver(from udpserver.ethdriver, to vm.ethdriver0_client0);
+        connection seL4Asynch eth_rx_ready(from vm.ethdriver0_rx_ready0, to udpserver.eth_rx_ready);
+
+        /* UDP connections for echo server */
+        connection seL4UDPRecv udp_echo_recv(from echo.echo_recv, to udpserver.client_recv);
+        connection seL4UDPSend udp_echo_send(from echo.echo_send, to udpserver.client_send);
+        connection seL4SharedData udp_echo_send_buf(from echo.echo_send_buf, to udpserver.client_send_buf);
+        connection seL4SharedData udp_echo_recv_buf(from echo.echo_recv_buf, to udpserver.client_recv_buf);
+        connection seL4Asynch udp_echo_recv_ready(from udpserver.client_recv_ready, to echo.echo_recv_ready);
+    }
+    configuration {
+        udpserver.client_recv_buffers = 8;
+        udpserver.client_recv_port = 7;
+        udpserver.client_send_ports = { "source" : 7, "dest" : 7};
+        udpserver.udp_ip_addr = "10.13.1.215";
     }
 }

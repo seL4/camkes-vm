@@ -14,7 +14,6 @@ import <UDPSend.idl4>;
 import <UDPRecv.idl4>;
 
 component UDPServer {
-    uses PutChar putchar;
     has mutex lwip;
 
     dataport Buf packet;

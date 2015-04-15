@@ -14,8 +14,6 @@ import <UDPRecv.idl4>;
 import <UDPSend.idl4>;
 
 component Echo {
-    uses PutChar putchar;
-
     uses UDPRecv echo_recv;
     dataport Buf echo_recv_buf;
     consumes Notification echo_recv_ready;

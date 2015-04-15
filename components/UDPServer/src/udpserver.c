@@ -112,7 +112,6 @@ static lwip_iface_t _lwip_driver;
 void pre_init(void) {
     struct ip_addr netmask, ipaddr, gw;
     struct netif *netif;
-    set_putchar(putchar_putchar);
     lwip_iface_t *lwip_driver;
     memset(&io_ops, 0, sizeof(io_ops));
     io_ops.dma_manager = (ps_dma_man_t) {

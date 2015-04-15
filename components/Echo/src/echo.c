@@ -31,7 +31,3 @@ void echo_has_data(void *cookie) {
 void pre_init() {
     echo_recv_ready_reg_callback(echo_has_data, NULL);
 }
-
-void post_init() {
-    set_putchar(putchar_putchar);
-}

@@ -89,6 +89,15 @@
     ) \
     /**/
 
+/* Additional interfaces for the VM subcomponent. This is mostly just used
+ * as a stepping stone to exporting interfaces all the way up to the
+ * top level camkes spec */
+#define PLAT_COMPONENT_INTERFACES() \
+    provides Ethdriver ethdriver0_client0; \
+    emits Notification ethdriver0_rx_ready0; \
+    maybe dataport Buf ethdriver0_packet0; \
+    /**/
+
 /* Camkes definitions for defining any connections that are specific
  * to this VM configuration. In this case we are defining connections
  * for UDPServer as well as inter-vm communication
@@ -96,23 +105,13 @@
 #define PLAT_CONNECT_DEF() \
     /* Give ethernet driver same output as its vm */ \
     connection seL4RPCCall eth_putchar(from ethdriver0.putchar, to serial.vm0); \
-    /* Give echo output */ \
-    connection seL4RPCCall echo_putchar(from echo.putchar, to serial.vm0); \
-    /* Give udp server output */ \
-    connection seL4RPCCall udpserver_putchar (from udpserver.putchar, to serial.vm0); \
-    /* Connect ethernet driver to udpserver */ \
-    connection seL4SharedData eth_packet(from ethdriver0.packet0, to udpserver.packet); \
-    connection seL4RPCCall eth_driver(from udpserver.ethdriver, to ethdriver0.client0); \
-    connection seL4Asynch eth_rx_ready(from ethdriver0.rx_ready0, to udpserver.eth_rx_ready); \
+    /* Export ethernet driver interface */ \
+    connection ExportData export_eth_packet(from  ethdriver0.packet0, to ethdriver0_packet0); \
+    connection ExportRPC export_eth_driver(from ethdriver0_client0, to ethdriver0.client0); \
+    connection ExportAsynch export_eth_rx_ready(from ethdriver0.rx_ready0, to ethdriver0_rx_ready0); \
     /* Define hardware resources for ethdriver0 */ \
     connection seL4HardwareMMIO ethdrivermmio1(from ethdriver0.EthDriver, to HWEthDriver.mmio); \
     connection seL4IOAPICHardwareInterrupt hwethirq(from HWEthDriver.irq, to ethdriver0.irq); \
-    /* UDP connections for echo server */ \
-    connection seL4UDPRecv udp_echo_recv(from echo.echo_recv, to udpserver.client_recv); \
-    connection seL4UDPSend udp_echo_send(from echo.echo_send, to udpserver.client_send); \
-    connection seL4SharedData udp_echo_send_buf(from echo.echo_send_buf, to udpserver.client_send_buf); \
-    connection seL4SharedData udp_echo_recv_buf(from echo.echo_recv_buf, to udpserver.client_recv_buf); \
-    connection seL4Asynch udp_echo_recv_ready(from udpserver.client_recv_ready, to echo.echo_recv_ready); \
     /* Connect hello to the vchan component */ \
     connection seL4Asynch vchan_event(from vchan_0.vevent_sv, to hello.vevent); \
     connection seL4RPCCall hvchan(from hello.vchan_con, to vchan_0.vchan_com); \
@@ -244,10 +243,6 @@
     ethdriver0.cnode_size_bits = 12; \
     ethdriver0.iospaces = "0x12:0x1:0x0:0"; \
     ethdriver0.simple_untyped20_pool = 2; \
-    udpserver.client_recv_buffers = 8; \
-    udpserver.client_recv_port = 7; \
-    udpserver.client_send_ports = { "source" : 7, "dest" : 7}; \
-    udpserver.udp_ip_addr = "10.13.1.215"; \
     vm0.kernel_cmdline = VM_GUEST_CMDLINE; \
     vm0.kernel_image = C162_KERNEL_IMAGE; \
     vm0.kernel_relocs = C162_KERNEL_IMAGE; \
@@ -336,8 +331,6 @@
     component HelloWorld hello; \
     component Ethdriver ethdriver0; \
     component HWEthDriver HWEthDriver; \
-    component Echo echo; \
-    component UDPServer udpserver; \
     /**/
 
 #define VM_NUM_ETHDRIVERS 1

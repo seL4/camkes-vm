@@ -35,10 +35,10 @@ import <RTC/RTC.camkes>;
 import <SerialServer/SerialServer.camkes>;
 import <Ethdriver/Ethdriver.camkes>;
 import <UDPServer/UDPServer.camkes>;
-import <Echo/Echo.camkes>;
 import <Vchan/Vchan.camkes>;
 import <HelloWorld/HelloWorld.camkes>;
 
+import <Echo/Echo.camkes>;
 
 connector seL4GlobalAsynch {
     from Event notifier template "seL4GlobalAsynch-from.template.c";
@@ -85,6 +85,7 @@ component HWEthDriver {
 #define REPEAT_WRAPPER(num, iteration, data) data(iteration)
 
 component VM {
+    PLAT_COMPONENT_INTERFACES()
     composition {
 
         /* Perform the VM component definitions */

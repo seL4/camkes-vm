@@ -14,10 +14,10 @@
 #include <string.h>
 #include <lwip/udp.h>
 
-void echo_send_send(void *p, unsigned int len, ip_addr_t addr, uint16_t port);
+void echo_send_send(void *p, unsigned int len, ip_addr_t addr);
 
 void echo_recv_recv(void *p, unsigned int len, uint16_t port, ip_addr_t addr) {
-    echo_send_send(p, len, addr, port);
+    echo_send_send(p, len, addr);
 }
 
 void post_init() {

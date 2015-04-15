@@ -25,12 +25,11 @@ char /*? p['dataport_symbol'] ?*/[ROUND_UP_UNSAFE(sizeof(/*? show(me.from_interf
     __attribute__((externally_visible));
 volatile /*? show(me.from_interface.type) ?*/ * /*? me.from_interface.name ?*/ = (volatile /*? show(me.from_interface.type) ?*/ *) /*? p['dataport_symbol'] ?*/;
 
-void /*? me.from_interface.name ?*/_send(void *p, unsigned int len, ip_addr_t addr, uint16_t port) {
+void /*? me.from_interface.name ?*/_send(void *p, unsigned int len, ip_addr_t addr) {
     seL4_SetMR(0, len);
     seL4_SetMR(1, addr.addr);
-    seL4_SetMR(2, port);
     memcpy(/*? p['dataport_symbol'] ?*/, p, len);
-    seL4_Call(/*? ep ?*/, seL4_MessageInfo_new(0, 0, 0, 3));
+    seL4_Call(/*? ep ?*/, seL4_MessageInfo_new(0, 0, 0, 2));
 }
 
 int /*? me.from_interface.name ?*/_wrap_ptr(dataport_ptr_t *p, void *ptr) {

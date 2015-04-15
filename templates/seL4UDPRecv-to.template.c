@@ -28,18 +28,8 @@ volatile /*? show(me.to_interface.type) ?*/ * /*? me.to_interface.name ?*/ = (vo
 void lwip_lock();
 void lwip_unlock();
 
-/*- set attributes = [] -*/
-/*- for s in configuration.settings -*/
-    /*- if s.instance == me.to_instance.name -*/
-        /*- if s.attribute == "%s_attributes" % (me.to_interface.name) -*/
-            /*- set bufs,port = s.value.strip('"').split(',') -*/
-            /*- set bufs = int(bufs, 0) -*/
-            /*- set port = int(port, 0) -*/
-            /*- do attributes.append(bufs) -*/
-            /*- do attributes.append(port) -*/
-        /*- endif -*/
-    /*- endif -*/
-/*- endfor -*/
+/*- set bufs = configuration[me.to_instance.name].get('%s_buffers' % me.to_interface.name) -*/
+/*- set port = configuration[me.to_instance.name].get('%s_port' % me.to_interface.name) -*/
 
 typedef struct udp_message {
     struct pbuf *pbuf;
@@ -49,8 +39,8 @@ typedef struct udp_message {
 }udp_message_t;
 
 static struct udp_pcb *upcb = NULL;
-static udp_message_t message_memory[/*? attributes[0] ?*/] = {
-    /*- for i in range(attributes[0]) -*/
+static udp_message_t message_memory[/*? bufs ?*/] = {
+    /*- for i in range(bufs) -*/
         /*- if i == 0 -*/
             {.pbuf = NULL, .port = 0, .next = NULL},
         /*- else -*/
@@ -58,7 +48,7 @@ static udp_message_t message_memory[/*? attributes[0] ?*/] = {
         /*- endif -*/
     /*- endfor -*/
     };
-static udp_message_t *free_head = &message_memory[/*? attributes[0] - 1 ?*/];
+static udp_message_t *free_head = &message_memory[/*? bufs - 1 ?*/];
 static udp_message_t *used_head = NULL;
 
 static int need_signal = 1;
@@ -136,7 +126,7 @@ void /*? me.to_interface.name ?*/__init(void) {
     upcb = udp_new();
     assert(upcb);
     udp_recv(upcb, udprecv, NULL);
-    err = udp_bind(upcb, NULL, 7);
+    err = udp_bind(upcb, NULL, /*? port ?*/);
     assert(!err);
     lwip_unlock();
 }

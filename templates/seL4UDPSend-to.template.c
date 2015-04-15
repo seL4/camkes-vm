@@ -24,16 +24,7 @@ char /*? p['dataport_symbol'] ?*/[ROUND_UP_UNSAFE(sizeof(/*? show(me.to_interfac
     __attribute__((externally_visible));
 volatile /*? show(me.to_interface.type) ?*/ * /*? me.to_interface.name ?*/ = (volatile /*? show(me.to_interface.type) ?*/ *) /*? p['dataport_symbol'] ?*/;
 
-/*- set attributes = [] -*/
-/*- for s in configuration.settings -*/
-    /*- if s.instance == me.to_instance.name -*/
-        /*- if s.attribute == "%s_attributes" % (me.to_interface.name) -*/
-            /*- set port = s.value.strip('"') -*/
-            /*- set port = int(port, 0) -*/
-            /*- do attributes.append(port) -*/
-        /*- endif -*/
-    /*- endif -*/
-/*- endfor -*/
+/*- set ports = configuration[me.to_instance.name].get('%s_ports' % me.to_interface.name) -*/
 
 void lwip_lock();
 void lwip_unlock();
@@ -55,11 +46,10 @@ void /*? me.to_interface.name ?*/__run(void) {
 
         len = seL4_GetMR(0);
         addr.addr = seL4_GetMR(1);
-        port = seL4_GetMR(2);
         lwip_lock();
         p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
         memcpy(p->payload, /*? p['dataport_symbol'] ?*/, len);
-        udp_sendto(upcb, p, &addr, port);
+        udp_sendto(upcb, p, &addr, /*? ports['dest'] ?*/);
         pbuf_free(p);
         lwip_unlock();
         seL4_Send(/*? reply_cap_slot ?*/, seL4_MessageInfo_new(0, 0, 0, 0));
@@ -73,7 +63,7 @@ void /*? me.to_interface.name ?*/__init(void) {
     /* we cheat here and set a local port without using the actual lwip bind function.
      * this is because we want to persuade lwip to send packets with this as the from
      * port, but we don't actually want to receive packets here */
-    upcb->local_port = /*? attributes[0] ?*/;
+    upcb->local_port = /*? ports['source'] ?*/;
     lwip_unlock();
 }
 

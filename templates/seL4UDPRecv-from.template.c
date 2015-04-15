@@ -36,7 +36,7 @@ int /*? me.from_interface.name ?*/__run(void) {
         status = 0;
         while (status == 0) {
             seL4_MessageInfo_t UNUSED info;
-            seL4_Call(/*? ep ?*/, seL4_MessageInfo_new(0, 0, 0, 0));
+            info = seL4_Call(/*? ep ?*/, seL4_MessageInfo_new(0, 0, 0, 0));
             assert(seL4_MessageInfo_get_length(info) > 0);
             status = seL4_GetMR(0);
             if (status != -1) {

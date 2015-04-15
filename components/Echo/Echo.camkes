@@ -13,6 +13,8 @@ import <PutChar.idl4>;
 
 component Echo {
     uses PutChar putchar;
+
     dataport Buf echo_recv;
-    dataport Buf echo_send;
+    uses UDPSend echo_send;
+    dataport Buf echo_send_buf;
 }

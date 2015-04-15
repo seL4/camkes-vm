@@ -16,13 +16,8 @@
 
 /*- set ep = alloc('ep', seL4_EndpointObject, read=True, write=True) -*/
 
-/* Actual dataport is emitted in the per-component template. */
-/*- set p = Perspective(dataport=me.to_interface.name) -*/
-char /*? p['dataport_symbol'] ?*/[ROUND_UP_UNSAFE(sizeof(/*? show(me.to_interface.type) ?*/), PAGE_SIZE_4K)]
-    __attribute__((aligned(PAGE_SIZE_4K)))
-    __attribute__((section("shared_/*? me.to_interface.name ?*/")))
-    __attribute__((externally_visible));
-volatile /*? show(me.to_interface.type) ?*/ * /*? me.to_interface.name ?*/ = (volatile /*? show(me.to_interface.type) ?*/ *) /*? p['dataport_symbol'] ?*/;
+/* assume a dataport symbols exists */
+extern volatile void */*? me.to_interface.name?*/_buf;
 
 /*- set ports = configuration[me.to_instance.name].get('%s_ports' % me.to_interface.name) -*/
 
@@ -45,13 +40,17 @@ void /*? me.to_interface.name ?*/__run(void) {
         assert(result == seL4_NoError);
 
         len = seL4_GetMR(0);
-        addr.addr = seL4_GetMR(1);
-        lwip_lock();
-        p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
-        memcpy(p->payload, /*? p['dataport_symbol'] ?*/, len);
-        udp_sendto(upcb, p, &addr, /*? ports['dest'] ?*/);
-        pbuf_free(p);
-        lwip_unlock();
+        if (len < 4096) {
+            addr.addr = seL4_GetMR(1);
+            lwip_lock();
+            p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
+            if (p) {
+                memcpy(p->payload, /*? me.to_interface.name?*/_buf, len);
+                udp_sendto(upcb, p, &addr, /*? ports['dest'] ?*/);
+                pbuf_free(p);
+            }
+            lwip_unlock();
+        }
         seL4_Send(/*? reply_cap_slot ?*/, seL4_MessageInfo_new(0, 0, 0, 0));
     }
 }
@@ -66,12 +65,3 @@ void /*? me.to_interface.name ?*/__init(void) {
     upcb->local_port = /*? ports['source'] ?*/;
     lwip_unlock();
 }
-
-int /*? me.to_interface.name ?*/_wrap_ptr(dataport_ptr_t *p, void *ptr) {
-    return -1;
-}
-
-void * /*? me.to_interface.name ?*/_unwrap_ptr(dataport_ptr_t *p) {
-    return NULL;
-}
-

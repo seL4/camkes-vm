@@ -46,8 +46,8 @@ connector seL4GlobalAsynch {
 }
 
 connector seL4UDPSend {
-    from Dataport client template "seL4UDPSend-from.template.c";
-    to Dataport server template "seL4UDPSend-to.template.c";
+    from Procedure client template "seL4UDPSend-from.template.c";
+    to Procedure server template "seL4UDPSend-to.template.c";
 }
 
 connector seL4UDPRecv {

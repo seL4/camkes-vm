@@ -385,10 +385,10 @@ void post_init(void) {
         client_mac(&clients[iteration], b1, b2, b3, b4, b5, b6); \
     } \
     int BOOST_PP_CAT(client##iteration,_rx)(int *len) { \
-        return client_rx(&clients[iteration], packet##iteration, len); \
+        return client_rx(&clients[iteration], (void*)packet##iteration, len); \
     } \
     void BOOST_PP_CAT(client##iteration,_tx)(int len) { \
-        client_tx(&clients[iteration], packet##iteration, len); \
+        client_tx(&clients[iteration], (void*)packet##iteration, len); \
     } \
     /**/
 

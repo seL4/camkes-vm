@@ -181,6 +181,8 @@ typedef struct ISASerialState {
 
 #endif
 
+int serial_buffer_dequeue(void *p, int len);
+
 static void serial_receive1(void *opaque, const uint8_t *buf, int size);
 static void fifo_timeout_int (void *opaque);
 

@@ -17,7 +17,7 @@
 /*- set ep = alloc('ep', seL4_EndpointObject, read=True, write=True) -*/
 
 /* assume a dataport symbols exists */
-extern volatile void */*? me.to_interface.name?*/_buf;
+extern void */*? me.to_interface.name?*/_buf;
 
 /*- set ports = configuration[me.to_instance.name].get('%s_ports' % me.to_interface.name) -*/
 
@@ -33,7 +33,6 @@ void /*? me.to_interface.name ?*/__run(void) {
         int result UNUSED;
         unsigned int len;
         ip_addr_t addr;
-        uint16_t port;
         struct pbuf *p;
         seL4_Wait(/*? ep ?*/, NULL);
         result = seL4_CNode_SaveCaller(/*? cnode ?*/, /*? reply_cap_slot ?*/, 32);

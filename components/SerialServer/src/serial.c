@@ -371,6 +371,8 @@ static void init_colours() {
     }
 }
 
+seL4_CPtr timeout_aep(void);
+
 int run(void) {
     seL4_CPtr aep = timeout_aep();
     while(1) {

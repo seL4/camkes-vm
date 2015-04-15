@@ -50,8 +50,6 @@ static int vchan_status(uint32_t domx, uint32_t domy, uint32_t port);
 
 static vchan_shared_mem_t *alloc_buffer(void);
 
-static void rem_vchan_instance(vchan_instance_t *con);
-
 static vchan_buf_t *get_dom_buf(uint32_t buf, vchan_shared_mem_t *b);
 static vchan_shared_mem_t *get_buffer(uint32_t id);
 static vchan_instance_t *get_vchan_instance(uint32_t domx, uint32_t domy, uint32_t port);
@@ -268,6 +266,7 @@ static vchan_buf_t *get_dom_buf(uint32_t buf, vchan_shared_mem_t *b) {
 /*
     Free the memory of a given vchan instance
 */
+#if 0
 static void rem_vchan_instance(vchan_instance_t *inst) {
     vchan_instance_t *prev = NULL;
     vchan_instance_t *find = first_inst;
@@ -288,6 +287,7 @@ static void rem_vchan_instance(vchan_instance_t *inst) {
         find = find->next;
     }
 }
+#endif
 
 /*
     Buffer manipulation functions

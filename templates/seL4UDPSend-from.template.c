@@ -17,7 +17,7 @@
 /*- set ep = alloc('ep', seL4_EndpointObject, write=True, grant=True) -*/
 
 /* assume a dataport symbols exists */
-extern volatile void */*? me.from_interface.name?*/_buf;
+extern void */*? me.from_interface.name?*/_buf;
 
 int /*? me.from_interface.name ?*/_send(void *p, unsigned int len, ip_addr_t addr) {
     seL4_SetMR(0, len);

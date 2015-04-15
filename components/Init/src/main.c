@@ -529,6 +529,7 @@ static device_notify_t *device_notify_list = NULL;
 void pit_timer_interrupt(void);
 void rtc_timer_interrupt(uint32_t);
 void serial_timer_interrupt(uint32_t);
+void vchan_vmcall_init(void);
 
 static seL4_Word irq_badges[16] = {
     VM_PIC_BADGE_IRQ_0,
@@ -548,6 +549,8 @@ static seL4_Word irq_badges[16] = {
     VM_PIC_BADGE_IRQ_14,
     VM_PIC_BADGE_IRQ_15
 };
+
+void serial_character_interrupt(void);
 
 static int handle_async_event(seL4_Word badge) {
     if (badge & BIT(27)) {

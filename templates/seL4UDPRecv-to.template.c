@@ -20,7 +20,7 @@
 void /*? me.to_interface.name ?*/_ready_emit(void);
 
 /* Assume a dataport exists */
-extern volatile void */*? me.to_interface.name?*/_buf;
+extern void */*? me.to_interface.name?*/_buf;
 
 void lwip_lock();
 void lwip_unlock();

@@ -14,10 +14,6 @@
 #include <string.h>
 #include <lwip/udp.h>
 
-void echo_recv_recv(void *p, unsigned int len, uint16_t port, ip_addr_t addr) {
-    echo_send_send(p, len, addr);
-}
-
 void echo_has_data(void *cookie) {
     int status = 0;
     while (status == 0) {

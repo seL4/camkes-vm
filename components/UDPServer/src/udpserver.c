@@ -31,7 +31,7 @@ static void raw_poll(struct eth_driver *driver) {
         void *cookie;
         buf = (void*)driver->i_cb.allocate_rx_buf(driver->cb_cookie, len, &cookie);
         assert(buf);
-        memcpy(buf, packet, len);
+        memcpy(buf, (void*)packet, len);
         driver->i_cb.rx_complete(driver->cb_cookie, 1, &cookie, (unsigned int*)&len);
         if (status == 1) {
             status = ethdriver_rx(&len);

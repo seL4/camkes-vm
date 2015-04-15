@@ -111,6 +111,8 @@
     connection seL4UDPRecv udp_echo_recv(from echo.echo_recv, to udpserver.client_recv); \
     connection seL4UDPSend udp_echo_send(from echo.echo_send, to udpserver.client_send); \
     connection seL4SharedData udp_echo_send_buf(from echo.echo_send_buf, to udpserver.client_send_buf); \
+    connection seL4SharedData udp_echo_recv_buf(from echo.echo_recv_buf, to udpserver.client_recv_buf); \
+    connection seL4Asynch udp_echo_recv_ready(from udpserver.client_recv_ready, to echo.echo_recv_ready); \
     /* Connect hello to the vchan component */ \
     connection seL4Asynch vchan_event(from vchan_0.vevent_sv, to hello.vevent); \
     connection seL4RPCCall hvchan(from hello.vchan_con, to vchan_0.vchan_com); \

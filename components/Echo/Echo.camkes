@@ -10,11 +10,15 @@
 
 import <Ethdriver.idl4>;
 import <PutChar.idl4>;
+import <UDPRecv.idl4>;
+import <UDPSend.idl4>;
 
 component Echo {
     uses PutChar putchar;
 
-    dataport Buf echo_recv;
+    uses UDPRecv echo_recv;
+    dataport Buf echo_recv_buf;
+    consumes Notification echo_recv_ready;
     uses UDPSend echo_send;
     dataport Buf echo_send_buf;
 }

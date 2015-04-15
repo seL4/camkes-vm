@@ -51,8 +51,8 @@ connector seL4UDPSend {
 }
 
 connector seL4UDPRecv {
-    from Dataport client template "seL4UDPRecv-from.template.c";
-    to Dataport server template "seL4UDPRecv-to.template.c";
+    from Procedure client template "seL4UDPRecv-from.template.c";
+    to Procedure server template "seL4UDPRecv-to.template.c";
 }
 
 connector seL4VMNet {

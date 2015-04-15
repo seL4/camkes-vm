@@ -11,6 +11,7 @@
 import <Ethdriver.idl4>;
 import <PutChar.idl4>;
 import <UDPSend.idl4>;
+import <UDPRecv.idl4>;
 
 component UDPServer {
     uses PutChar putchar;
@@ -21,7 +22,9 @@ component UDPServer {
     consumes Notifcation eth_rx_ready;
     attribute string udp_ip_addr;
 
-    dataport Buf client_recv;
+    provides UDPRecv client_recv;
+    dataport Buf client_recv_buf;
+    emits Notification client_recv_ready;
     provides UDPSend client_send;
     dataport Buf client_send_buf;
 }

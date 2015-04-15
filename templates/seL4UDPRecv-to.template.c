@@ -15,15 +15,12 @@
 #include <string.h>
 
 /*- set ep = alloc('ep', seL4_EndpointObject, read=True, write=True) -*/
-/*- set aep = alloc('aep', seL4_AsyncEndpointObject, write=True) -*/
 
-/* Actual dataport is emitted in the per-component template. */
-/*- set p = Perspective(dataport=me.to_interface.name) -*/
-char /*? p['dataport_symbol'] ?*/[ROUND_UP_UNSAFE(sizeof(/*? show(me.to_interface.type) ?*/), PAGE_SIZE_4K)]
-    __attribute__((aligned(PAGE_SIZE_4K)))
-    __attribute__((section("shared_/*? me.to_interface.name ?*/")))
-    __attribute__((externally_visible));
-volatile /*? show(me.to_interface.type) ?*/ * /*? me.to_interface.name ?*/ = (volatile /*? show(me.to_interface.type) ?*/ *) /*? p['dataport_symbol'] ?*/;
+/* Assume a notification exists */
+void /*? me.to_interface.name ?*/_ready_emit(void);
+
+/* Assume a dataport exists */
+extern volatile void */*? me.to_interface.name?*/_buf;
 
 void lwip_lock();
 void lwip_unlock();
@@ -68,7 +65,7 @@ static void udprecv(void *arg, struct udp_pcb *pcb, struct pbuf *p, ip_addr_t *a
     m->port = port;
 
     if (need_signal) {
-        seL4_Notify(/*? aep ?*/, 0);
+        /*? me.to_interface.name ?*/_ready_emit();
         need_signal = 0;
     }
 
@@ -94,7 +91,7 @@ void /*? me.to_interface.name ?*/__run(void) {
             need_signal = 1;
         } else {
             unsigned int packet_len = 0;
-            void *p = /*? p['dataport_symbol'] ?*/;
+            void *p = /*? me.to_interface.name?*/_buf;
             udp_message_t *m = used_head;
             used_head = used_head->next;
             if (!used_head) {
@@ -130,14 +127,3 @@ void /*? me.to_interface.name ?*/__init(void) {
     assert(!err);
     lwip_unlock();
 }
-
-int /*? me.to_interface.name ?*/_wrap_ptr(dataport_ptr_t *p, void *ptr) {
-    /* should not be used */
-    return -1;
-}
-
-void * /*? me.to_interface.name ?*/_unwrap_ptr(dataport_ptr_t *p) {
-    /* should not be used */
-    return NULL;
-}
-

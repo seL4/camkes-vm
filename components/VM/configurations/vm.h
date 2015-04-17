@@ -83,6 +83,9 @@
     uses VMPCIDevices pci_devices; \
     consumes HaveInterrupt intready; \
     uses Timer init_timer; \
+    /* File Server */ \
+    uses FileServerInterface fs; \
+    dataport Buf fs_mem; \
     dataport Buf serial_buffer; \
     attribute string kernel_cmdline; \
     attribute string kernel_image; \
@@ -98,7 +101,11 @@
     component VMConfig CAT(vm##num, _config); \
     /**/
 
+
 #define VM_CONNECT_DEF(num) \
+    /* Connect all Init components to the fileserver */ \
+    connection seL4RPCCall fs##num(from vm##num.fs, to fserv.fs_ctrl); \
+    connection seL4SharedData fs_sharemem##num(from vm##num.fs_mem, to fserv.fs_mem); \
     /* Connect all the components to the serial server */ \
     connection seL4RPCCall serial_vm##num(from vm##num.putchar, to serial.vm##num); \
     connection seL4RPCCall serial_guest_vm##num(from vm##num.guest_putchar, to serial.guest##num); \
@@ -156,6 +163,7 @@
 #define VM_IRQS(num) VM_CONFIG_LIST(num, VM_IRQ_OUTPUT, VM_PASSTHROUGH_IRQ_, irqs)
 
 #define VM_CONFIG_DEF(num) \
+    vm##num.fs_attributes = BOOST_PP_STRINGIZE(num); \
     vm##num.init_timer_global_endpoint = BOOST_PP_STRINGIZE(vm##num); \
     vm##num.init_timer_badge = BOOST_PP_STRINGIZE(VM_INIT_TIMER_BADGE); \
     vm##num.init_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(0, num)); \

@@ -36,6 +36,7 @@
 #include "virtio_net.h"
 #include "i8259.h"
 #include "timers.h"
+#include "fsclient.h"
 
 #include <boost/preprocessor/facilities/apply.hpp>
 #include <boost/preprocessor/list/adt.hpp>
@@ -629,7 +630,12 @@ void *main_continued(void *arg) {
         .get_interrupt = i8259_get_interrupt,
         .has_interrupt = i8259_has_interrupt,
         .do_async = handle_async_event,
-        .get_async_event_aep = get_async_event_aep
+        .get_async_event_aep = get_async_event_aep,
+
+        .open = fsclient_open,
+        .read = fsclient_read,
+        .filelength = fsclient_filelength,
+        .close = fsclient_close,
     };
     error = vmm_init(&vmm, camkes_simple, vka, vspace, callbacks);
     assert(!error);

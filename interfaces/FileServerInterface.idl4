@@ -1,0 +1,17 @@
+/*
+ * Copyright 2014, NICTA
+ *
+ * This software may be distributed and modified according to the terms of
+ * the GNU General Public License version 2. Note that NO WARRANTY is provided.
+ * See "LICENSE_GPLv2.txt" for details.
+ *
+ * @TAG(NICTA_GPL)
+ */
+
+procedure FileServerInterface {
+    /* File instance code */
+    int lookup(in string name);
+    size_t filesize(in int fd);
+    int read(in int fd, in off_t offset, in size_t size);
+    void read_complete();
+};

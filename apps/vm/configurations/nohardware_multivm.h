@@ -30,6 +30,9 @@
     connection seL4Asynch vchan_event_init_1(from vchan_0.vevent_cl, to vm1.vevent); \
     /**/
 
+#define PLAT_COMPONENT_INTERFACES() \
+    /**/
+
 #define VM_CONFIGURATION_IOSPACES_0() \
     /**/
 

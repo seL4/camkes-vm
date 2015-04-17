@@ -1,6 +1,5 @@
 CURRENT_DIR := $(dir $(abspath $(lastword ${MAKEFILE_LIST})))
 
-Init_OFILES := archive.o
 Init_CFILES := $(wildcard $(CURRENT_DIR)/src/*.c)
 Init_HFILES := $(wildcard $(CURRENT_DIR)/../../apps/vm/configurations/*.h)
 Init_HFILES += $(wildcard $(CURRENT_DIR)/src/*.h)

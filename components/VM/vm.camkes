@@ -26,6 +26,7 @@ import <ExtraRAM.idl4>;
 import <VMIOPorts.idl4>;
 import <VMIRQs.idl4>;
 import <VMPCIDevices.idl4>;
+import <FileServerInterface.idl4>;
 
 import "PIC.camkes";
 import "PIT.camkes";
@@ -41,6 +42,7 @@ import <Ethdriver/Ethdriver.camkes>;
 import <UDPServer/UDPServer.camkes>;
 import <Vchan/Vchan.camkes>;
 import <HelloWorld/HelloWorld.camkes>;
+import <FileServer/FileServer.camkes>;
 
 import <Echo/Echo.camkes>;
 
@@ -119,6 +121,7 @@ component VMConfig {
 component VM {
     PLAT_COMPONENT_INTERFACES()
     composition {
+        component FileServer fserv;
 
         /* Perform the VM component definitions */
         BOOST_PP_REPEAT(VM_NUM_GUESTS, REPEAT_WRAPPER, VM_COMP_DEF)

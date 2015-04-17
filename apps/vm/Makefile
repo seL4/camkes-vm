@@ -27,6 +27,7 @@ include HelloWorld/HelloWorld.mk
 include Echo/Echo.mk
 include Vchan/Vchan.mk
 include PCIConfigIO/PCIConfigIO.mk
+include FileServer/FileServer.mk
 include Init/Init.mk
 
 # We want to run C99

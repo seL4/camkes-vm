@@ -9,14 +9,12 @@
  */
 
 #include <autoconf.h>
-
 #include <configurations/vm.h>
-import <VirtIOPort.idl4>;
-import <InterruptGenerator.idl4>;
-import <RTC.idl4>;
 import <PutChar.idl4>;
-import <Ethdriver.idl4>;
-import <VchanInterface.idl4>;
 import <FileServerInterface.idl4>;
 
-VM_INIT_COMPONENT()
+component FileServer {
+    dataport Buf fs_mem;
+    provides FileServerInterface fs_ctrl;
+    uses PutChar putchar;
+}

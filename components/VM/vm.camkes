@@ -151,19 +151,19 @@ component VM {
         pit.irq_attributes = "2,0,0";
 
         /* Serial port definitions */
-        hw_serial.serial_attributes="0x3f8:3ff";
+        hw_serial.serial_attributes="0x3f8:0x3ff";
         hw_serial.serial_irq_attributes = "4,0,0";
 
         /* PCI config space definitions */
-        poh.pci_config_address_attributes = "0xcf8:cfb";
-        poh.pci_config_data_attributes = "0xcfc:cff";
+        poh.pci_config_address_attributes = "0xcf8:0xcfb";
+        poh.pci_config_data_attributes = "0xcfc:0xcff";
 
         PLAT_CONFIG_DEF()
 
         BOOST_PP_REPEAT(VM_NUM_GUESTS, REPEAT_WRAPPER, VM_CONFIG_DEF)
 
-        cmos.cmos_address_attributes = "0x70:70";
-        cmos.cmos_data_attributes = "0x71:71";
+        cmos.cmos_address_attributes = "0x70:0x70";
+        cmos.cmos_data_attributes = "0x71:0x71";
 
         /* Put the time server interrupt at the highest priority */
         time_server.irq_priority = 255;

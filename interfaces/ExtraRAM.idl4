@@ -9,5 +9,6 @@
  */
 
 procedure ExtraRAM {
-    void foo();
+    int num_untypeds();
+    int get_untyped(in int ut, out uintptr_t paddr, out int size_bits, out seL4_CPtr cap);
 };

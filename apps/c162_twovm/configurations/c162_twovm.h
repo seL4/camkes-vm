@@ -38,26 +38,6 @@
 
 #define VM_NUM_GUESTS 2
 
-/* If VM_CONFIGURATION_EXTRA_RAM is defined then the corresponding _N definitions
- * will be used to find ranges for extra ram. These are boost lists and contain
- * physical address and 2^n size pairs. Each range must fall within a single
- * untyped that is given to the rootserver (capdl-loader) by the kernel. The capdl-loader
- * has a configuration option that can be turned on that will print out what
- * device untypeds it has received */
-#define VM_CONFIGURATION_EXTRA_RAM
-#define VM_CONFIGURATION_EXTRA_RAM_0() ( \
-        (0x21000000,24), \
-        (0x22000000,25), \
-        (0x24000000,24) \
-    ) \
-    /**/
-#define VM_CONFIGURATION_EXTRA_RAM_1() ( \
-        (0x27000000,24), \
-        (0x28000000,25), \
-        (0x2A000000,24) \
-    ) \
-    /**/
-
 /* Passthrough IRQs are used to give a guest a direct hardware interrupt. The format here
  * is (source_irq, level_triggered, active_low, dest_irq).
  * source_irq - The interrupt index on the I/O APIC for this device. Note that seL4
@@ -253,6 +233,8 @@
     vm1.kernel_relocs = C162_KERNEL_IMAGE; \
     vm1.initrd_image = C162_ROOTFS; \
     vm1.iospace_domain = 0x10; \
+    vm0_config.ram = [ [ 0x21000000,24 ] , [ 0x22000000 , 25 ] , [ 0x24000000 , 24 ] ]; \
+    vm1_config.ram = [ [ 0x27000000,24 ] , [ 0x28000000 , 25 ] , [ 0x2A000000 , 24 ] ]; \
     /**/
 
 /* List of pci devices that should be given as passthrough to the guest

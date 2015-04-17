@@ -77,11 +77,11 @@ static vmm_t vmm;
 /* custom allocator interface for attempting to allocate frames
  * from special frame only memory */
 typedef struct proxy_vka {
-    uintptr_t last_paddr;
     int have_mem;
     allocman_t *allocman;
     vka_t regular_vka;
     vspace_t vspace;
+    utspace_trickle_t ram_ut_manager;
     int recurse;
     void *temp_map_address;
     reservation_t temp_map_reservation;
@@ -118,13 +118,12 @@ int proxy_vka_utspace_alloc(void *data, const cspacepath_t *dest, seL4_Word type
         return -1;
     }
     if (type == seL4_IA32_4K && vka->have_mem && vka->vspace.map_pages && !vka->recurse) {
-        error = simple_get_frame_cap(&camkes_simple, (void*)vka->last_paddr, seL4_PageBits, (cspacepath_t*)dest);
-        if (error) {
+        cookie = _utspace_trickle_alloc(vka->allocman, &vka->ram_ut_manager, seL4_PageBits, seL4_IA32_4K, dest, &error);
+        if (error != 0) {
             vka->have_mem = 0;
         } else {
             node->frame = 1;
-            node->cookie = vka->last_paddr;
-            vka->last_paddr += PAGE_SIZE_4K;
+            node->cookie = cookie;
             /* briefly map this frame in so we can zero it. Avoid recursively allocating
              * for book keeping */
             assert(!vka->recurse);
@@ -153,6 +152,8 @@ void proxy_vka_utspace_free(void *data, seL4_Word type, seL4_Word size_bits, uin
     ut_node_t *node = (ut_node_t*)target;
     if (!node->frame) {
         vka_utspace_free(&vka->regular_vka, type, size_bits, node->cookie);
+    } else {
+        _utspace_trickle_free(vka->allocman, &vka->ram_ut_manager, node->cookie, size_bits);
     }
     allocman_mspace_free(vka->allocman, node, sizeof(*node));
 }
@@ -161,34 +162,42 @@ uintptr_t proxy_vka_utspace_paddr(void *data, uint32_t target, seL4_Word type, s
     proxy_vka_t *vka = (proxy_vka_t*)data;
     ut_node_t *node = (ut_node_t*)target;
     if (node->frame) {
-        return node->cookie;
+        return _utspace_trickle_paddr(&vka->ram_ut_manager, node->cookie, size_bits);
     } else {
-        return proxy_vka_utspace_paddr(&vka->regular_vka, node->cookie, type, size_bits);
+        return vka_utspace_paddr(&vka->regular_vka, node->cookie, type, size_bits);
     }
 }
 
 static void proxy_give_vspace(vka_t *vka, vspace_t *vspace, void *vaddr, reservation_t res) {
-#ifdef VM_CONFIGURATION_EXTRA_RAM
     proxy_vka_t *proxy = (proxy_vka_t*)vka->data;
     proxy->vspace = *vspace;
     proxy->temp_map_address = vaddr;
     proxy->temp_map_reservation = res;
-#endif
 }
 
 static void make_proxy_vka(vka_t *vka, allocman_t *allocman) {
-#ifdef VM_CONFIGURATION_EXTRA_RAM
+    int num = ram_num_untypeds();
+    int error;
+
     proxy_vka_t *proxy = &proxy_vka;
     memset(proxy, 0, sizeof(*proxy));
     proxy->allocman = allocman;
     allocman_make_vka(&proxy->regular_vka, allocman);
-#define GET_EXTRA_RAM_OUTPUT(num, iteration, data) \
-    if (strcmp(get_instance_name(),BOOST_PP_STRINGIZE(vm_vm##iteration)) == 0) { \
-        proxy->last_paddr = BOOST_PP_TUPLE_ELEM(0, BOOST_PP_TUPLE_ELEM(0, BOOST_PP_CAT(VM_CONFIGURATION_EXTRA_RAM_,iteration)())); \
-        proxy->have_mem = 1; \
-    } \
-    /**/
-    BOOST_PP_REPEAT(VM_NUM_GUESTS, GET_EXTRA_RAM_OUTPUT, _)
+
+    utspace_trickle_create(&proxy->ram_ut_manager);
+    for (int i = 0; i < num; i++) {
+        cspacepath_t path;
+        seL4_CPtr cap;
+        uintptr_t paddr;
+        int size_bits;
+        ram_get_untyped(i, &paddr, &size_bits, &cap);
+        vka_cspace_make_path(&proxy->regular_vka, cap, &path);
+        error = _utspace_trickle_add_uts(allocman, &proxy->ram_ut_manager, 1, &path, &size_bits, &paddr);
+        assert(!error);
+    }
+    if (num > 0) {
+        proxy->have_mem = 1;
+    }
     *vka = (vka_t) {
         proxy,
         proxy_vka_cspace_alloc,
@@ -198,9 +207,6 @@ static void make_proxy_vka(vka_t *vka, allocman_t *allocman) {
         proxy_vka_utspace_free,
         proxy_vka_utspace_paddr
     };
-#else
-    allocman_make_vka(vka, allocman);
-#endif
 }
 
 void pit_pre_init(void);

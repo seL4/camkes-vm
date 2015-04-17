@@ -77,6 +77,7 @@
     uses PutChar guest_putchar; \
     uses PCIConfig pci_config; \
     uses RTC system_rtc; \
+    uses ExtraRAM ram; \
     consumes HaveInterrupt intready; \
     uses Timer init_timer; \
     dataport Buf serial_buffer; \
@@ -91,6 +92,7 @@
 /* VM and per VM componenents */
 #define VM_COMP_DEF(num) \
     component Init##num vm##num; \
+    component VMConfig CAT(vm##num, _config); \
     /**/
 
 #define VM_CONNECT_DEF(num) \
@@ -106,6 +108,8 @@
     connection seL4TimeServer CAT(pit##num,_timer)(from vm##num.init_timer, to time_server.the_timer); \
     /* Connect config space to main VM */ \
     connection seL4RPCCall pciconfig##num(from vm##num.pci_config, to pci_config.pci_config); \
+    /* Connect the extra memory */ \
+    connection seL4ExtraRAM extra_ram##num(from vm##num.ram, to CAT(vm##num,_config).ram); \
     /**/
 
 #define VM_CONFIG_LIST(num, func, list, name) \
@@ -129,16 +133,6 @@
 #define VM_MAYBE_ZONE_DMA(num) vm##num.mmio = "0x8000:0x97000:12";
 #else
 #define VM_MAYBE_ZONE_DMA(num)
-#endif
-
-/* If the platform configuration defined extra ram that we
- * generate the specifics of that generation for them */
-#ifdef VM_CONFIGURATION_EXTRA_RAM
-#define EXTRA_RAM_OUTPUT(a,b) a:b
-#define EXTRA_RAM_OUTPUT_(r, data, elem) BOOST_PP_EXPAND(EXTRA_RAM_OUTPUT elem)
-#define VM_MAYBE_EXTRA_RAM(num) VM_CONFIG_LIST(num, EXTRA_RAM_OUTPUT_, VM_CONFIGURATION_EXTRA_RAM_, untyped_mmios)
-#else
-#define VM_MAYBE_EXTRA_RAM(num)
 #endif
 
 /* Generate IOSpace capabilities if using the IOMMU */
@@ -169,7 +163,6 @@
     vm##num.simple = true; \
     VM_IRQS(num) \
     VM_MAYBE_ZONE_DMA(num) \
-    VM_MAYBE_EXTRA_RAM(num) \
     VM_MAYBE_IOSPACE(num) \
     VM_MMIO(num) \
     VM_IOPORT(num) \

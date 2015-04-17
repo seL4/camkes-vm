@@ -22,6 +22,7 @@ import <Timer.idl4>;
 import <RTC.idl4>;
 import <Ethdriver.idl4>;
 import <VchanInterface.idl4>;
+import <ExtraRAM.idl4>;
 
 import "PIC.camkes";
 import "PIT.camkes";
@@ -70,6 +71,11 @@ connector seL4TimeServer {
     to Procedure server template "seL4TimeServer-to.template.c";
 }
 
+connector seL4ExtraRAM {
+    from Procedure client template "seL4ExtraRAM.template.c";
+    to Interface server_extra_ram;
+}
+
 component PieceOfHardware {
     hardware;
     provides IOPort pci_config_address;
@@ -83,6 +89,11 @@ component HWEthDriver {
 };
 
 #define REPEAT_WRAPPER(num, iteration, data) data(iteration)
+
+component VMConfig {
+    hardware;
+    provides ExtraRAM ram;
+};
 
 component VM {
     PLAT_COMPONENT_INTERFACES()

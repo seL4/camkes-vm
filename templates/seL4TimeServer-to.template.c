@@ -146,7 +146,7 @@ int /*? me.to_interface.name ?*/_largest_badge(void) {
           /*- endif -*/
       /*- endif -*/
       /*- for p in m.parameters -*/
-        /*- if p.direction.direction == 'in' -*/
+        /*- if p.direction == 'in' -*/
           /*- if p.array -*/
             size_t /*? p.name ?*/_sz,
             /*- if isinstance(p.type, camkes.ast.Type) and p.type.type == 'string' -*/
@@ -161,7 +161,7 @@ int /*? me.to_interface.name ?*/_largest_badge(void) {
           /*- endif -*/
           /*? p.name ?*/
         /*- else -*/
-          /*? assert(p.direction.direction in ['refin', 'out', 'inout']) ?*/
+          /*? assert(p.direction in ['refin', 'out', 'inout']) ?*/
           /*- if p.array -*/
             size_t * /*? p.name ?*/_sz,
             /*- if isinstance(p.type, camkes.ast.Type) and p.type.type == 'string' -*/
@@ -186,12 +186,12 @@ int /*? me.to_interface.name ?*/_largest_badge(void) {
 /*- set function = '%s_unmarshal_inputs' % m.name -*/
 /*- set buffer = base -*/
 /*- set size = sizes[0] -*/
-/*- set input_parameters = filter(lambda('x: x.direction.direction in [\'refin\', \'in\', \'inout\']'), m.parameters) -*/
+/*- set input_parameters = filter(lambda('x: x.direction in [\'refin\', \'in\', \'inout\']'), m.parameters) -*/
 /*- set allow_trailing_data = userspace_ipc -*/
 /*- include 'unmarshal-inputs.c' -*/
 
 /*- set function = '%s_marshal_outputs' % m.name -*/
-/*- set output_parameters = filter(lambda('x: x.direction.direction in [\'out\', \'inout\']'), m.parameters) -*/
+/*- set output_parameters = filter(lambda('x: x.direction in [\'out\', \'inout\']'), m.parameters) -*/
 /*- set return_type = m.return_type -*/
 /*- include 'marshal-outputs.c' -*/
 
@@ -377,7 +377,7 @@ int /*? me.to_interface.name ?*/__run(void) {
 
                     /* Unmarshal parameters */
                     /*- set function = '%s_unmarshal_inputs' % m.name -*/
-                    /*- set input_parameters = filter(lambda('x: x.direction.direction in [\'refin\', \'in\', \'inout\']'), m.parameters) -*/
+                    /*- set input_parameters = filter(lambda('x: x.direction in [\'refin\', \'in\', \'inout\']'), m.parameters) -*/
                     /*- set err = c_symbol('error') -*/
                     int /*? err ?*/ = /*- include 'call-unmarshal-inputs.c' -*/;
                     if (unlikely(/*? err ?*/ != 0)) {
@@ -420,12 +420,12 @@ int /*? me.to_interface.name ?*/__run(void) {
                         /*- endif -*/
                         /*- for p in m.parameters -*/
                             /*- if p.array -*/
-                                /*- if p.direction.direction == 'in' -*/
+                                /*- if p.direction == 'in' -*/
                                     *
                                 /*- endif -*/
                                 /*? p.name ?*/_sz_ptr,
                             /*- endif -*/
-                            /*- if p.direction.direction =='in' -*/
+                            /*- if p.direction =='in' -*/
                                 *
                             /*- endif -*/
                             /*? p.name ?*/_ptr
@@ -435,7 +435,7 @@ int /*? me.to_interface.name ?*/__run(void) {
 
                     /* Marshal the response */
                     /*- set function = '%s_marshal_outputs' % m.name -*/
-                    /*- set output_parameters = filter(lambda('x: x.direction.direction in [\'out\', \'inout\']'), m.parameters) -*/
+                    /*- set output_parameters = filter(lambda('x: x.direction in [\'out\', \'inout\']'), m.parameters) -*/
                     /*- set return_type = m.return_type -*/
                     /*- set length = c_symbol('length') -*/
                     unsigned int /*? length ?*/ = /*- include 'call-marshal-outputs.c' -*/;

@@ -223,6 +223,7 @@ void pre_init(void) {
         NULL
     };
     camkes_make_simple(&camkes_simple);
+    camkes_simple.IOPort_cap = ioports_get_ioport;
 
     /* Initialize allocator */
     allocman = bootstrap_use_current_1level(
@@ -427,23 +428,6 @@ ioport_desc_t ioport_handlers[] = {
 #endif
 };
 
-#define GUEST_IOPORT_OUTPUT(r, data, elem) \
-    BOOST_PP_TUPLE_ENUM(BOOST_PP_IF( \
-        BOOST_PP_TUPLE_ELEM(2, elem),\
-        ({.start_port = BOOST_PP_TUPLE_ELEM(0, elem), .end_port = BOOST_PP_TUPLE_ELEM(1, elem), .port_in = NULL, .port_out = NULL, .desc = BOOST_PP_TUPLE_ELEM(3, elem)},), \
-        () \
-    )) \
-    /**/
-
-
-#define GUEST_IOPORTS_OUTPUT(num, iteration, data) \
-    ioport_desc_t ioport_handlers_vm##iteration[] = { \
-        BOOST_PP_LIST_FOR_EACH(GUEST_IOPORT_OUTPUT, iteration, BOOST_PP_TUPLE_TO_LIST(CAT(VM_CONFIGURATION_IOPORT_, iteration)())) \
-    }; \
-    /**/
-
-BOOST_PP_REPEAT(VM_NUM_GUESTS, GUEST_IOPORTS_OUTPUT, _)
-
 int pci_config_io_in(void *cookie, uint32_t port, int io_size, uint32_t *result) {
     uint32_t *conf_port_addr = (uint32_t*)cookie;
     uint8_t offset;
@@ -645,8 +629,6 @@ void *main_continued(void *arg) {
     int i;
     int have_initrd = 0;
     ps_io_port_ops_t ioops;
-    ioport_desc_t UNUSED *vm_ioports;
-    int num_vm_ioports;
     void (**device_init_list)(vmm_t*) = NULL;
     int device_init_list_len = 0;
     hw_irq_t *hw_irqs = NULL;
@@ -687,8 +669,6 @@ void *main_continued(void *arg) {
     if (strcmp(get_instance_name(), BOOST_PP_STRINGIZE(vm_vm##iteration)) == 0) { \
         num_guest_passthrough_devices = ARRAY_SIZE(guest_passthrough_devices_vm##iteration); \
         guest_passthrough_devices = guest_passthrough_devices_vm##iteration; \
-        vm_ioports = ioport_handlers_vm##iteration; \
-        num_vm_ioports = ARRAY_SIZE(ioport_handlers_vm##iteration); \
         device_notify_list = BOOST_PP_CAT(device_notify_vm, iteration); \
         device_notify_list_len = ARRAY_SIZE(BOOST_PP_CAT(device_notify_vm, iteration)); \
         device_init_list = BOOST_PP_CAT(device_init_fn_vm, iteration); \
@@ -805,15 +785,14 @@ void *main_continued(void *arg) {
             assert(!error);
         }
     }
-    for (i = 0; i < num_vm_ioports; i++) {
-        /* add io ports that are marked as pass through but are not part of any PCI device */
-        if (vm_ioports[i].port_in) {
-            error = vmm_io_port_add_handler(&vmm.io_port, vm_ioports[i].start_port, vm_ioports[i].end_port, NULL, vm_ioports[i].port_in, vm_ioports[i].port_out, vm_ioports[i].desc);
-            assert(!error);
-        } else {
-            error = vmm_io_port_add_passthrough(&vmm.io_port, vm_ioports[i].start_port, vm_ioports[i].end_port, vm_ioports[i].desc);
-            assert(!error);
-        }
+    for (i = 0; i < ioports_num_nonpci_ioports(); i++) {
+        uint16_t start;
+        uint16_t end;
+        const char *desc;
+        seL4_CPtr cap;
+        desc = ioports_get_nonpci_ioport(i, &cap, &start, &end);
+        error = vmm_io_port_add_passthrough(&vmm.io_port, start, end, desc);
+        assert(!error);
     }
     /* config start and end encomposes both addr and data ports */
     error = vmm_io_port_add_handler(&vmm.io_port, X86_IO_PCI_CONFIG_START, X86_IO_PCI_CONFIG_END, &vmm.pci, vmm_pci_io_port_in, vmm_pci_io_port_out, "PCI Configuration Space");

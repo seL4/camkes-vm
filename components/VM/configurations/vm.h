@@ -78,6 +78,7 @@
     uses PCIConfig pci_config; \
     uses RTC system_rtc; \
     uses ExtraRAM ram; \
+    uses VMIOPorts ioports; \
     consumes HaveInterrupt intready; \
     uses Timer init_timer; \
     dataport Buf serial_buffer; \
@@ -110,6 +111,8 @@
     connection seL4RPCCall pciconfig##num(from vm##num.pci_config, to pci_config.pci_config); \
     /* Connect the extra memory */ \
     connection seL4ExtraRAM extra_ram##num(from vm##num.ram, to CAT(vm##num,_config).ram); \
+    /* Connect the IOPorts */ \
+    connection seL4VMIOPorts vm_ioports##num(from vm##num.ioports, to CAT(vm##num,_config).ioports); \
     /**/
 
 #define VM_CONFIG_LIST(num, func, list, name) \
@@ -146,9 +149,6 @@
 #define MMIO_OUTPUT(r, data, elem) elem
 #define VM_MMIO(num) VM_CONFIG_LIST(num, MMIO_OUTPUT, VM_CONFIGURATION_MMIO_, mmios)
 
-#define IOPORT_OUTPUT(r, data, elem) BOOST_PP_TUPLE_ELEM(0,elem):BOOST_PP_TUPLE_ELEM(1,elem)
-#define VM_IOPORT(num) VM_CONFIG_LIST(num, IOPORT_OUTPUT, VM_CONFIGURATION_IOPORT_, ioports)
-
 #define VM_IRQ_OUTPUT(r, data, elem) BOOST_PP_TUPLE_ELEM(0, elem)
 #define VM_IRQS(num) VM_CONFIG_LIST(num, VM_IRQ_OUTPUT, VM_PASSTHROUGH_IRQ_, irqs)
 
@@ -165,6 +165,5 @@
     VM_MAYBE_ZONE_DMA(num) \
     VM_MAYBE_IOSPACE(num) \
     VM_MMIO(num) \
-    VM_IOPORT(num) \
     /**/
 

@@ -1,0 +1,17 @@
+/*
+ * Copyright 2014, NICTA
+ *
+ * This software may be distributed and modified according to the terms of
+ * the GNU General Public License version 2. Note that NO WARRANTY is provided.
+ * See "LICENSE_GPLv2.txt" for details.
+ *
+ * @TAG(NICTA_GPL)
+ */
+
+procedure VMIOPorts {
+    int num_pci_ioports();
+    int num_nonpci_ioports();
+    string get_pci_ioport(in int port_num, out seL4_CPtr cap, out uint16_t start, out uint16_t end);
+    string get_nonpci_ioport(in int port_num, out seL4_CPtr cap, out uint16_t start, out uint16_t end);
+    seL4_CPtr get_ioport(in uintptr_t ignored, in uint16_t start, in uint16_t end);
+};

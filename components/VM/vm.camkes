@@ -23,6 +23,7 @@ import <RTC.idl4>;
 import <Ethdriver.idl4>;
 import <VchanInterface.idl4>;
 import <ExtraRAM.idl4>;
+import <VMIOPorts.idl4>;
 
 import "PIC.camkes";
 import "PIT.camkes";
@@ -76,6 +77,11 @@ connector seL4ExtraRAM {
     to Interface server_extra_ram;
 }
 
+connector seL4VMIOPorts {
+    from Procedure client template "seL4VMIOPorts.template.c";
+    to Interface vm_io_ports;
+}
+
 component PieceOfHardware {
     hardware;
     provides IOPort pci_config_address;
@@ -93,6 +99,7 @@ component HWEthDriver {
 component VMConfig {
     hardware;
     provides ExtraRAM ram;
+    provides VMIOPorts ioports;
 };
 
 component VM {

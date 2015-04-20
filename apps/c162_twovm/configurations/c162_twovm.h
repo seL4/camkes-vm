@@ -160,40 +160,6 @@
     ) \
     /**/
 
-/* Definitions of legacy I/O ports that should be given to each guest.
- * The format of each entry is
-   (first_port, last_port, not_PCI, description)
- * the first and last ports are inclusive
- * not_PCI is an option that exists for legacy reasons and indicates
- * whether the I/O port will be found and given to the guest from
- * scanning the bars when giving passthrough devices, or whether it
- * should just be given to the guest. This means that if 1 is given
- * and port range is also in a device, then an error will occur as
- * the VMM will attempt to give the port twice to the guest.
- * Similarly if 0 is given and the port does not appear in a PCI
- * device then the range will *not* be given to Linux
- */
-#define VM_CONFIGURATION_IOPORT_0() ( \
-    /* Ethernet ports */ \
-    (0xd040, 0xd05f, 0, "Eth1") \
-    )
-    /**/
-
-#define VM_CONFIGURATION_IOPORT_1() ( \
-    (0x2f8, 0x2ff, 1, "COM2 Serial Port"), \
-    (0x2e8, 0x2ef, 1, "COM4 Serial Port"), \
-    (0x162e, 0x162f, 1, "PLD Registers"), \
-    (0x378, 0x37f, 1, "PLD Discrete I/O"), \
-    (0x3f0, 0x3f7, 1, "PLD Extended Discrete I/O"), \
-    (0x160E, 0x160F, 1, "CANbus 1 Two address"), \
-    (0x1680, 0x16A0, 1, "CANbus 1 Multi address"), \
-    (0x161E, 0x161F, 1, "CANbus 2 Two address"), \
-    (0x16C0, 0x16E0, 1, "CANbus 2 Multi address"), \
-    /* device */ \
-    (0xe000, 0xe01f, 0, "Some device") \
-    ) \
-    /**/
-
 /* All our guests use the same kernel image, rootfs and cmdline */
 #define C162_KERNEL_IMAGE "bzimage"
 #define C162_ROOTFS "rootfs.cpio"
@@ -235,6 +201,20 @@
     vm1.iospace_domain = 0x10; \
     vm0_config.ram = [ [ 0x21000000,24 ] , [ 0x22000000 , 25 ] , [ 0x24000000 , 24 ] ]; \
     vm1_config.ram = [ [ 0x27000000,24 ] , [ 0x28000000 , 25 ] , [ 0x2A000000 , 24 ] ]; \
+    vm0_config.ioports = [ {"start":0xd040, "end":0xd05f, "pci_device":1, "name":"Ethernet"} \
+    ]; \
+    vm1_config.ioports = [ \
+        {"start":0x2f8, "end":0x2ff, "pci_device":0, "name":"COM2 Serial Port"}, \
+        {"start":0x2e8, "end":0x2ef, "pci_device":0, "name":"COM4 Serial Port"}, \
+        {"start":0x162e, "end":0x162f, "pci_device":0, "name":"PLD Registers"}, \
+        {"start":0x378, "end":0x37f, "pci_device":0, "name":"PLD Discrete I/O"}, \
+        {"start":0x3f0, "end":0x3f7, "pci_device":0, "name":"PLD Extended Discrete I/O"}, \
+        {"start":0x160E, "end":0x160F, "pci_device":0, "name":"CANbus 1 Two address"}, \
+        {"start":0x1680, "end":0x16A0, "pci_device":0, "name":"CANbus 1 Multi address"}, \
+        {"start":0x161E, "end":0x161F, "pci_device":0, "name":"CANbus 2 Two address"}, \
+        {"start":0x16C0, "end":0x16E0, "pci_device":0, "name":"CANbus 2 Multi address"}, \
+        {"start":0xe000, "end":0xe01f, "pci_device":1, "name":"Some device"} \
+    ]; \
     /**/
 
 /* List of pci devices that should be given as passthrough to the guest

@@ -209,6 +209,19 @@ static void make_proxy_vka(vka_t *vka, allocman_t *allocman) {
     };
 }
 
+static seL4_CPtr simple_ioport_wrapper(void *data, uint16_t start_port, uint16_t end_port) {
+    return ioports_get_ioport(start_port, end_port);
+}
+
+static seL4_Error simple_frame_cap_wrapper(void *data, void *paddr, int size_bits, cspacepath_t *path) {
+    seL4_CPtr cap = pci_devices_get_device_mem_frame((uintptr_t)paddr);
+    if (cap == 0) {
+        return -1;
+    }
+    vka_cspace_make_path(&vka, cap, path);
+    return 0;
+}
+
 void pit_pre_init(void);
 void rtc_pre_init(void);
 void serial_pre_init(void);
@@ -223,7 +236,8 @@ void pre_init(void) {
         NULL
     };
     camkes_make_simple(&camkes_simple);
-    camkes_simple.IOPort_cap = ioports_get_ioport;
+    camkes_simple.IOPort_cap = simple_ioport_wrapper;
+    camkes_simple.frame_cap = simple_frame_cap_wrapper;
 
     /* Initialize allocator */
     allocman = bootstrap_use_current_1level(
@@ -304,20 +318,6 @@ static memory_range_t guest_fake_devices[] = {
     {0x9f000, 0x1000},
 #endif
 };
-
-typedef struct host_pci_device {
-    uint16_t ven;
-    uint16_t dev;
-    int fun;
-    int irq;
-} host_pci_device_t;
-
-#define GUEST_PASSTHROUGH_OUTPUT(num, iteration, data) \
-    host_pci_device_t guest_passthrough_devices_vm##iteration[] = { \
-        BOOST_PP_CAT(VM_GUEST_PASSTHROUGH_DEVICES_, iteration)() \
-    }; \
-    /**/
-BOOST_PP_REPEAT(VM_NUM_GUESTS, GUEST_PASSTHROUGH_OUTPUT, _)
 
 /* this struct holds a bunch of compile time data for dealing with extra
  * async notifications for native devices. everything here is known at
@@ -576,47 +576,29 @@ static int handle_async_event(seL4_Word badge) {
     return i8259_has_interrupt() ? 0 : 1;
 }
 
-typedef struct hw_irq {
-    int source;
-    int level;
-    int polarity;
-    int dest;
-} hw_irq_t;
-
-#define IRQ_OUTPUT(r, data, elem) \
-    {.source = BOOST_PP_TUPLE_ELEM(0, elem), .level = BOOST_PP_TUPLE_ELEM(1, elem), .polarity = BOOST_PP_TUPLE_ELEM(2, elem), .dest = BOOST_PP_TUPLE_ELEM(3, elem)}, \
-    /**/
-
-#define HW_IRQ_OUTPUT(num, iteration, data) \
-    hw_irq_t CAT(hw_irqs_, iteration)[] = { \
-        BOOST_PP_LIST_FOR_EACH(IRQ_OUTPUT, iteration, BOOST_PP_TUPLE_TO_LIST(CAT(VM_PASSTHROUGH_IRQ_, iteration)())) \
-    }; \
-    /**/
-
-BOOST_PP_REPEAT(VM_NUM_GUESTS, HW_IRQ_OUTPUT, _)
-
-static void init_irqs(hw_irq_t *irqs, int num) {
+static void init_irqs() {
     int error;
-    for (int i = 0; i < num; i++) {
+    for (int i = 0; i < irqs_num_irqs(); i++) {
+        seL4_CPtr irq_handler;
+        uint8_t source;
+        int level_trig;
+        int active_low;
+        uint8_t dest;
         cspacepath_t badge_path;
         cspacepath_t async_path;
+        irqs_get_irq(i, &irq_handler, &source, &level_trig, &active_low, &dest);
         vka_cspace_make_path(&vka, intready_aep(), &async_path);
         error = vka_cspace_alloc_path(&vka, &badge_path);
         assert(!error);
-        error = vka_cnode_mint(&badge_path, &async_path, seL4_AllRights, seL4_CapData_Badge_new(irq_badges[irqs[i].dest]));
+        error = vka_cnode_mint(&badge_path, &async_path, seL4_AllRights, seL4_CapData_Badge_new(irq_badges[dest]));
         assert(!error);
-        cspacepath_t irq;
-        error = vka_cspace_alloc_path(&vka, &irq);
+        error = seL4_IRQHandler_SetMode(irq_handler, level_trig, active_low);
         assert(!error);
-        error = simple_get_IRQ_control(&camkes_simple, irqs[i].source, irq);
+        error = seL4_IRQHandler_SetEndpoint(irq_handler, badge_path.capPtr);
         assert(!error);
-        error = seL4_IRQHandler_SetMode(irq.capPtr, irqs[i].level, irqs[i].polarity);
+        error = seL4_IRQHandler_Ack(irq_handler);
         assert(!error);
-        error = seL4_IRQHandler_SetEndpoint(irq.capPtr, badge_path.capPtr);
-        assert(!error);
-        error = seL4_IRQHandler_Ack(irq.capPtr);
-        assert(!error);
-        hw_irq_handlers[irqs[i].dest] = irq.capPtr;
+        hw_irq_handlers[dest] = irq_handler;
     }
 }
 
@@ -631,8 +613,6 @@ void *main_continued(void *arg) {
     ps_io_port_ops_t ioops;
     void (**device_init_list)(vmm_t*) = NULL;
     int device_init_list_len = 0;
-    hw_irq_t *hw_irqs = NULL;
-    int num_hw_irqs;
 
 #ifdef VCHAN_COMPONENT_DEF
     vchan_vmcall_init();
@@ -664,23 +644,18 @@ void *main_continued(void *arg) {
 
     /* Do per vm configuration */
     int num_guest_passthrough_devices;
-    host_pci_device_t *guest_passthrough_devices;
 #define PER_VM_CONFIG(num, iteration, data) \
     if (strcmp(get_instance_name(), BOOST_PP_STRINGIZE(vm_vm##iteration)) == 0) { \
-        num_guest_passthrough_devices = ARRAY_SIZE(guest_passthrough_devices_vm##iteration); \
-        guest_passthrough_devices = guest_passthrough_devices_vm##iteration; \
         device_notify_list = BOOST_PP_CAT(device_notify_vm, iteration); \
         device_notify_list_len = ARRAY_SIZE(BOOST_PP_CAT(device_notify_vm, iteration)); \
         device_init_list = BOOST_PP_CAT(device_init_fn_vm, iteration); \
         device_init_list_len = ARRAY_SIZE(BOOST_PP_CAT(device_init_fn_vm, iteration)); \
-        hw_irqs = BOOST_PP_CAT(hw_irqs_, iteration); \
-        num_hw_irqs = ARRAY_SIZE(BOOST_PP_CAT(hw_irqs_, iteration)); \
     } \
     /**/
     BOOST_PP_REPEAT(VM_NUM_GUESTS, PER_VM_CONFIG, _)
     have_initrd = !(strcmp(initrd_image, "") == 0);
 
-    init_irqs(hw_irqs, num_hw_irqs);
+    init_irqs();
 
     i8259_pre_init();
     serial_pre_init();
@@ -690,26 +665,17 @@ void *main_continued(void *arg) {
 #ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_IOMMU
     /* Do early device discovery and find any relevant PCI busses that
      * need to get added */
-    for (i = 0; i < num_guest_passthrough_devices; i++) {
-        libpci_device_t *devices[64];
-        /* Retrieve device information from PCI component */
-        int num = libpci_find_device_all(guest_passthrough_devices[i].ven, guest_passthrough_devices[i].dev, devices);
-        for (int j = 0; j < num; j++) {
-            libpci_device_t *device = devices[j];
-            if (guest_passthrough_devices[i].fun != -1 && guest_passthrough_devices[i].fun != device->fun) {
-                continue;
-            }
-            LOG_INFO("Adding PCI device %02x:%02x.%d to guest IOSpace list", device->bus, device->dev, device->fun);
-            /* Find the IOSpace cap */
-            cspacepath_t iospace;
-            error = vka_cspace_alloc_path(&vmm.vka, &iospace);
-            assert(!error);
-            error = simple_get_iospace(&vmm.host_simple, iospace_domain, (device->bus << 8) | (device->dev << 3) | device->fun, &iospace);
-            assert(error == seL4_NoError);
-            /* Assign to the guest vspace */
-            error = vmm_guest_vspace_add_iospace(&vmm.guest_mem.vspace, iospace.capPtr);
-            assert(!error);
-        }
+    for (i = 0; i < pci_devices_num_devices(); i++) {
+        uint8_t bus;
+        uint8_t dev;
+        uint8_t fun;
+        const char *name;
+        const char *irq_name;
+        int irq = -1;
+        seL4_CPtr iospace_cap;
+        name = pci_devices_get_device(i, &bus, &dev, &fun, &iospace_cap);
+        error = vmm_guest_vspace_add_iospace(&vmm.guest_mem.vspace, iospace_cap);
+        assert(!error);
     }
 #endif
 
@@ -745,30 +711,44 @@ void *main_continued(void *arg) {
     assert(!error);
 
     /* Perform device discovery and give passthrough device information */
-    for (i = 0; i < num_guest_passthrough_devices; i++) {
-        libpci_device_t *devices[64];
-        /* Retrieve device information from PCI component */
-        int num = libpci_find_device_all(guest_passthrough_devices[i].ven, guest_passthrough_devices[i].dev, devices);
-        for (int j = 0; j < num; j++) {
-            libpci_device_t *device = devices[j];
-            if (guest_passthrough_devices[i].fun != -1 && guest_passthrough_devices[i].fun != device->fun) {
-                continue;
+    for (i = 0; i < pci_devices_num_devices(); i++) {
+        uint8_t bus;
+        uint8_t dev;
+        uint8_t fun;
+        const char *name;
+        const char *irq_name;
+        int irq = -1;
+        seL4_CPtr iospace_cap;
+        name = pci_devices_get_device(i, &bus, &dev, &fun, &iospace_cap);
+        irq_name = pci_devices_get_device_irq(i);
+        /* search for the irq */
+        for (int j = 0; j < irqs_num_irqs(); j++) {
+            seL4_CPtr cap;
+            uint8_t source;
+            int level_trig;
+            int active_low;
+            uint8_t dest;
+            const char *this_name;
+            this_name = irqs_get_irq(j, &cap, &source, &level_trig, &active_low, &dest);
+            if (strcmp(irq_name, this_name) == 0) {
+                irq = dest;
+                break;
             }
-            /* Allocate resources */
-            vmm_pci_bar_t bars[6];
-            int num_bars = vmm_pci_helper_map_bars(&vmm, &device->cfg, bars);
-            assert(num_bars >= 0);
-            vmm_pci_entry_t entry = vmm_pci_create_passthrough((vmm_pci_address_t){device->bus, device->dev, device->fun}, make_camkes_pci_config());
-            if (num_bars > 0) {
-                entry = vmm_pci_create_bar_emulation(entry, num_bars, bars);
-            }
-            if (guest_passthrough_devices[i].irq != -1) {
-                entry = vmm_pci_create_irq_emulation(entry, guest_passthrough_devices[i].irq);
-            }
-            entry = vmm_pci_no_msi_cap_emulation(entry);
-            error = vmm_pci_add_entry(&vmm.pci, entry, NULL);
-            assert(!error);
         }
+        assert(irq != -1);
+        libpci_device_t *device = libpci_find_device_bdf(bus, dev, fun);
+        /* Allocate resources */
+        vmm_pci_bar_t bars[6];
+        int num_bars = vmm_pci_helper_map_bars(&vmm, &device->cfg, bars);
+        assert(num_bars >= 0);
+        vmm_pci_entry_t entry = vmm_pci_create_passthrough((vmm_pci_address_t){bus, dev, fun}, make_camkes_pci_config());
+        if (num_bars > 0) {
+            entry = vmm_pci_create_bar_emulation(entry, num_bars, bars);
+        }
+        entry = vmm_pci_create_irq_emulation(entry, irq);
+        entry = vmm_pci_no_msi_cap_emulation(entry);
+        error = vmm_pci_add_entry(&vmm.pci, entry, NULL);
+        assert(!error);
     }
 
     for (i = 0; i < device_init_list_len; i++) {

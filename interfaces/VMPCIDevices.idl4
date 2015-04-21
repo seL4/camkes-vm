@@ -1,0 +1,18 @@
+/*
+ * Copyright 2014, NICTA
+ *
+ * This software may be distributed and modified according to the terms of
+ * the GNU General Public License version 2. Note that NO WARRANTY is provided.
+ * See "LICENSE_GPLv2.txt" for details.
+ *
+ * @TAG(NICTA_GPL)
+ */
+
+procedure VMPCIDevices {
+    int num_devices();
+    string get_device(in int pci_dev, out uint8_t bus, out uint8_t dev, out uint8_t fun, out seL4_CPtr iospace_cap);
+    int num_device_mem(in int pci_dev);
+    int get_device_mem(in int pci_dev, in int mem, out uintptr_t paddr, out size_t size, out int page_bits);
+    seL4_CPtr get_device_mem_frame(in uintptr_t paddr);
+    string get_device_irq(in int pci_dev);
+};

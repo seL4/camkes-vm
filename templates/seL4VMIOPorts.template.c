@@ -75,7 +75,7 @@ const char */*? me.from_interface.name ?*/_get_nonpci_ioport(int num, seL4_CPtr 
     /*- endif -*/
 }
 
-seL4_CPtr /*? me.from_interface.name ?*/_get_ioport(uintptr_t ignored, uint16_t start, uint16_t end) {
+seL4_CPtr /*? me.from_interface.name ?*/_get_ioport(uint16_t start, uint16_t end) {
     /*- set all_ports = pci_ioports + nonpci_ioports -*/
     /*- if len(all_ports) == 0 -*/
         return 0;

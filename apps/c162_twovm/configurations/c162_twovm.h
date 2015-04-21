@@ -38,37 +38,6 @@
 
 #define VM_NUM_GUESTS 2
 
-/* Passthrough IRQs are used to give a guest a direct hardware interrupt. The format here
- * is (source_irq, level_triggered, active_low, dest_irq).
- * source_irq - The interrupt index on the I/O APIC for this device. Note that seL4
- *              does not interrupt remapping of any kind and will just use the default
- * level_triggered - 1 if level triggred 0 if edge triggered. Generally PCI devices are
- *                   level triggered and old ISA devices (serial ports etc) are edge
- *                   triggered
- * active_low - 1 if triggered when low, 0 if triggered when high. Generally
- *              PCI interrupts are active low, and ISA interrupts are active high
- * dest_irq - The IRQ number on the PIC we emulate to Linux to deliver this interrupt
- *            to. Frequently the source and dest irqs will need to be different,
- *            in this case the VMM supports a way to indicate in the PCI config space
- *            virtualization where the interrupt is. See the comments on
- *            VM_GUEST_PASSTHROUGH_DEVICES
- */
-#define VM_PASSTHROUGH_IRQ_0() ( \
-        /* Eth1 */ \
-        (17, 1, 1, 11), \
-        /* Usb */ \
-        (23, 1, 1, 14) \
-    ) \
-    /**/
-
-#define VM_PASSTHROUGH_IRQ_1() ( \
-        /* serial */ \
-        (3, 0, 0, 3), \
-        /* I2C */ \
-        (18, 1, 1, 12) \
-    ) \
-    /**/
-
 /* Additional interfaces for the VM subcomponent. This is mostly just used
  * as a stepping stone to exporting interfaces all the way up to the
  * top level camkes spec */
@@ -107,57 +76,6 @@
     connection seL4RPCCall vchan(from vm0.vchan_con, to vchan_0.vchan_com); \
     connection seL4SharedData vchan_sharemem(from vm0.share_mem, to vchan_0.share_mem); \
     connection seL4Asynch vchan_event_init(from vchan_0.vevent_cl, to vm0.vevent); \
-    /**/
-
-/* Define any IOSpaces that need be created and populated with mappings
- * in the IOMMU. Each entry here is the format
-   "iospace_domain:pci_bus:pci_device:pci_fun"
- * The iospace domain needs to match the definition in
- * VM_GUEST_IOSPACE_DOMAIN_N There needs to be a definition here for
- * every PCI device given to the guest in VM_GUEST_PASSTHROUGH_DEVICES
- */
-#define VM_CONFIGURATION_IOSPACES_0() ( \
-    /* Eth1 */ \
-    0xf:0x1:0x0:1, \
-    /* USB */ \
-    0xf:0x0:0x1d:0 \
-    ) \
-    /**/
-
-#define VM_CONFIGURATION_IOSPACES_1() ( \
-    /* I2C */ \
-    0x10:0x0:0x1f:3 \
-    ) \
-    /**/
-
-/* This is a list of any memory mapped IO regions that will be needed when
- * giving the guest PCI devices. When the VMM gives the guest access to
- * devices in VM_GUEST_PASSTHROUGH_DEVICES, the memory regions for the
- * bars need to be in this list. Essentially this list requests the
- * capdl-loader give the VMM these resources, which we then may or may
- * not actually give to Linux, depending on whether a device that Linux
- * uses actually needs it. Format is
-   "physical_address:size:page_bits"
- * Size can be less than a page, although in practice the actual region
- * requested will be round up to a multiple of the page size.
- * page_bits is size of the frame that backs this region. This is to account
- * for seL4 potentially giving large frames for device regions that can
- * support it. In practice this doesn't happen at the moment and this
- * value should always be 12
- */
-#define VM_CONFIGURATION_MMIO_0() ( \
-    /* Eth1 */ \
-    0xf1a80000:0x80000:12, \
-    0xf1c08000:0x4000:12, \
-    /* USB */ \
-    0xf2c07000:0x400:12 \
-    ) \
-    /**/
-
-#define VM_CONFIGURATION_MMIO_1() ( \
-    /* I2C */ \
-    0xf2c05000:0x100:12 \
-    ) \
     /**/
 
 /* All our guests use the same kernel image, rootfs and cmdline */
@@ -215,27 +133,42 @@
         {"start":0x16C0, "end":0x16E0, "pci_device":0, "name":"CANbus 2 Multi address"}, \
         {"start":0xe000, "end":0xe01f, "pci_device":1, "name":"Some device"} \
     ]; \
-    /**/
-
-/* List of pci devices that should be given as passthrough to the guest
- * Format is
-   {.ven = pci_vendor_id, .dev = pci_device_id, .fun = pci_function, .irq = irq_remap}
- * The pci_function is an option argument, and is used as a rudimentary
- * way of picking when there are multiple of the same device. This assumes
- * that duplicate devices will be on the same pci bus/device and only
- * differ by function. A value of -1 means the device can appear at
- * any function
- * irq_remap is where we will tell the guest the IRQ is. This should probably
- * match at least one dest_irq in VM_PASSTHROUGH_IRQ. Can be -1 to use the
- * default *PIC* IRQ
- */
-#define VM_GUEST_PASSTHROUGH_DEVICES_0() \
-    {.ven = 0x8086, .dev = 0x150e, .fun = 1, .irq = 11}, /* Network */ \
-    {.ven = 0x8086, .dev = 0x3b34, .fun = -1, .irq = 14}, /* USB */ \
-    /**/
-
-#define VM_GUEST_PASSTHROUGH_DEVICES_1() \
-    {.ven = 0x8086, .dev = 0x3b30, .fun = -1, .irq = 12}, /* SMBus (I2C) */ \
+    vm0_config.irqs = [ \
+        {"name":"Ethernet", "source":17, "level_trig":1, "active_low":1, "dest":11}, \
+        {"name":"USB", "source":23, "level_trig":1, "active_low":1, "dest":14} \
+    ]; \
+    vm1_config.irqs = [ \
+        {"name":"I2C", "source":18, "level_trig":1, "active_low":1, "dest":12}, \
+        {"name":"Serial", "source":3, "level_trig":0, "active_low":0, "dest":3} \
+    ]; \
+    vm0_config.pci_devices_iospace = 1; \
+    vm1_config.pci_devices_iospace = 1; \
+    vm0_config.pci_devices = [ \
+        {"name":"Ethernet", \
+            "bus":1, "dev":0, "fun":1, \
+            "irq":"Ethernet", \
+            "memory":[ \
+                {"paddr":0xf1a80000, "size":0x80000, "page_bits":12}, \
+                {"paddr":0xf1c08000, "size":0x4000, "page_bits":12}, \
+            ], \
+        }, \
+        {"name":"USB", \
+            "bus":0, "dev":0x1d, "fun":0, \
+            "irq":"USB", \
+            "memory":[ \
+                {"paddr":0xf2c07000, "size":0x400, "page_bits":12}, \
+            ], \
+        }, \
+    ]; \
+    vm1_config.pci_devices = [ \
+        {"name":"I2C", \
+            "bus":0, "dev":0x1f, "fun":3, \
+            "irq":"I2C", \
+            "memory":[ \
+                {"paddr":0xf2c05000, "size":0x100, "page_bits":12}, \
+            ], \
+        }, \
+    ]; \
     /**/
 
 #define VM_INIT_COMPONENT() \

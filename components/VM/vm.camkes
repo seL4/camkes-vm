@@ -24,6 +24,8 @@ import <Ethdriver.idl4>;
 import <VchanInterface.idl4>;
 import <ExtraRAM.idl4>;
 import <VMIOPorts.idl4>;
+import <VMIRQs.idl4>;
+import <VMPCIDevices.idl4>;
 
 import "PIC.camkes";
 import "PIT.camkes";
@@ -82,6 +84,16 @@ connector seL4VMIOPorts {
     to Interface vm_io_ports;
 }
 
+connector seL4VMIRQs {
+    from Procedure client template "seL4VMIRQs.template.c";
+    to Interface vm_irqs;
+}
+
+connector seL4VMPCIDevices {
+    from Procedure client template "seL4VMPCIDevices.template.c";
+    to Interface vm_pci_devices;
+}
+
 component PieceOfHardware {
     hardware;
     provides IOPort pci_config_address;
@@ -100,6 +112,8 @@ component VMConfig {
     hardware;
     provides ExtraRAM ram;
     provides VMIOPorts ioports;
+    provides VMIRQs irqs;
+    provides VMPCIDevices pci_devices;
 };
 
 component VM {

@@ -79,6 +79,8 @@
     uses RTC system_rtc; \
     uses ExtraRAM ram; \
     uses VMIOPorts ioports; \
+    uses VMIRQs irqs; \
+    uses VMPCIDevices pci_devices; \
     consumes HaveInterrupt intready; \
     uses Timer init_timer; \
     dataport Buf serial_buffer; \
@@ -109,10 +111,11 @@
     connection seL4TimeServer CAT(pit##num,_timer)(from vm##num.init_timer, to time_server.the_timer); \
     /* Connect config space to main VM */ \
     connection seL4RPCCall pciconfig##num(from vm##num.pci_config, to pci_config.pci_config); \
-    /* Connect the extra memory */ \
+    /* Connect the fake hardware devices */ \
     connection seL4ExtraRAM extra_ram##num(from vm##num.ram, to CAT(vm##num,_config).ram); \
-    /* Connect the IOPorts */ \
     connection seL4VMIOPorts vm_ioports##num(from vm##num.ioports, to CAT(vm##num,_config).ioports); \
+    connection seL4VMIRQs vm_irqs##num(from vm##num.irqs, to CAT(vm##num,_config).irqs); \
+    connection seL4VMPCIDevices vm_pci_devices##num(from vm##num.pci_devices, to CAT(vm##num,_config).pci_devices); \
     /**/
 
 #define VM_CONFIG_LIST(num, func, list, name) \

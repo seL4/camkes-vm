@@ -1,0 +1,14 @@
+/*
+ * Copyright 2014, NICTA
+ *
+ * This software may be distributed and modified according to the terms of
+ * the GNU General Public License version 2. Note that NO WARRANTY is provided.
+ * See "LICENSE_GPLv2.txt" for details.
+ *
+ * @TAG(NICTA_GPL)
+ */
+
+procedure VMIRQs {
+    int num_irqs();
+    string get_irq(in int irq, out seL4_CPtr irq_handler, out uint8_t source, out int level_trig, out int active_low, out uint16_t dest);
+};

@@ -26,6 +26,7 @@ include HelloWorld/HelloWorld.mk
 include Echo/Echo.mk
 include Vchan/Vchan.mk
 include PCIConfigIO/PCIConfigIO.mk
+include FileServer/FileServer.mk
 include Init/Init.mk
 
 # We want to run C99
@@ -49,14 +50,9 @@ ${STAGE_DIR}/${ROOTFS_FILENAME}: ${SOURCE_DIR}/linux/${ROOTFS_FILENAME}
 	@echo "[CP] $@"
 	@cp $< $@
 
-${BUILD_DIR}/src/vm_vm0/static/archive.o: ${ARCHIVE_DEPS}
+${BUILD_DIR}/src/vm_fserv/static/archive.o: ${ARCHIVE_DEPS}
 	$(Q)mkdir -p $(dir $@)
 	@echo "[CPIO] $@"
 	$(Q)${COMMON_PATH}/files_to_obj.sh $@ _cpio_archive $^
 	@echo "[CPIO] done."
 
-${BUILD_DIR}/src/vm_vm1/static/archive.o: ${ARCHIVE_DEPS}
-	$(Q)mkdir -p $(dir $@)
-	@echo "[CPIO] $@"
-	$(Q)${COMMON_PATH}/files_to_obj.sh $@ _cpio_archive $^
-	@echo "[CPIO] done."

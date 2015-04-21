@@ -8,7 +8,6 @@
  * @TAG(NICTA_GPL)
  */
 
-#include <autoconf.h>
 import <PCIConfig.idl4>;
 import <PutChar.idl4>;
 

@@ -8,8 +8,6 @@
  * @TAG(NICTA_GPL)
  */
 
-#include <autoconf.h>
-
 #include <RTC.h>
 #include <platsupport/plat/rtc.h>
 

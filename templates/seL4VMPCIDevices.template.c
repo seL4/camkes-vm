@@ -94,7 +94,7 @@ int /*? me.from_interface.name ?*/_num_device_mem(int pci_dev) {
     /*- endif -*/
 }
 
-const char /*? me.from_interface.name ?*/_get_device_irq(int pci_dev) {
+const char */*? me.from_interface.name ?*/_get_device_irq(int pci_dev) {
     /*- if len(devices) == 0 -*/
         return NULL;
     /*- else -*/

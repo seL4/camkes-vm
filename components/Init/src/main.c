@@ -193,7 +193,7 @@ static void make_proxy_vka(vka_t *vka, allocman_t *allocman) {
         int size_bits;
         ram_get_untyped(i, &paddr, &size_bits, &cap);
         vka_cspace_make_path(&proxy->regular_vka, cap, &path);
-        error = _utspace_trickle_add_uts(allocman, &proxy->ram_ut_manager, 1, &path, &size_bits, &paddr);
+        error = _utspace_trickle_add_uts(allocman, &proxy->ram_ut_manager, 1, &path, (uint32_t*)&size_bits, &paddr);
         assert(!error);
     }
     if (num > 0) {
@@ -649,7 +649,6 @@ void *main_continued(void *arg) {
     assert(!error);
 
     /* Do per vm configuration */
-    int num_guest_passthrough_devices;
 #define PER_VM_CONFIG(num, iteration, data) \
     if (strcmp(get_instance_name(), BOOST_PP_STRINGIZE(vm_vm##iteration)) == 0) { \
         device_notify_list = BOOST_PP_CAT(device_notify_vm, iteration); \
@@ -675,11 +674,8 @@ void *main_continued(void *arg) {
         uint8_t bus;
         uint8_t dev;
         uint8_t fun;
-        const char *name;
-        const char *irq_name;
-        int irq = -1;
         seL4_CPtr iospace_cap;
-        name = pci_devices_get_device(i, &bus, &dev, &fun, &iospace_cap);
+        pci_devices_get_device(i, &bus, &dev, &fun, &iospace_cap);
         error = vmm_guest_vspace_add_iospace(&vmm.guest_mem.vspace, iospace_cap);
         assert(!error);
     }
@@ -721,11 +717,10 @@ void *main_continued(void *arg) {
         uint8_t bus;
         uint8_t dev;
         uint8_t fun;
-        const char *name;
         const char *irq_name;
         int irq = -1;
         seL4_CPtr iospace_cap;
-        name = pci_devices_get_device(i, &bus, &dev, &fun, &iospace_cap);
+        pci_devices_get_device(i, &bus, &dev, &fun, &iospace_cap);
         irq_name = pci_devices_get_device_irq(i);
         /* search for the irq */
         for (int j = 0; j < irqs_num_irqs(); j++) {

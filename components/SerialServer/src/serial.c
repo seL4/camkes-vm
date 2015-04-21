@@ -407,15 +407,19 @@ void pre_init(void) {
     serial_unlock();
 }
 
+seL4_Word vm_putchar_get_badge(void);
+
 void vm_putchar_putchar(int c) {
-    int n = vm_putchar_get_badge();
-    internal_putchar(n, c);
+    seL4_Word n = vm_putchar_get_badge();
+    internal_putchar((int)n, c);
     if (c == '\n') {
         internal_putchar(n, '\r');
     }
 }
 
+seL4_Word guest_putchar_get_badge(void);
+
 void guest_putchar_putchar(int c) {
-    int n =guest_putchar_get_badge();
-    internal_putchar(n + VM_NUM_GUESTS, c);
+    seL4_Word n = guest_putchar_get_badge();
+    internal_putchar((int)n + VM_NUM_GUESTS, c);
 }

@@ -92,6 +92,8 @@ int fs_ctrl_lookup(const char *name) {
     return FS_ERR_NOFILE;
 }
 
+seL4_Word fs_ctrl_get_badge(void);
+
 /*
     Ends a server-client lock
 */

@@ -15,8 +15,6 @@ import <Timer.idl4>;
 #include <boost/preprocessor/repeat.hpp>
 
 #define PER_VM_DEF(num, iteration, data) \
-    provides PutChar vm##iteration; \
-    provides PutChar guest##iteration; \
     dataport Buf BOOST_PP_CAT(guest##iteration,_buffer); \
     emits HasData BOOST_PP_CAT(guest##iteration,_has_data); \
     /**/
@@ -24,6 +22,9 @@ import <Timer.idl4>;
 component SerialServer {
     control;
     has mutex serial;
+
+    provides PutChar vm_putchar;
+    provides PutChar guest_putchar;
 
     BOOST_PP_REPEAT(VM_NUM_GUESTS, PER_VM_DEF, _)
 

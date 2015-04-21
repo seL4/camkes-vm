@@ -53,7 +53,7 @@
  */
 #define PLAT_CONNECT_DEF() \
     /* Give ethernet driver same output as its vm */ \
-    connection seL4RPCCall eth_putchar(from ethdriver0.putchar, to serial.vm0); \
+    connection seL4RPCCall eth_putchar(from ethdriver0.putchar, to serial.vm_putchar); \
     /* Export ethernet driver interface */ \
     connection ExportData export_eth_packet(from  ethdriver0.packet0, to ethdriver0_packet0); \
     connection ExportRPC export_eth_driver(from ethdriver0_client0, to ethdriver0.client0); \
@@ -66,8 +66,8 @@
     connection seL4RPCCall hvchan(from hello.vchan_con, to vchan_0.vchan_com); \
     connection seL4SharedData hvchan_sharemem_0(from hello.share_mem, to vchan_0.share_mem); \
     /* Connect hello and vchan to the serial server (pretend to be vm1) */ \
-    connection seL4RPCCall hserial(from hello.putchar, to serial.vm1); \
-    connection seL4RPCCall vchanserial(from vchan_0.putchar, to serial.vm1); \
+    connection seL4RPCCall hserial(from hello.putchar, to serial.vm_putchar); \
+    connection seL4RPCCall vchanserial(from vchan_0.putchar, to serial.vm_putchar); \
     /* Connect vm1 to the vchan component */ \
     connection seL4RPCCall vchan_1(from vm1.vchan_con, to vchan_0.vchan_com); \
     connection seL4SharedData vchan_sharemem_1(from vm1.share_mem, to vchan_0.share_mem); \
@@ -101,6 +101,9 @@
     vm1.simple_untyped24_pool = 2; \
     vm0.guest_ram_mb = 80; \
     vm1.guest_ram_mb = 80; \
+    ethdriver0.putchar_attributes = "0"; \
+    hello.putchar_attributes = "1"; \
+    vchan_0.putchar_attributes = "1"; \
     HWEthDriver.mmio_attributes = "0xf1b80000:0x80000"; \
     HWEthDriver.irq_attributes = "16,1,1"; \
     ethdriver0.simple = true; \

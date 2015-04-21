@@ -107,8 +107,8 @@
     connection seL4RPCCall fs##num(from vm##num.fs, to fserv.fs_ctrl); \
     connection seL4SharedData fs_sharemem##num(from vm##num.fs_mem, to fserv.fs_mem); \
     /* Connect all the components to the serial server */ \
-    connection seL4RPCCall serial_vm##num(from vm##num.putchar, to serial.vm##num); \
-    connection seL4RPCCall serial_guest_vm##num(from vm##num.guest_putchar, to serial.guest##num); \
+    connection seL4RPCCall serial_vm##num(from vm##num.putchar, to serial.vm_putchar); \
+    connection seL4RPCCall serial_guest_vm##num(from vm##num.guest_putchar, to serial.guest_putchar); \
     /* Connect the emulated serial input to the serial server */ \
     connection seL4ProdCon serial_input##num(from serial.CAT(guest##num,_buffer), to vm##num.serial_buffer); \
     connection seL4GlobalAsynch serial_input_ready##num(from serial.CAT(guest##num,_has_data), to vm##num.intready); \
@@ -168,6 +168,8 @@
     vm##num.init_timer_badge = BOOST_PP_STRINGIZE(VM_INIT_TIMER_BADGE); \
     vm##num.init_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(0, num)); \
     vm##num.intready_global_endpoint = BOOST_PP_STRINGIZE(vm##num); \
+    vm##num.putchar_attributes = BOOST_PP_STRINGIZE(num); \
+    vm##num.guest_putchar_attributes = BOOST_PP_STRINGIZE(num); \
     serial.CAT(guest##num,_has_data_global_endpoint) = BOOST_PP_STRINGIZE(vm##num); \
     serial.CAT(guest##num,_has_data_badge) = BOOST_PP_STRINGIZE(VM_PIC_BADGE_SERIAL_HAS_DATA); \
     vm##num.cnode_size_bits = 21; \

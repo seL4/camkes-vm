@@ -407,16 +407,15 @@ void pre_init(void) {
     serial_unlock();
 }
 
-/* Generate stub interfaces for each camkes interface */
-#define INTERFACE_OUTPUT(unused1, n, unused2) \
-    void BOOST_PP_CAT(vm##n,_putchar)(int c) { \
-        internal_putchar(n, c); \
-        if (c == '\n') { \
-            internal_putchar(n, '\r'); \
-        } \
-    } \
-    void BOOST_PP_CAT(guest##n,_putchar)(int c) { \
-        internal_putchar(n + VM_NUM_GUESTS, c); \
-    } \
-    /**/
-BOOST_PP_REPEAT(VM_NUM_GUESTS, INTERFACE_OUTPUT, _)
+void vm_putchar_putchar(int c) {
+    int n = vm_putchar_get_badge();
+    internal_putchar(n, c);
+    if (c == '\n') {
+        internal_putchar(n, '\r');
+    }
+}
+
+void guest_putchar_putchar(int c) {
+    int n =guest_putchar_get_badge();
+    internal_putchar(n + VM_NUM_GUESTS, c);
+}

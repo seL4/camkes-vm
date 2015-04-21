@@ -144,9 +144,9 @@ component VM {
 
         /* These components don't do much output, but just in case they can pretend to
          * be vm0 */
-        connection seL4RPCCall serial_pci_config(from pci_config.putchar, to serial.vm0);
-        connection seL4RPCCall serial_time_server(from time_server.putchar, to serial.vm0);
-        connection seL4RPCCall serial_rtc(from rtc.putchar, to serial.vm0);
+        connection seL4RPCCall serial_pci_config(from pci_config.putchar, to serial.vm_putchar);
+        connection seL4RPCCall serial_time_server(from time_server.putchar, to serial.vm_putchar);
+        connection seL4RPCCall serial_rtc(from rtc.putchar, to serial.vm_putchar);
 
         /* Perform the per VM connections */
         BOOST_PP_REPEAT(VM_NUM_GUESTS, REPEAT_WRAPPER, VM_CONNECT_DEF)
@@ -179,6 +179,7 @@ component VM {
         serial.timeout_global_endpoint = "serial_server";
         serial.timeout_badge = "1";
 
+        time_server.putchar_attributes = "0";
         time_server.timers_per_client = 9;
 
         pit.command_attributes = "0x43:0x43";
@@ -188,6 +189,9 @@ component VM {
         /* Serial port definitions */
         hw_serial.serial_attributes="0x3f8:0x3ff";
         hw_serial.serial_irq_attributes = "4,0,0";
+
+        pci_config.putchar_attributes = "0";
+        rtc.putchar_attributes = "0";
 
         /* PCI config space definitions */
         poh.pci_config_address_attributes = "0xcf8:0xcfb";

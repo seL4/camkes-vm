@@ -1,0 +1,27 @@
+/*
+ * Copyright 2014, NICTA
+ *
+ * This software may be distributed and modified according to the terms of
+ * the GNU General Public License version 2. Note that NO WARRANTY is provided.
+ * See "LICENSE_GPLv2.txt" for details.
+ *
+ * @TAG(NICTA_GPL)
+ */
+#include <autoconf.h>
+#include <configurations/vm.h>
+
+component Init0 {
+    include "vmm/vchan_sharemem.h";
+    uses VchanInterface vchan_con;
+    consumes VchanEvent vevent;
+    dataport vchan_headers_t share_mem;
+    VM_INIT_DEF()
+}
+
+component Init1 {
+    include "vmm/vchan_sharemem.h";
+    uses VchanInterface vchan_con;
+    consumes VchanEvent vevent;
+    dataport vchan_headers_t share_mem;
+    VM_INIT_DEF()
+}

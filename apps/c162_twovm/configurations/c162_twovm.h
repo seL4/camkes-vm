@@ -171,23 +171,6 @@
     ]; \
     /**/
 
-#define VM_INIT_COMPONENT() \
-    component Init0 { \
-        include "vmm/vchan_sharemem.h"; \
-        uses VchanInterface vchan_con; \
-        consumes VchanEvent vevent; \
-        dataport vchan_headers_t share_mem; \
-        VM_INIT_DEF() \
-    } \
-    component Init1 { \
-        include "vmm/vchan_sharemem.h"; \
-        uses VchanInterface vchan_con; \
-        consumes VchanEvent vevent; \
-        dataport vchan_headers_t share_mem; \
-        VM_INIT_DEF() \
-    } \
-    /**/
-
 #define VCHAN_COMPONENT_DEF() \
     static camkes_vchan_con_t vchan_camkes_component = { \
     .connect = &vchan_con_new_connection, \

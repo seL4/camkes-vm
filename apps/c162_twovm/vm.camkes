@@ -10,6 +10,7 @@
 
 import <VM/vm.camkes>;
 import <Echo/Echo.camkes>;
+import "c162_vm.camkes";
 
 assembly {
     composition {

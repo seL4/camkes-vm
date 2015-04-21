@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include <autoconf.h>
 
 #include <cpio/cpio.h>
 #include <sel4utils/mapping.h>

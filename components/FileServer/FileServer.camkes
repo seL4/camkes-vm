@@ -8,8 +8,6 @@
  * @TAG(NICTA_GPL)
  */
 
-#include <autoconf.h>
-#include <configurations/vm.h>
 import <PutChar.idl4>;
 import <FileServerInterface.idl4>;
 

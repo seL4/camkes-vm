@@ -28,5 +28,5 @@ struct {
         __attribute__((section("shared_/*? dataport_section ?*/")))
         __attribute__((externally_visible));
 
-volatile /*? dataport_type ?*/ * /*? me.from_interface.name ?*/_buf_/*? client_id ?*/ =
+volatile /*? dataport_type ?*/ * /*? me.from_interface.name ?*/_buf  =
     (volatile /*? dataport_type ?*/ *) & /*? p['dataport_symbol'] ?*/;

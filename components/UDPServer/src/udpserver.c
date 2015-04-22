@@ -132,6 +132,9 @@ void pre_init(void) {
     netif_set_default(netif);
 }
 
+/* Provided by the Ethdriver template */
+seL4_CPtr ethdriver_aep(void);
+
 int run() {
     while(1) {
         seL4_Wait(ethdriver_aep(), NULL);

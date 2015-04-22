@@ -101,6 +101,11 @@ connector seL4RPCDataport {
     to Procedure server template "seL4RPCDataport-to.template.c";
 }
 
+connector seL4Ethdriver {
+    from Procedure client template "seL4Ethdriver-from.template.c";
+    to Procedure server template "seL4Ethdriver-to.template.c";
+}
+
 component PieceOfHardware {
     hardware;
     provides IOPort pci_config_address;

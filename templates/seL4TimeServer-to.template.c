@@ -27,7 +27,7 @@
 /*- set badges = [] -*/
 /*- for id, c in enumerate(composition.connections) -*/
     /*- if c.to_instance.name == me.to_instance.name -*/
-        /*- if c.type.name == 'seL4TimeServer' -*/
+        /*- if c.type.name == me.type.name -*/
             /*- set is_reader = False -*/
             /*- set instance = c.from_instance.name -*/
             /*- set interface = c.from_interface.name -*/

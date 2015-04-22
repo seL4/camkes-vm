@@ -22,8 +22,7 @@ assembly {
         component VM vm;
 
         /* Connect ethernet driver to udpserver */
-        connection seL4RPCDataport eth_driver(from udpserver.ethdriver, to vm.ethdriver0_client);
-        connection seL4Asynch eth_rx_ready(from vm.ethdriver0_rx_ready0, to udpserver.eth_rx_ready);
+        connection seL4Ethdriver eth_driver(from udpserver.ethdriver, to vm.ethdriver0_client);
 
         /* UDP connections for echo server */
         connection seL4UDPRecv udp_echo_recv(from echo.echo_recv, to udpserver.client_recv);
@@ -38,5 +37,6 @@ assembly {
         udpserver.client_send_ports = { "source" : 7, "dest" : 7};
         udpserver.udp_ip_addr = "10.13.1.215";
         udpserver.ethdriver_attributes = "1";
+        udpserver.ethdriver_global_endpoint = "udpserver_endpoint";
     }
 }

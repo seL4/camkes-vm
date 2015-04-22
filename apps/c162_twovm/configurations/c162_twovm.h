@@ -43,7 +43,6 @@
  * top level camkes spec */
 #define PLAT_COMPONENT_INTERFACES() \
     provides Ethdriver ethdriver0_client; \
-    emits Notification ethdriver0_rx_ready0; \
     /**/
 
 /* Camkes definitions for defining any connections that are specific
@@ -55,7 +54,6 @@
     connection seL4RPCCall eth_putchar(from ethdriver0.putchar, to serial.vm_putchar); \
     /* Export ethernet driver interface */ \
     connection ExportRPC export_eth_driver(from ethdriver0_client, to ethdriver0.client); \
-    connection ExportAsynch export_eth_rx_ready(from ethdriver0.rx_ready0, to ethdriver0_rx_ready0); \
     /* Define hardware resources for ethdriver0 */ \
     connection seL4HardwareMMIO ethdrivermmio1(from ethdriver0.EthDriver, to HWEthDriver.mmio); \
     connection seL4IOAPICHardwareInterrupt hwethirq(from HWEthDriver.irq, to ethdriver0.irq); \

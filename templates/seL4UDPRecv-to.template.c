@@ -51,7 +51,6 @@ static udp_message_t *used_head = NULL;
 static int need_signal = 1;
 
 static void udprecv(void *arg, struct udp_pcb *pcb, struct pbuf *p, ip_addr_t *addr, u16_t port) {
-    lwip_lock();
     if (!free_head) {
         pbuf_free(p);
         lwip_unlock();
@@ -71,7 +70,6 @@ static void udprecv(void *arg, struct udp_pcb *pcb, struct pbuf *p, ip_addr_t *a
 
     m->next = used_head;
     used_head = m;
-    lwip_unlock();
 }
 
 void /*? me.to_interface.name ?*/__run(void) {

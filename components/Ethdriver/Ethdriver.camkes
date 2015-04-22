@@ -8,15 +8,8 @@
  * @TAG(NICTA_GPL)
  */
 
-#include <autoconf.h>
 import <Ethdriver.idl4>;
 import <PutChar.idl4>;
-#include <configurations/vm.h>
-#include <boost/preprocessor/repeat.hpp>
-
-#define CLIENT_DEF(num, iteration, data) \
-    emits Notification rx_ready##iteration; \
-    /**/
 
 component Ethdriver {
     include "c162/EthType.h";
@@ -24,8 +17,6 @@ component Ethdriver {
     uses PutChar putchar;
 
     provides Ethdriver client;
-
-    BOOST_PP_REPEAT(VM_ETHDRIVER_NUM_CLIENTS, CLIENT_DEF, _)
 
     consumes IRQ irq;
     dataport EthDriverMMIO_t EthDriver;

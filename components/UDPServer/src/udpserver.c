@@ -16,6 +16,7 @@
 #include <lwip/udp.h>
 #include <netif/etharp.h>
 #include <lwip/init.h>
+#include <sel4/sel4.h>
 
 static void low_level_init(struct eth_driver *driver, uint8_t *mac, int *mtu) {
     *mtu = 1500;
@@ -76,12 +77,6 @@ static int ethdriver_init(struct eth_driver *eth_driver, ps_io_ops_t io_ops, voi
     return 0;
 }
 
-static void have_packet(void *cookie) {
-    lwip_iface_t *lwip_driver = (lwip_iface_t*)cookie;
-    ethif_lwip_handle_irq(lwip_driver, 0);
-    eth_rx_ready_reg_callback(have_packet, cookie);
-}
-
 static void* malloc_dma_alloc(void *cookie, size_t size, int align, int cached, ps_mem_flags_t flags) {
     assert(cached);
     int error;
@@ -137,6 +132,11 @@ void pre_init(void) {
     netif_set_default(netif);
 }
 
-void post_init(void) {
-    eth_rx_ready_reg_callback(have_packet, &_lwip_driver);
+int run() {
+    while(1) {
+        seL4_Wait(ethdriver_aep(), NULL);
+        lwip_lock();
+        ethif_lwip_handle_irq(&_lwip_driver, 0);
+        lwip_unlock();
+    }
 }

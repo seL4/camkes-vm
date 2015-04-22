@@ -78,9 +78,6 @@ typedef struct client {
     /* mac address for this client */
     uint8_t mac[6];
 
-    /* notification function */
-    void (*rx_ready)();
-
     /* id for this client */
     int client_id;
 
@@ -175,7 +172,7 @@ static void give_client_buf(client_t *client, void *cookie, unsigned int len) {
     client->rx[client->rx_head] = (pending_rx_t){cookie,len, 0};
     client->rx_head = (client->rx_head + 1) % CLIENT_RX_BUFS;
     if (client->should_notify) {
-        client->rx_ready();
+        client_emit(client->client_id);
         client->should_notify = 0;
     }
 }
@@ -362,7 +359,6 @@ void post_init(void) {
         clients[client].should_notify = 1;
         uint8_t mac[] = {06, 00, 00, 12, 13, 14};
         memcpy(clients[client].mac, mac, sizeof(mac));
-        clients[client].rx_ready = rx_ready0_emit;
         clients[client].client_id = client_enumerate_badge(client);
         clients[client].dataport = client_buf(clients[client].client_id);
         for (int i = 0; i < CLIENT_TX_BUFS; i++) {

@@ -94,7 +94,6 @@ static int done_init = 0;
 
 static void init_system(void) {
     int error;
-    set_putchar(putchar_putchar);
 
     /* Camkes adds nothing to our address space, so this array is empty */
     void *existing_frames[] = {

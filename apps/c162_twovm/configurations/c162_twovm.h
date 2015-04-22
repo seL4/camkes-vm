@@ -42,7 +42,6 @@
  * as a stepping stone to exporting interfaces all the way up to the
  * top level camkes spec */
 #define PLAT_COMPONENT_INTERFACES() \
-    provides Ethdriver ethdriver0_client; \
     /**/
 
 /* Camkes definitions for defining any connections that are specific
@@ -50,13 +49,6 @@
  * for UDPServer as well as inter-vm communication
  */
 #define PLAT_CONNECT_DEF() \
-    /* Give ethernet driver same output as its vm */ \
-    connection seL4RPCCall eth_putchar(from ethdriver0.putchar, to serial.vm_putchar); \
-    /* Export ethernet driver interface */ \
-    connection ExportRPC export_eth_driver(from ethdriver0_client, to ethdriver0.client); \
-    /* Define hardware resources for ethdriver0 */ \
-    connection seL4HardwareMMIO ethdrivermmio1(from ethdriver0.EthDriver, to HWEthDriver.mmio); \
-    connection seL4IOAPICHardwareInterrupt hwethirq(from HWEthDriver.irq, to ethdriver0.irq); \
     /* Connect hello to the vchan component */ \
     connection seL4Asynch vchan_event(from vchan_0.vevent_sv, to hello.vevent); \
     connection seL4RPCCall hvchan(from hello.vchan_con, to vchan_0.vchan_com); \
@@ -100,14 +92,6 @@
     ethdriver0.putchar_attributes = "0"; \
     hello.putchar_attributes = "1"; \
     vchan_0.putchar_attributes = "1"; \
-    HWEthDriver.mmio_attributes = "0xf1b80000:0x80000"; \
-    HWEthDriver.irq_attributes = "16,1,1"; \
-    ethdriver0.simple = true; \
-    ethdriver0.cnode_size_bits = 12; \
-    ethdriver0.iospaces = "0x12:0x1:0x0:0"; \
-    ethdriver0.iospace_id = 0x12; \
-    ethdriver0.pci_bdf = "1:0.0"; \
-    ethdriver0.simple_untyped20_pool = 2; \
     vm0.kernel_cmdline = VM_GUEST_CMDLINE; \
     vm0.kernel_image = C162_KERNEL_IMAGE; \
     vm0.kernel_relocs = C162_KERNEL_IMAGE; \
@@ -208,6 +192,4 @@
 #define PLAT_COMPONENT_DEF() \
     component Vchan vchan_0; \
     component HelloWorld hello; \
-    component Ethdriver ethdriver0; \
-    component HWEthDriver HWEthDriver; \
     /**/

@@ -380,15 +380,17 @@ void post_init(void) {
     ethdriver_unlock();
 }
 
+extern void *client0_buf_1;
+
 #define CLIENT_DEF(num, iteration, data) \
     void BOOST_PP_CAT(client##iteration,_mac)(uint8_t *b1, uint8_t *b2, uint8_t *b3, uint8_t *b4, uint8_t *b5, uint8_t *b6) { \
         client_mac(&clients[iteration], b1, b2, b3, b4, b5, b6); \
     } \
     int BOOST_PP_CAT(client##iteration,_rx)(int *len) { \
-        return client_rx(&clients[iteration], (void*)packet##iteration, len); \
+        return client_rx(&clients[iteration], (void*)client0_buf_1, len); \
     } \
     void BOOST_PP_CAT(client##iteration,_tx)(int len) { \
-        client_tx(&clients[iteration], (void*)packet##iteration, len); \
+        client_tx(&clients[iteration], (void*)client0_buf_1, len); \
     } \
     /**/
 

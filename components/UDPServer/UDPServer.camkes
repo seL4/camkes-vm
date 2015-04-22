@@ -16,7 +16,6 @@ import <UDPRecv.idl4>;
 component UDPServer {
     has mutex lwip;
 
-    dataport Buf packet;
     uses Ethdriver ethdriver;
     consumes Notifcation eth_rx_ready;
     attribute string udp_ip_addr;

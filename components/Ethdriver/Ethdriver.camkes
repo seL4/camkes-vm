@@ -17,7 +17,6 @@ import <PutChar.idl4>;
 #define CLIENT_DEF(num, iteration, data) \
     provides Ethdriver client##iteration; \
     emits Notification rx_ready##iteration; \
-    maybe dataport Buf packet##iteration; \
     /**/
 
 component Ethdriver {

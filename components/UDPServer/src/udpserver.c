@@ -22,6 +22,8 @@ static void low_level_init(struct eth_driver *driver, uint8_t *mac, int *mtu) {
     ethdriver_mac(&mac[0],&mac[1],&mac[2],&mac[3],&mac[4],&mac[5]);
 }
 
+extern void *ethdriver_buf_1;
+
 static void raw_poll(struct eth_driver *driver) {
     int len;
     int status;
@@ -31,7 +33,7 @@ static void raw_poll(struct eth_driver *driver) {
         void *cookie;
         buf = (void*)driver->i_cb.allocate_rx_buf(driver->cb_cookie, len, &cookie);
         assert(buf);
-        memcpy(buf, (void*)packet, len);
+        memcpy(buf, (void*)ethdriver_buf_1, len);
         driver->i_cb.rx_complete(driver->cb_cookie, 1, &cookie, (unsigned int*)&len);
         if (status == 1) {
             status = ethdriver_rx(&len);
@@ -46,7 +48,7 @@ static void raw_poll(struct eth_driver *driver) {
 static int raw_tx(struct eth_driver *driver, unsigned int num, uintptr_t *phys, unsigned int *len, void *cookie) {
     unsigned int total_len = 0;
     int i;
-    void *p = (void*)packet;
+    void *p = (void*)ethdriver_buf_1;
     for (i = 0; i < num; i++) {
         memcpy(p + total_len, (void*)phys[i], len[i]);
         total_len += len[i];

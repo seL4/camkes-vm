@@ -96,6 +96,11 @@ connector seL4VMPCIDevices {
     to Interface vm_pci_devices;
 }
 
+connector seL4RPCDataport {
+    from Procedure client template "seL4RPCDataport-from.template.c";
+    to Procedure server template "seL4RPCDataport-to.template.c";
+}
+
 component PieceOfHardware {
     hardware;
     provides IOPort pci_config_address;

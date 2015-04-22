@@ -380,6 +380,8 @@ void post_init(void) {
     ethdriver_unlock();
 }
 
+void *client0_buf(int);
+
 extern void *client0_buf_1;
 
 #define CLIENT_DEF(num, iteration, data) \
@@ -387,10 +389,10 @@ extern void *client0_buf_1;
         client_mac(&clients[iteration], b1, b2, b3, b4, b5, b6); \
     } \
     int BOOST_PP_CAT(client##iteration,_rx)(int *len) { \
-        return client_rx(&clients[iteration], (void*)client0_buf_1, len); \
+        return client_rx(&clients[iteration], client0_buf(1), len); \
     } \
     void BOOST_PP_CAT(client##iteration,_tx)(int len) { \
-        client_tx(&clients[iteration], (void*)client0_buf_1, len); \
+        client_tx(&clients[iteration], client0_buf(1), len); \
     } \
     /**/
 

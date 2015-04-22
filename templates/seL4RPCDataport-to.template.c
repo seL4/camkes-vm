@@ -18,19 +18,6 @@
 
 /*- set dataport_section = me.to_interface.name + "_" + str(client_id) -*/
 
-/*# Create a fake instance in the assembly #*/
-/*- set port = lambda('x: AST.Port(type = x)')(str(dataport_type)) -*/
-/*- set dataport = lambda('x, y: AST.Dataport(x, y)')(port, dataport_name) -*/
-
-/*- do me.to_instance.type.dataports.append(dataport) -*/
-/*- do me.from_instance.type.dataports.append(dataport) -*/
-
-/*- set connection_type = lambda('x: AST.Connector(name=x, from_type="Dataport", to_type="Dataport")')(dataport_name) -*/
-/*- set connection = lambda('con_type, con_name, from_inst, from_inter, to_inst, to_inter: \
-                             AST.Connection(con_type, con_name, from_inst, from_inter, to_inst, to_inter)')
-                     (connection_type, dataport_name, me.from_instance, dataport, me.to_instance, dataport) -*/
-/*- do composition.connections.append(connection) -*/
-
 /*- set p = Perspective(dataport=dataport_name) -*/
 #define SHM_ALIGN (1 << 12)
 struct {

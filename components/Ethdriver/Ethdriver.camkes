@@ -12,7 +12,7 @@ import <Ethdriver.idl4>;
 import <PutChar.idl4>;
 
 component Ethdriver {
-    include "c162/EthType.h";
+    include "EthType.h";
     has mutex ethdriver;
     uses PutChar putchar;
 

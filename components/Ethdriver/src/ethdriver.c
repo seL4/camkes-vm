@@ -10,7 +10,6 @@
 
 #include <autoconf.h>
 
-#include "vm.h"
 #include <Ethdriver.h>
 #include <platsupport/io.h>
 #include <vka/vka.h>

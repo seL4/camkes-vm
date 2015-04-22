@@ -320,8 +320,8 @@ static void eth_interrupt(void *cookie) {
 
 void post_init(void) {
     int error;
-    int iospace_id;
-    int pci_bdf;
+    int pci_bdf_int;
+    int bus, dev, fun;
     ethdriver_lock();
     /* initialize seL4 allocators and give us a half sane environment */
     init_system();
@@ -330,15 +330,10 @@ void post_init(void) {
     cspacepath_t iospace;
     error = vka_cspace_alloc_path(&vka, &iospace);
     assert(!error);
-#define PER_ETH_CONFIG(num, iteration, data) \
-    if (strcmp(get_instance_name(), BOOST_PP_STRINGIZE(vm_ethdriver##iteration)) == 0) { \
-        iospace_id = BOOST_PP_CAT(VM_ETHDRIVER_IOSPACE_,iteration)(); \
-        pci_bdf = BOOST_PP_CAT(VM_ETHDRIVER_PCI_BDF_,iteration)(); \
-    } \
-    /**/
-    BOOST_PP_REPEAT(VM_NUM_ETHDRIVERS, PER_ETH_CONFIG, _)
+    sscanf(pci_bdf, "%x:%x.%d", &bus, &dev, &fun);
+    pci_bdf_int = bus * 256 + dev * 8 + fun;
     /* get this from the configuration */
-    error = simple_get_iospace(&camkes_simple, iospace_id, pci_bdf, &iospace);
+    error = simple_get_iospace(&camkes_simple, iospace_id, pci_bdf_int, &iospace);
     assert(!error);
     error = sel4utils_make_iommu_dma_alloc(&vka, &vspace, &ioops.dma_manager, 1, &iospace.capPtr);
     assert(!error);

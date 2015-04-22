@@ -20,4 +20,8 @@ component Ethdriver {
 
     consumes IRQ irq;
     dataport EthDriverMMIO_t EthDriver;
+
+    attribute int iospace_id;
+    /* format for bdf is "BUS:DEV.fun" where BUS and DEV are hex and FUN is decimal */
+    attribute string pci_bdf;
 }

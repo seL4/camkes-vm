@@ -105,6 +105,8 @@
     ethdriver0.simple = true; \
     ethdriver0.cnode_size_bits = 12; \
     ethdriver0.iospaces = "0x12:0x1:0x0:0"; \
+    ethdriver0.iospace_id = 0x12; \
+    ethdriver0.pci_bdf = "1:0.0"; \
     ethdriver0.simple_untyped20_pool = 2; \
     vm0.kernel_cmdline = VM_GUEST_CMDLINE; \
     vm0.kernel_image = C162_KERNEL_IMAGE; \
@@ -211,9 +213,6 @@
     /**/
 
 #define VM_NUM_ETHDRIVERS 1
-
-#define VM_ETHDRIVER_IOSPACE_0() 0x12
-#define VM_ETHDRIVER_PCI_BDF_0() ( (1 << 8) | (0 << 3) | 0)
 
 #define VM_ETHDRIVER_NUM_CLIENTS 1
 #define VM_ETHDRIVER_CLIENTS_0() ( \

@@ -352,10 +352,9 @@ void post_init(void) {
     clients = calloc(num_clients, sizeof(client_t));
     for (int client = 0; client < num_clients; client++) {
         clients[client].should_notify = 1;
-        uint8_t mac[] = {06, 00, 00, 12, 13, 14};
-        memcpy(clients[client].mac, mac, sizeof(mac));
         clients[client].client_id = client_enumerate_badge(client);
         clients[client].dataport = client_buf(clients[client].client_id);
+        client_get_mac(clients[client].client_id, clients[client].mac);
         for (int i = 0; i < CLIENT_TX_BUFS; i++) {
             void *buf = ps_dma_alloc(&ioops.dma_manager, BUF_SIZE, 4, 1, PS_MEM_NORMAL);
             assert(buf);

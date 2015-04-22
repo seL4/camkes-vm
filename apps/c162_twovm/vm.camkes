@@ -38,5 +38,6 @@ assembly {
         udpserver.udp_ip_addr = "10.13.1.215";
         udpserver.ethdriver_attributes = "1";
         udpserver.ethdriver_global_endpoint = "udpserver_endpoint";
+        udpserver.ethdriver_mac = [06, 00, 00, 12, 13, 14];
     }
 }

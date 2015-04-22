@@ -211,12 +211,3 @@
     component Ethdriver ethdriver0; \
     component HWEthDriver HWEthDriver; \
     /**/
-
-#define VM_NUM_ETHDRIVERS 1
-
-#define VM_ETHDRIVER_NUM_CLIENTS 1
-#define VM_ETHDRIVER_CLIENTS_0() ( \
-    (06, 00, 00, 12, 13, 14) \
-    ) \
-    /**/
-

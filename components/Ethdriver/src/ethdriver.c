@@ -77,43 +77,19 @@ typedef struct client {
 
     /* mac address for this client */
     uint8_t mac[6];
+
     /* notification function */
-    void (*rx_ready)(void);
+    void (*rx_ready)();
+
+    /* id for this client */
+    int client_id;
+
+    /* dataport for this client */
+    void *dataport;
 } client_t;
-
-#define ETH_CLIENT(r, data, i, elem) \
-    { \
-        .should_notify = 1, \
-        .rx_head = 0, \
-        .rx_tail = 0, \
-        .num_tx = 0, \
-        .mac = {BOOST_PP_TUPLE_ENUM(elem)}, \
-        .rx_ready = BOOST_PP_CAT(rx_ready##i,_emit), \
-    }, \
-    /**/
-
-
-
-#define ETH_CLIENT_OUTPUT(num, iteration, data) \
-    static client_t BOOST_PP_CAT(clients_,iteration)[] = { \
-        BOOST_PP_LIST_FOR_EACH_I(ETH_CLIENT, iteration, BOOST_PP_TUPLE_TO_LIST(BOOST_PP_CAT(VM_ETHDRIVER_CLIENTS_, iteration)())) \
-    }; \
-    /**/
-
-BOOST_PP_REPEAT(VM_NUM_ETHDRIVERS, ETH_CLIENT_OUTPUT, _)
 
 static int num_clients = 0;
 static client_t *clients = NULL;
-/*static client_t clients[1] = {
-    {
-        .should_notify = 1,
-        .rx_head = 0,
-        .rx_tail = 0,
-        .num_tx = 0,
-        .mac = {0, 0, 0, 0, 0, 0},
-        .rx_ready = rx_ready_emit,
-    },
-};*/
 
 static int num_rx_bufs;
 static void *rx_bufs[RX_BUFS];
@@ -249,11 +225,20 @@ static struct raw_iface_callbacks ethdriver_callbacks = {
     .allocate_rx_buf = eth_allocate_rx_buf
 };
 
-static int client_rx(client_t *client, void *packet, int *len) {
+int client_rx(int *len) {
     if (!done_init) {
         return -1;
     }
     int ret;
+    int id = client_get_badge();
+    client_t *client = NULL;
+    for (int i = 0; i < num_clients; i++) {
+        if (clients[i].client_id == id) {
+            client = &clients[i];
+        }
+    }
+    assert(client);
+    void *packet = client->dataport;
     ethdriver_lock();
     if (client->rx_head == client->rx_tail) {
         client->should_notify = 1;
@@ -276,7 +261,7 @@ static int client_rx(client_t *client, void *packet, int *len) {
     return ret;
 }
 
-static void client_tx(client_t *client, void *packet, int len) {
+void client_tx(int len) {
     if (!done_init) {
         return;
     }
@@ -286,6 +271,15 @@ static void client_tx(client_t *client, void *packet, int len) {
     if (len < 12) {
         return;
     }
+    int id = client_get_badge();
+    client_t *client = NULL;
+    for (int i = 0; i < num_clients; i++) {
+        if (clients[i].client_id == id) {
+            client = &clients[i];
+        }
+    }
+    assert(client);
+    void *packet = client->dataport;
     ethdriver_lock();
     /* silently drop packets */
     if (client->num_tx != 0) {
@@ -300,7 +294,15 @@ static void client_tx(client_t *client, void *packet, int len) {
     ethdriver_unlock();
 }
 
-static void client_mac(client_t *client, uint8_t *b1, uint8_t *b2, uint8_t *b3, uint8_t *b4, uint8_t *b5, uint8_t *b6) {
+void client_mac(uint8_t *b1, uint8_t *b2, uint8_t *b3, uint8_t *b4, uint8_t *b5, uint8_t *b6) {
+    int id = client_get_badge();
+    client_t *client = NULL;
+    for (int i = 0; i < num_clients; i++) {
+        if (clients[i].client_id == id) {
+            client = &clients[i];
+        }
+    }
+    assert(client);
     assert(done_init);
     ethdriver_lock();
     *b1 = client->mac[0];
@@ -335,8 +337,6 @@ void post_init(void) {
     if (strcmp(get_instance_name(), BOOST_PP_STRINGIZE(vm_ethdriver##iteration)) == 0) { \
         iospace_id = BOOST_PP_CAT(VM_ETHDRIVER_IOSPACE_,iteration)(); \
         pci_bdf = BOOST_PP_CAT(VM_ETHDRIVER_PCI_BDF_,iteration)(); \
-        clients = BOOST_PP_CAT(clients_,iteration); \
-        num_clients = ARRAY_SIZE(BOOST_PP_CAT(clients_,iteration)); \
     } \
     /**/
     BOOST_PP_REPEAT(VM_NUM_ETHDRIVERS, PER_ETH_CONFIG, _)
@@ -356,7 +356,15 @@ void post_init(void) {
         rx_bufs[num_rx_bufs] = buf;
         num_rx_bufs++;
     }
+    num_clients = client_num_badges();
+    clients = calloc(num_clients, sizeof(client_t));
     for (int client = 0; client < num_clients; client++) {
+        clients[client].should_notify = 1;
+        uint8_t mac[] = {06, 00, 00, 12, 13, 14};
+        memcpy(clients[client].mac, mac, sizeof(mac));
+        clients[client].rx_ready = rx_ready0_emit;
+        clients[client].client_id = client_enumerate_badge(client);
+        clients[client].dataport = client_buf(clients[client].client_id);
         for (int i = 0; i < CLIENT_TX_BUFS; i++) {
             void *buf = ps_dma_alloc(&ioops.dma_manager, BUF_SIZE, 4, 1, PS_MEM_NORMAL);
             assert(buf);
@@ -379,22 +387,3 @@ void post_init(void) {
     irq_reg_callback(eth_interrupt, NULL);
     ethdriver_unlock();
 }
-
-void *client0_buf(int);
-
-extern void *client0_buf_1;
-
-#define CLIENT_DEF(num, iteration, data) \
-    void BOOST_PP_CAT(client##iteration,_mac)(uint8_t *b1, uint8_t *b2, uint8_t *b3, uint8_t *b4, uint8_t *b5, uint8_t *b6) { \
-        client_mac(&clients[iteration], b1, b2, b3, b4, b5, b6); \
-    } \
-    int BOOST_PP_CAT(client##iteration,_rx)(int *len) { \
-        return client_rx(&clients[iteration], client0_buf(1), len); \
-    } \
-    void BOOST_PP_CAT(client##iteration,_tx)(int len) { \
-        client_tx(&clients[iteration], client0_buf(1), len); \
-    } \
-    /**/
-
-BOOST_PP_REPEAT(VM_ETHDRIVER_NUM_CLIENTS, CLIENT_DEF, _);
-

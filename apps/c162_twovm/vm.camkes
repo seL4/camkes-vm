@@ -22,7 +22,7 @@ assembly {
         component VM vm;
 
         /* Connect ethernet driver to udpserver */
-        connection seL4RPCDataport eth_driver(from udpserver.ethdriver, to vm.ethdriver0_client0);
+        connection seL4RPCDataport eth_driver(from udpserver.ethdriver, to vm.ethdriver0_client);
         connection seL4Asynch eth_rx_ready(from vm.ethdriver0_rx_ready0, to udpserver.eth_rx_ready);
 
         /* UDP connections for echo server */

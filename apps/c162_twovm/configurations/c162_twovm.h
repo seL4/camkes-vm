@@ -42,7 +42,7 @@
  * as a stepping stone to exporting interfaces all the way up to the
  * top level camkes spec */
 #define PLAT_COMPONENT_INTERFACES() \
-    provides Ethdriver ethdriver0_client0; \
+    provides Ethdriver ethdriver0_client; \
     emits Notification ethdriver0_rx_ready0; \
     /**/
 
@@ -54,7 +54,7 @@
     /* Give ethernet driver same output as its vm */ \
     connection seL4RPCCall eth_putchar(from ethdriver0.putchar, to serial.vm_putchar); \
     /* Export ethernet driver interface */ \
-    connection ExportRPC export_eth_driver(from ethdriver0_client0, to ethdriver0.client0); \
+    connection ExportRPC export_eth_driver(from ethdriver0_client, to ethdriver0.client); \
     connection ExportAsynch export_eth_rx_ready(from ethdriver0.rx_ready0, to ethdriver0_rx_ready0); \
     /* Define hardware resources for ethdriver0 */ \
     connection seL4HardwareMMIO ethdrivermmio1(from ethdriver0.EthDriver, to HWEthDriver.mmio); \

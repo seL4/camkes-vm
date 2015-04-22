@@ -52,3 +52,22 @@ void */*? me.to_interface.name ?*/_buf(int client_id) {
         }
     /*- endif -*/
 }
+
+int /*? me.to_interface.name ?*/_num_badges(void) {
+    return /*? len(dataports) ?*/;
+}
+
+int /*? me.to_interface.name ?*/_enumerate_badge(int i) {
+    /*- if len(dataports) == 0 -*/
+        return -1;
+    /*- else -*/
+        switch (i) {
+            /*- for symbol, id in dataports -*/
+                case /*? loop.index0 ?*/:
+                    return /*? id ?*/;
+            /*- endfor -*/
+        default:
+            return -1;
+        }
+    /*- endif -*/
+}

@@ -38,7 +38,7 @@
     /*- endif -*/
 /*- endfor -*/
 
-void */*? me.to_interface.name ?*/_buf(int client_id) {
+void */*? me.to_interface.name ?*/_buf(unsigned int client_id) {
     /*- if len(dataports) == 0 -*/
         return NULL;
     /*- else -*/
@@ -53,11 +53,11 @@ void */*? me.to_interface.name ?*/_buf(int client_id) {
     /*- endif -*/
 }
 
-int /*? me.to_interface.name ?*/_num_badges(void) {
+unsigned int /*? me.to_interface.name ?*/_num_badges(void) {
     return /*? len(dataports) ?*/;
 }
 
-int /*? me.to_interface.name ?*/_enumerate_badge(int i) {
+unsigned int /*? me.to_interface.name ?*/_enumerate_badge(unsigned int i) {
     /*- if len(dataports) == 0 -*/
         return -1;
     /*- else -*/

@@ -23,22 +23,8 @@
             /*- set interface = c.from_interface.name -*/
             /*- include 'global-endpoint.template.c' -*/
             /*- set aep = pop('aep') -*/
-            /*- set _badge = [] -*/
-            /*- set _mac = [] -*/
-            /*- for s in configuration.settings -*/
-                /*- if s.instance == (c.from_instance.name) -*/
-                    /*- if s.attribute == "%s_attributes" % (c.from_interface.name) -*/
-                        /*- set badge = s.value.strip('"') -*/
-                        /*- do _badge.append(badge) -*/
-                    /*- endif -*/
-                    /*- if s.attribute == "%s_mac" % (c.from_interface.name) -*/
-                        /*- set mac = s.value -*/
-                        /*- do _mac.append(mac) -*/
-                    /*- endif -*/
-                /*- endif -*/
-            /*- endfor -*/
-            /*- set badge = _badge.pop() -*/
-            /*- set mac = _mac.pop() -*/
+            /*- set badge = configuration[c.from_instance.name].get("%s_attributes" % c.from_interface.name).strip('"') -*/
+            /*- set mac = configuration[c.from_instance.name].get("%s_mac" % c.from_interface.name) -*/
             void /*? me.to_interface.name ?*/_emit_/*? badge ?*/(void) {
                 seL4_Notify(/*? aep ?*/, 0);
             }

@@ -61,13 +61,6 @@ int /*? me.to_interface.name ?*/_largest_badge(void) {
     return /*? badges[len(badges) - 1] ?*/;
 }
 
-/*# We want to get the badge information from the 'from' side of this template #*/
-/*- set is_reader = False -*/
-/*- set instance = me.from_instance.name -*/
-/*- set interface = me.from_interface.name -*/
-/*- include 'global-endpoint.template.c' -*/
-/*- set aep = pop('aep') -*/
-
 /*? macros.show_includes(me.to_instance.type.includes) ?*/
 /*? macros.show_includes(me.to_interface.type.includes, '../static/components/' + me.to_instance.type.name + '/') ?*/
 

@@ -8,16 +8,9 @@
  * @TAG(NICTA_GPL)
  */
 
-#include <autoconf.h>
+import <GetChar.idl4>;
 import <PutChar.idl4>;
 import <Timer.idl4>;
-#include <configurations/vm.h>
-#include <boost/preprocessor/repeat.hpp>
-
-#define PER_VM_DEF(num, iteration, data) \
-    dataport Buf BOOST_PP_CAT(guest##iteration,_buffer); \
-    emits HasData BOOST_PP_CAT(guest##iteration,_has_data); \
-    /**/
 
 component SerialServer {
     control;
@@ -26,7 +19,7 @@ component SerialServer {
     provides PutChar vm_putchar;
     provides PutChar guest_putchar;
 
-    BOOST_PP_REPEAT(VM_NUM_GUESTS, PER_VM_DEF, _)
+    provides GetChar getchar;
 
     uses Timer timeout;
 

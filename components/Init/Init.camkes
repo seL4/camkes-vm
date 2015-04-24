@@ -14,6 +14,7 @@
 import <VirtIOPort.idl4>;
 import <InterruptGenerator.idl4>;
 import <RTC.idl4>;
+import <GetChar.idl4>;
 import <PutChar.idl4>;
 import <Ethdriver.idl4>;
 import <VchanInterface.idl4>;

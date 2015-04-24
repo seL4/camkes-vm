@@ -181,7 +181,7 @@ typedef struct ISASerialState {
 
 #endif
 
-int serial_buffer_dequeue(void *p, int len);
+int serial_buffer_dequeue(uint8_t *p);
 
 static void serial_receive1(void *opaque, const uint8_t *buf, int size);
 static void fifo_timeout_int (void *opaque);
@@ -994,7 +994,7 @@ void serial_timer_interrupt(uint32_t completed) {
     }
     if (completed & BIT(TIMER_MORE_CHARS)) {
         uint8_t c;
-        while (serial_can_receive(s) && serial_buffer_dequeue(&c, 1)) {
+        while (serial_can_receive(s) && serial_buffer_dequeue(&c)) {
             serial_receive1(s, &c, 1);
         }
         if (!serial_can_receive(s)) {
@@ -1007,7 +1007,7 @@ void serial_timer_interrupt(uint32_t completed) {
 void serial_character_interrupt() {
     SerialState *s = (SerialState*)&serialstate;
     uint8_t c;
-    while (serial_can_receive(s) && serial_buffer_dequeue(&c, 1)) {
+    while (serial_can_receive(s) && serial_buffer_dequeue(&c)) {
         serial_receive1(s, &c, 1);
     }
     if (!serial_can_receive(s)) {
@@ -1040,5 +1040,21 @@ int serial_port_out(void *cookie, unsigned int port_no, unsigned int size, unsig
         return -1;
     }
     serial_ioport_write(&serialstate, port_no, value);
+    return 0;
+}
+
+extern void *serial_getchar_buf;
+
+int serial_buffer_dequeue(uint8_t *c) {
+    struct {
+        uint32_t head;
+        uint32_t tail;
+        char buf[4096 - 8];
+    } volatile *buffer = serial_getchar_buf;
+    if (buffer->head != buffer->tail) {
+        *c = buffer->buf[buffer->head];
+        buffer->head = (buffer->head + 1) % sizeof(buffer->buf);
+        return 1;
+    }
     return 0;
 }

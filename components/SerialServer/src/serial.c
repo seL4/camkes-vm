@@ -71,6 +71,20 @@
 #define MAX_GUESTS 3
 #define GUEST_OUTPUT_BUFFER_SIZE 256
 
+typedef struct getchar_buffer {
+    uint32_t head;
+    uint32_t tail;
+    char buf[4096 - 8];
+} getchar_buffer_t;
+
+compile_time_assert(getchar_buf_sized, sizeof(getchar_buffer_t) == sizeof(Buf));
+
+typedef struct getchar_client {
+    unsigned int client_id;
+    volatile getchar_buffer_t *buf;
+    uint32_t last_head;
+} getchar_client_t;
+
 static int last_out = -1;
 
 static int fifo_depth = 1;
@@ -82,6 +96,9 @@ static int output_buffers_used[VM_NUM_GUESTS * 2] = { 0 };
 static int done_output = 0;
 
 static int has_data = 0;
+
+static int num_getchar_clients = 0;
+static getchar_client_t *getchar_clients = NULL;
 
 const char *output_colours[VM_NUM_GUESTS * 2];
 
@@ -190,20 +207,22 @@ static void internal_putchar(int b, int c) {
     serial_unlock();
 }
 
-#define GUEST_ENQUEUE_PROTO(a, vm, b) int BOOST_PP_CAT(guest##vm,_buffer_enqueue)(void *,unsigned int); \
-    int BOOST_PP_CAT(guest##vm,_buffer_set_notify)(void(*)()); \
-    void BOOST_PP_CAT(guest##vm,_has_data_emit)(); \
-    /**/
-BOOST_PP_REPEAT(VM_NUM_GUESTS, GUEST_ENQUEUE_PROTO, _)
-
-#define GUEST_ENQUEUE(a , vm, b) BOOST_PP_CAT(guest##vm,_buffer_enqueue),
-static int (*guest_enqueue[])(void *data, unsigned int len) = {
-    BOOST_PP_REPEAT(VM_NUM_GUESTS, GUEST_ENQUEUE, _)
-};
-
 static void internal_guest_putchar(int guest, int c) {
-    uint8_t character = c;
-    guest_enqueue[guest](&character, 1);
+    getchar_client_t *client = &getchar_clients[guest];
+    uint32_t next_tail = (client->buf->tail + 1) % sizeof(client->buf->buf);
+    if ( next_tail == client->buf->head) {
+        /* full */
+        return;
+    }
+    uint32_t last_read_head = client->buf->head;
+    client->buf->buf[client->buf->tail] = (uint8_t)c;
+    /* no synchronize in here as we assume TSO */
+    client->buf->tail = next_tail;
+    __sync_synchronize();
+    if (last_read_head != client->last_head) {
+        getchar_emit(client->client_id);
+        client->last_head = last_read_head;
+    }
 }
 
 static int statemachine = 1;
@@ -382,7 +401,14 @@ int run(void) {
     return 0;
 }
 
+#define SERVER_CORE_SIZE 4096
+static char core_buf[SERVER_CORE_SIZE];
+extern char *morecore_area;
+extern size_t morecore_size;
+
 void pre_init(void) {
+    morecore_area = core_buf;
+    morecore_size = SERVER_CORE_SIZE;
     serial_lock();
     // Initialize the serial port
     set_dlab(0); // we always assume the dlab is 0 unless we explicitly change it
@@ -398,8 +424,16 @@ void pre_init(void) {
     clear_iir();
     // all done
     init_colours();
-#define GUEST_SET_NOTIFY(a, vm, b) BOOST_PP_CAT(guest##vm,_buffer_set_notify)(BOOST_PP_CAT(guest##vm,_has_data_emit));
-    BOOST_PP_REPEAT(VM_NUM_GUESTS, GUEST_SET_NOTIFY, _)
+    /* query what getchar clients exist */
+    num_getchar_clients = getchar_num_badges();
+    getchar_clients = calloc(num_getchar_clients, sizeof(getchar_client_t));
+    for (int i = 0; i < num_getchar_clients; i++) {
+        unsigned int badge = getchar_enumerate_badge(i);
+        assert(badge <= num_getchar_clients);
+        getchar_clients[badge].client_id = badge;
+        getchar_clients[badge].buf = getchar_buf(badge);
+        getchar_clients[badge].last_head = -1;
+    }
     set_putchar(serial_putchar);
     serial_irq_reg_callback(serial_irq, 0);
     /* Start regular heartbeat of 500ms */
@@ -422,4 +456,10 @@ seL4_Word guest_putchar_get_badge(void);
 void guest_putchar_putchar(int c) {
     seL4_Word n = guest_putchar_get_badge();
     internal_putchar((int)n + VM_NUM_GUESTS, c);
+}
+
+/* We had to define at least one function in the getchar RPC procedure
+ * so now we need to implement it even though it is not used */
+void getchar_foo(void) {
+    assert(!"should not be reached");
 }

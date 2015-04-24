@@ -82,11 +82,12 @@
     uses VMIRQs irqs; \
     uses VMPCIDevices pci_devices; \
     consumes HaveInterrupt intready; \
+    emits HaveInterrupt intready_connector; \
     uses Timer init_timer; \
     /* File Server */ \
     uses FileServerInterface fs; \
     dataport Buf fs_mem; \
-    dataport Buf serial_buffer; \
+    uses GetChar serial_getchar; \
     attribute string kernel_cmdline; \
     attribute string kernel_image; \
     attribute string kernel_relocs; \
@@ -103,6 +104,8 @@
 
 
 #define VM_CONNECT_DEF(num) \
+    /* Connect the intready to itself to generate a template for retrieving the AEP */ \
+    connection seL4GlobalAsynch intreadycon##num(from vm##num.intready_connector, to vm##num.intready); \
     /* Connect all Init components to the fileserver */ \
     connection seL4RPCCall fs##num(from vm##num.fs, to fserv.fs_ctrl); \
     connection seL4SharedData fs_sharemem##num(from vm##num.fs_mem, to fserv.fs_mem); \
@@ -110,8 +113,7 @@
     connection seL4RPCCall serial_vm##num(from vm##num.putchar, to serial.vm_putchar); \
     connection seL4RPCCall serial_guest_vm##num(from vm##num.guest_putchar, to serial.guest_putchar); \
     /* Connect the emulated serial input to the serial server */ \
-    connection seL4ProdCon serial_input##num(from serial.CAT(guest##num,_buffer), to vm##num.serial_buffer); \
-    connection seL4GlobalAsynch serial_input_ready##num(from serial.CAT(guest##num,_has_data), to vm##num.intready); \
+    connection seL4SerialServer serial_input##num(from vm##num.serial_getchar, to serial.getchar); \
     /* Temporarily connect the VM directly to the RTC */ \
     connection seL4RPCCall rtctest##num(from vm##num.system_rtc, to rtc.rtc); \
     /* Connect the VM to the timer server */ \
@@ -168,10 +170,12 @@
     vm##num.init_timer_badge = BOOST_PP_STRINGIZE(VM_INIT_TIMER_BADGE); \
     vm##num.init_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(0, num)); \
     vm##num.intready_global_endpoint = BOOST_PP_STRINGIZE(vm##num); \
+    vm##num.intready_connector_global_endpoint = BOOST_PP_STRINGIZE(vm##num); \
     vm##num.putchar_attributes = BOOST_PP_STRINGIZE(num); \
     vm##num.guest_putchar_attributes = BOOST_PP_STRINGIZE(num); \
-    serial.CAT(guest##num,_has_data_global_endpoint) = BOOST_PP_STRINGIZE(vm##num); \
-    serial.CAT(guest##num,_has_data_badge) = BOOST_PP_STRINGIZE(VM_PIC_BADGE_SERIAL_HAS_DATA); \
+    vm##num.serial_getchar_global_endpoint = BOOST_PP_STRINGIZE(vm##num); \
+    vm##num.serial_getchar_badge = BOOST_PP_STRINGIZE(VM_PIC_BADGE_SERIAL_HAS_DATA); \
+    vm##num.serial_getchar_attributes = BOOST_PP_STRINGIZE(num); \
     vm##num.cnode_size_bits = 21; \
     vm##num.simple = true; \
     VM_IRQS(num) \

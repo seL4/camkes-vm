@@ -31,3 +31,13 @@ void echo_has_data(void *cookie) {
 void pre_init() {
     echo_recv_ready_reg_callback(echo_has_data, NULL);
 }
+
+void post_init() {
+    /* timeout once a second */
+    int ret;
+    ret = timer_periodic(0, 1000000000);
+}
+
+void timer_complete_callback() {
+    /* do nothing with the timer tick */
+}

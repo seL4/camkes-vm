@@ -111,6 +111,11 @@ connector seL4SerialServer {
     to Procedure client template "seL4SerialServer-to.template.c";
 }
 
+connector seL4GlobalAsynchCallback {
+    from Event notifier template "seL4GlobalAsynchCallback-from.template.c";
+    to Event server template "seL4GlobalAsynchCallback-to.template.c";
+}
+
 component PieceOfHardware {
     hardware;
     provides IOPort pci_config_address;
@@ -135,6 +140,8 @@ component VMConfig {
 
 component VM {
     PLAT_COMPONENT_INTERFACES()
+    provides Timer time_server_timer;
+    emits Notifcation time_server_complete;
     composition {
         component FileServer fserv;
 
@@ -188,6 +195,9 @@ component VM {
         /* Connect the hardware serial to the serial server */
         connection seL4HardwareIOPort serial_ioport(from serial.serial_port, to hw_serial.serial);
         connection seL4IOAPICHardwareInterrupt serial_irq(from hw_serial.serial_irq, to serial.serial_irq);
+
+        /* Export the time server interface up */
+        connection ExportRPC export_timer(from time_server_timer, to time_server.the_timer);
     }
     configuration {
         serial.timeout_attributes = "1";

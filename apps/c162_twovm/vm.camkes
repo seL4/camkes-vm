@@ -37,6 +37,10 @@ assembly {
         connection seL4SharedData udp_echo_send_buf(from echo.echo_send_buf, to udpserver.client_send_buf);
         connection seL4SharedData udp_echo_recv_buf(from echo.echo_recv_buf, to udpserver.client_recv_buf);
         connection seL4Asynch udp_echo_recv_ready(from udpserver.client_recv_ready, to echo.echo_recv_ready);
+
+        /* Connect Echo to the timer server */
+        connection seL4TimeServer echo_timer(from echo.timer, to vm.time_server_timer);
+        connection seL4GlobalAsynchCallback echo_int(from vm.time_server_complete, to echo.timer_complete);
     }
     configuration {
         udpserver.client_recv_buffers = 8;
@@ -54,5 +58,8 @@ assembly {
         ethdriver.iospace_id = 0x12;
         ethdriver.pci_bdf = "1:0.0";
         ethdriver.simple_untyped20_pool = 2;
+        echo.timer_attributes = "5";
+        echo.timer_global_endpoint = "echo_timer";
+        echo.timer_complete_global_endpoint = "echo_timer";
     }
 }

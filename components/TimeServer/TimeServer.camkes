@@ -15,6 +15,8 @@ component TimeServer {
     has mutex time_server;
     uses PutChar putchar;
 
+    emits Notification timer_notification;
+
     provides Timer the_timer;
 
     uses IOPort pit_command;

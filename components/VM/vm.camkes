@@ -198,6 +198,7 @@ component VM {
 
         /* Export the time server interface up */
         connection ExportRPC export_timer(from time_server_timer, to time_server.the_timer);
+        connection ExportAsynch export_timer_notify(from time_server.timer_notification, to time_server_complete);
     }
     configuration {
         serial.timeout_attributes = "1";

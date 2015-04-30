@@ -19,6 +19,7 @@ component UDPServer {
 
     uses Ethdriver ethdriver;
     attribute string udp_ip_addr;
+    attribute int num_client_recv_bufs;
 
     provides UDPRecv client_recv;
     dataport Buf client_recv_buf;

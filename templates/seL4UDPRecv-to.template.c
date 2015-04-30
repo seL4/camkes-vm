@@ -25,8 +25,18 @@ void */*? me.to_interface.name?*/_buf_buf(unsigned int id);
 void lwip_lock();
 void lwip_unlock();
 
-/*- set bufs = configuration[me.from_instance.name].get('%s_buffers' % me.from_interface.name) -*/
-/*- set port = configuration[me.from_instance.name].get('%s_port' % me.from_interface.name) -*/
+/*- set bufs = configuration[me.to_instance.name].get('num_client_recv_bufs') -*/
+/*- set clients = [] -*/
+/*- for id, c in enumerate(composition.connections) -*/
+    /*- if c.to_instance.name == me.to_instance.name and c.to_interface.name == me.to_interface.name -*/
+        /*- if c.type.name == me.type.name -*/
+            /*- set port = configuration[c.from_instance.name].get('%s_port' % c.from_interface.name) -*/
+            /*- set client = configuration[c.from_instance.name].get('%s_attributes' % c.from_interface.name) -*/
+            /*- set client = client.strip('"') -*/
+            /*- do clients.append( (client, port) ) -*/
+        /*- endif -*/
+    /*- endif -*/
+/*- endfor -*/
 
 typedef struct udp_message {
     struct pbuf *pbuf;
@@ -35,41 +45,43 @@ typedef struct udp_message {
     struct udp_message *next;
 }udp_message_t;
 
-static struct udp_pcb *upcb = NULL;
-static udp_message_t message_memory[/*? bufs ?*/] = {
-    /*- for i in range(bufs) -*/
-        /*- if i == 0 -*/
-            {.pbuf = NULL, .port = 0, .next = NULL},
-        /*- else -*/
-            {.pbuf = NULL, .port = 0, .next = &message_memory[/*? i - 1 ?*/]},
-        /*- endif -*/
-    /*- endfor -*/
-    };
-static udp_message_t *free_head = &message_memory[/*? bufs - 1 ?*/];
-static udp_message_t *used_head = NULL;
+typedef struct udp_client {
+    struct udp_pcb *upcb;
+    int client_id;
+    uint16_t port;
+    int need_signal;
+    udp_message_t *free_head;
+    udp_message_t *used_head;
+    udp_message_t message_memory[ /*? bufs ?*/];
+} udp_client_t;
 
-static int need_signal = 1;
+static udp_client_t udp_clients[/*? len(clients) ?*/] = {
+/*- for client,port in clients -*/
+    {.upcb = NULL, .client_id = /*? client ?*/, .port = /*? port ?*/, .need_signal = 1, .used_head = NULL},
+/*- endfor -*/
+};
 
 static void udprecv(void *arg, struct udp_pcb *pcb, struct pbuf *p, ip_addr_t *addr, u16_t port) {
-    if (!free_head) {
+    udp_client_t *client = (udp_client_t*)arg;
+    if (!client->free_head) {
         pbuf_free(p);
         lwip_unlock();
         return;
     }
-    udp_message_t *m = free_head;
-    free_head = free_head->next;
+    udp_message_t *m = client->free_head;
+    client->free_head = client->free_head->next;
 
     m->pbuf = p;
     m->addr = *addr;
     m->port = port;
 
-    if (need_signal) {
+    if (client->need_signal) {
         /*? me.to_interface.name ?*/_ready_emit();
-        need_signal = 0;
+        client->need_signal = 0;
     }
 
-    m->next = used_head;
-    used_head = m;
+    m->next = client->used_head;
+    client->used_head = m;
 }
 
 void /*? me.to_interface.name ?*/__run(void) {
@@ -80,21 +92,28 @@ void /*? me.to_interface.name ?*/__run(void) {
         int result UNUSED;
         seL4_Word badge;
         seL4_Wait(/*? ep ?*/, &badge);
+        udp_client_t *client = NULL;
+        for (int i = 0; i < /*? len(clients) ?*/ && !client; i++) {
+            if (udp_clients[i].client_id == badge) {
+                client = &udp_clients[i];
+            }
+        }
+        assert(client);
         result = seL4_CNode_SaveCaller(/*? cnode ?*/, /*? reply_cap_slot ?*/, 32);
         assert(result == seL4_NoError);
         lwip_lock();
         len = 0;
-        if (!used_head) {
+        if (!client->used_head) {
             seL4_SetMR(0, -1);
             len = 1;
-            need_signal = 1;
+            client->need_signal = 1;
         } else {
             unsigned int packet_len = 0;
-            void *p = /*? me.to_interface.name?*/_buf_buf(badge);
-            udp_message_t *m = used_head;
-            used_head = used_head->next;
-            if (!used_head) {
-                need_signal = 1;
+            void *p = /*? me.to_interface.name ?*/_buf_buf(badge);
+            udp_message_t *m = client->used_head;
+            client->used_head = client->used_head->next;
+            if (!client->used_head) {
+                client->need_signal = 1;
             }
 
             for (struct pbuf *q = m->pbuf; q; q = q->next) {
@@ -102,14 +121,14 @@ void /*? me.to_interface.name ?*/__run(void) {
                 packet_len += q->len;
             }
             pbuf_free(m->pbuf);
-            seL4_SetMR(0, used_head ? 0 : 1);
+            seL4_SetMR(0, client->used_head ? 0 : 1);
             seL4_SetMR(1, packet_len);
             seL4_SetMR(2, m->port);
             seL4_SetMR(3, m->addr.addr);
             len = 4;
 
-            m->next = free_head;
-            free_head = m;
+            m->next = client->free_head;
+            client->free_head = m;
         }
         seL4_Send(/*? reply_cap_slot ?*/, seL4_MessageInfo_new(0, 0, 0, len));
         lwip_unlock();
@@ -118,11 +137,24 @@ void /*? me.to_interface.name ?*/__run(void) {
 
 void /*? me.to_interface.name ?*/__init(void) {
     int err;
+    int i, j;
     lwip_lock();
-    upcb = udp_new();
-    assert(upcb);
-    udp_recv(upcb, udprecv, NULL);
-    err = udp_bind(upcb, NULL, /*? port ?*/);
-    assert(!err);
+    for (i = 0; i < /*? len(clients) ?*/; i++) {
+        for (j = 0; j < /*? bufs ?*/; j++) {
+            if (j == 0) {
+                udp_clients[i].message_memory[j] =
+                    (udp_message_t){.pbuf = NULL, .port = 0, .next = NULL};
+            } else {
+                udp_clients[i].message_memory[j] =
+                    (udp_message_t){.pbuf = NULL, .port = 0, .next = &udp_clients[i].message_memory[j - 1]};
+            }
+        }
+        udp_clients[i].free_head = &udp_clients[i].message_memory[/*? bufs ?*/ - 1];
+        udp_clients[i].upcb = udp_new();
+        assert(udp_clients[i].upcb);
+        udp_recv(udp_clients[i].upcb, udprecv, &udp_clients[i]);
+        err = udp_bind(udp_clients[i].upcb, NULL, udp_clients[i].port);
+        assert(!err);
+    }
     lwip_unlock();
 }

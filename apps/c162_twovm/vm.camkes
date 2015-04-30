@@ -50,14 +50,31 @@ assembly {
         connection seL4GlobalAsynchCallback echo_int(from vm.time_server_complete, to echo.timer_complete);
     }
     configuration {
+        /* The attributes for the receive buffer represent the client ID
+         * this needs to match the the 'echo_recv_attributes' to indicate that
+         * the this is the buffer for that client */
         echo.echo_recv_buf_attributes = "1";
 
+        /* attributes for echo receive RPC indicate a client ID. This needs
+         * to be unique across all of the RPC connections to the udpserver.client_recv */
         echo.echo_recv_attributes = "1";
+        /* The UDP port that this interface will receive packets on */
         echo.echo_recv_port = 7;
+        /* Provide a name for the endpoint used to notify when there are new packets
+         * to poll for. This needs to be a valid C symbol, should match what is given
+         * in 'echo_recv_ready_global_endpoint' and should otherwise be unqiue in the
+         * whole system */
         echo.echo_recv_global_endpoint = "echo_recv_endpoint";
         echo.echo_recv_ready_global_endpoint = "echo_recv_endpoint";
 
+        /* Set the port this UDP interface will send on over the network.
+         * 'dest' is the port to send to, and 'source' is the 'return address'
+         * or 'port of origin' that will be put into the packet */
         echo.echo_send_ports = { "source" : 7, "dest" : 7};
+        /* Attributes for echo_send and echo_send_buf work exactly the same
+         * as for echo_recv. In this case they are a different namespace as
+         * recv and them also being 1 is purely coincidental and not required
+         */
         echo.echo_send_attributes= "1";
 
         echo.echo_send_buf_attributes = "1";

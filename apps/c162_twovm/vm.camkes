@@ -43,9 +43,10 @@ assembly {
         connection seL4GlobalAsynchCallback echo_int(from vm.time_server_complete, to echo.timer_complete);
     }
     configuration {
-        udpserver.client_recv_buffers = 8;
-        udpserver.client_recv_port = 7;
-        udpserver.client_send_ports = { "source" : 7, "dest" : 7};
+        echo.echo_recv_buffers = 8;
+        echo.echo_recv_port = 7;
+        echo.echo_send_ports = { "source" : 7, "dest" : 7};
+
         udpserver.udp_ip_addr = "10.13.1.215";
         udpserver.ethdriver_attributes = "1";
         udpserver.ethdriver_global_endpoint = "udpserver_endpoint";

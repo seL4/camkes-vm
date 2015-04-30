@@ -19,7 +19,7 @@
 /* assume a dataport symbols exists */
 extern void */*? me.to_interface.name?*/_buf;
 
-/*- set ports = configuration[me.to_instance.name].get('%s_ports' % me.to_interface.name) -*/
+/*- set ports = configuration[me.from_instance.name].get('%s_ports' % me.from_interface.name) -*/
 
 void lwip_lock();
 void lwip_unlock();

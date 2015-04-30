@@ -25,8 +25,8 @@ extern void */*? me.to_interface.name?*/_buf;
 void lwip_lock();
 void lwip_unlock();
 
-/*- set bufs = configuration[me.to_instance.name].get('%s_buffers' % me.to_interface.name) -*/
-/*- set port = configuration[me.to_instance.name].get('%s_port' % me.to_interface.name) -*/
+/*- set bufs = configuration[me.from_instance.name].get('%s_buffers' % me.from_interface.name) -*/
+/*- set port = configuration[me.from_instance.name].get('%s_port' % me.from_interface.name) -*/
 
 typedef struct udp_message {
     struct pbuf *pbuf;

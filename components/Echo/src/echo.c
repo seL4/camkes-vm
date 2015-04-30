@@ -27,6 +27,19 @@ void echo_recv_ready_callback() {
     }
 }
 
+void echo2_recv_ready_callback() {
+    int status = 0;
+    while (status == 0) {
+        unsigned int len;
+        uint16_t port;
+        ip_addr_t addr;
+        status = echo2_recv_poll(&len, &port, &addr);
+        if (status != -1) {
+            echo2_send_send((uintptr_t)echo2_recv_buf, len, addr);
+        }
+    }
+}
+
 void post_init() {
     /* timeout once a second */
     int ret;

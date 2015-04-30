@@ -38,6 +38,13 @@ assembly {
         connection seL4MultiSharedData udp_echo_recv_buf(from echo.echo_recv_buf, to udpserver.client_recv_buf);
         connection seL4GlobalAsynchCallback udp_echo_recv_ready(from udpserver.client_recv_ready, to echo.echo_recv_ready);
 
+        /* Second set of UDP connections for echo server */
+        connection seL4UDPRecv udp_echo2_recv(from echo.echo2_recv, to udpserver.client_recv);
+        connection seL4UDPSend udp_echo2_send(from echo.echo2_send, to udpserver.client_send);
+        connection seL4MultiSharedData udp_echo2_send_buf(from echo.echo2_send_buf, to udpserver.client_send_buf);
+        connection seL4MultiSharedData udp_echo2_recv_buf(from echo.echo2_recv_buf, to udpserver.client_recv_buf);
+        connection seL4GlobalAsynchCallback udp_echo2_recv_ready(from udpserver.client_recv_ready, to echo.echo2_recv_ready);
+
         /* Connect Echo to the timer server */
         connection seL4TimeServer echo_timer(from echo.timer, to vm.time_server_timer);
         connection seL4GlobalAsynchCallback echo_int(from vm.time_server_complete, to echo.timer_complete);
@@ -54,6 +61,18 @@ assembly {
         echo.echo_send_attributes= "1";
 
         echo.echo_send_buf_attributes = "1";
+
+        echo.echo2_recv_buf_attributes = "2";
+
+        echo.echo2_recv_attributes = "2";
+        echo.echo2_recv_port = 8;
+        echo.echo2_recv_global_endpoint = "echo2_recv_endpoint";
+        echo.echo2_recv_ready_global_endpoint = "echo2_recv_endpoint";
+
+        echo.echo2_send_ports = { "source" : 8, "dest" : 8};
+        echo.echo2_send_attributes= "2";
+
+        echo.echo2_send_buf_attributes = "2";
 
         echo.timer_attributes = "5";
         echo.timer_global_endpoint = "echo_timer";

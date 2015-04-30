@@ -15,6 +15,12 @@
 
 /*- set ep = alloc('ep', seL4_EndpointObject, write=True, grant=True) -*/
 
+/*- set badge = configuration[me.from_instance.name].get('%s_attributes' % me.from_interface.name) -*/
+/*- if badge is not none -*/
+    /*- set badge = badge.strip('"') -*/
+    /*- do cap_space.cnode[ep].set_badge(int(badge, 0)) -*/
+/*- endif -*/
+
 int /*? me.from_interface.name ?*/_poll(unsigned int *len, uint16_t *port, ip_addr_t *addr) {
     int status;
     seL4_MessageInfo_t UNUSED info;

@@ -16,8 +16,8 @@
 
 /*- set ep = alloc('ep', seL4_EndpointObject, read=True, write=True) -*/
 
-/* assume a dataport symbols exists */
-extern void */*? me.to_interface.name?*/_buf;
+/* assume a function exists to get a dataport */
+void */*? me.to_interface.name?*/_buf_buf(unsigned int client_id);
 
 /*- set ports = configuration[me.from_instance.name].get('%s_ports' % me.from_interface.name) -*/
 
@@ -34,7 +34,8 @@ void /*? me.to_interface.name ?*/__run(void) {
         unsigned int len;
         ip_addr_t addr;
         struct pbuf *p;
-        seL4_Wait(/*? ep ?*/, NULL);
+        seL4_Word badge;
+        seL4_Wait(/*? ep ?*/, &badge);
         result = seL4_CNode_SaveCaller(/*? cnode ?*/, /*? reply_cap_slot ?*/, 32);
         assert(result == seL4_NoError);
 
@@ -44,7 +45,7 @@ void /*? me.to_interface.name ?*/__run(void) {
             lwip_lock();
             p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
             if (p) {
-                memcpy(p->payload, /*? me.to_interface.name?*/_buf, len);
+                memcpy(p->payload, /*? me.to_interface.name?*/_buf_buf(badge), len);
                 udp_sendto(upcb, p, &addr, /*? ports['dest'] ?*/);
                 pbuf_free(p);
             }

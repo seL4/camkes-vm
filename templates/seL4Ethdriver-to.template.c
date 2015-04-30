@@ -16,7 +16,7 @@
 /*- set badges = [] -*/
 /*- set macs = [] -*/
 /*- for id, c in enumerate(composition.connections) -*/
-    /*- if c.to_instance.name == me.to_instance.name -*/
+    /*- if c.to_instance.name == me.to_instance.name and c.to_interface.name == me.to_interface.name -*/
         /*- if c.type.name == me.type.name -*/
             /*- set is_reader = False -*/
             /*- set instance = c.from_instance.name -*/

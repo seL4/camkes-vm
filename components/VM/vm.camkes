@@ -116,6 +116,11 @@ connector seL4GlobalAsynchCallback {
     to Event server template "seL4GlobalAsynchCallback-to.template.c";
 }
 
+connector seL4MultiSharedData {
+    from Dataport client template "seL4MultiSharedData-from.template.c";
+    to Dataport server template "seL4MultiSharedData-to.template.c";
+}
+
 component PieceOfHardware {
     hardware;
     provides IOPort pci_config_address;

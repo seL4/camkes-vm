@@ -19,8 +19,8 @@
 /* Assume a notification exists */
 void /*? me.to_interface.name ?*/_ready_emit(void);
 
-/* Assume a dataport exists */
-extern void */*? me.to_interface.name?*/_buf;
+/* Assume a function exists to get a dataport */
+void */*? me.to_interface.name?*/_buf_buf(unsigned int id);
 
 void lwip_lock();
 void lwip_unlock();
@@ -78,7 +78,8 @@ void /*? me.to_interface.name ?*/__run(void) {
         /*- set reply_cap_slot = alloc_cap('reply_cap_slot', None) -*/
         int len;
         int result UNUSED;
-        seL4_Wait(/*? ep ?*/, NULL);
+        seL4_Word badge;
+        seL4_Wait(/*? ep ?*/, &badge);
         result = seL4_CNode_SaveCaller(/*? cnode ?*/, /*? reply_cap_slot ?*/, 32);
         assert(result == seL4_NoError);
         lwip_lock();
@@ -89,7 +90,7 @@ void /*? me.to_interface.name ?*/__run(void) {
             need_signal = 1;
         } else {
             unsigned int packet_len = 0;
-            void *p = /*? me.to_interface.name?*/_buf;
+            void *p = /*? me.to_interface.name?*/_buf_buf(badge);
             udp_message_t *m = used_head;
             used_head = used_head->next;
             if (!used_head) {

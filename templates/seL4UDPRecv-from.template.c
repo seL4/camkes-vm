@@ -36,3 +36,12 @@ int /*? me.from_interface.name ?*/_poll(unsigned int *len, uint16_t *port, ip_ad
     return status;
 }
 
+/*- set is_reader = True -*/
+/*- set instance = me.from_instance.name -*/
+/*- set interface = me.from_interface.name -*/
+/*- include 'global-endpoint.template.c' -*/
+/*- set aep = pop('aep') -*/
+
+seL4_CPtr /*? me.from_interface.name ?*/_aep(void) {
+    return /*? aep ?*/;
+}

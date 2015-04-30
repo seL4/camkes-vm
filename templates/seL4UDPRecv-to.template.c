@@ -16,9 +16,6 @@
 
 /*- set ep = alloc('ep', seL4_EndpointObject, read=True, write=True) -*/
 
-/* Assume a notification exists */
-void /*? me.to_interface.name ?*/_ready_emit(void);
-
 /* Assume a function exists to get a dataport */
 void */*? me.to_interface.name?*/_buf_buf(unsigned int id);
 
@@ -33,7 +30,12 @@ void lwip_unlock();
             /*- set port = configuration[c.from_instance.name].get('%s_port' % c.from_interface.name) -*/
             /*- set client = configuration[c.from_instance.name].get('%s_attributes' % c.from_interface.name) -*/
             /*- set client = client.strip('"') -*/
-            /*- do clients.append( (client, port) ) -*/
+            /*- set is_reader = False -*/
+            /*- set instance = c.from_instance.name -*/
+            /*- set interface = c.from_interface.name -*/
+            /*- include 'global-endpoint.template.c' -*/
+            /*- set aep = pop('aep') -*/
+            /*- do clients.append( (client, port, aep) ) -*/
         /*- endif -*/
     /*- endif -*/
 /*- endfor -*/
@@ -50,14 +52,15 @@ typedef struct udp_client {
     int client_id;
     uint16_t port;
     int need_signal;
+    seL4_CPtr aep;
     udp_message_t *free_head;
     udp_message_t *used_head;
     udp_message_t message_memory[ /*? bufs ?*/];
 } udp_client_t;
 
 static udp_client_t udp_clients[/*? len(clients) ?*/] = {
-/*- for client,port in clients -*/
-    {.upcb = NULL, .client_id = /*? client ?*/, .port = /*? port ?*/, .need_signal = 1, .used_head = NULL},
+/*- for client,port,aep in clients -*/
+    {.upcb = NULL, .client_id = /*? client ?*/, .port = /*? port ?*/, .need_signal = 1, .aep = /*? aep ?*/, .used_head = NULL},
 /*- endfor -*/
 };
 
@@ -76,7 +79,7 @@ static void udprecv(void *arg, struct udp_pcb *pcb, struct pbuf *p, ip_addr_t *a
     m->port = port;
 
     if (client->need_signal) {
-        /*? me.to_interface.name ?*/_ready_emit();
+        seL4_Notify(client->aep, 0);
         client->need_signal = 0;
     }
 

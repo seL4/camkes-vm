@@ -14,7 +14,7 @@
 #include <string.h>
 #include <lwip/udp.h>
 
-void echo_has_data(void *cookie) {
+void echo_recv_ready_callback() {
     int status = 0;
     while (status == 0) {
         unsigned int len;
@@ -25,11 +25,6 @@ void echo_has_data(void *cookie) {
             echo_send_send((uintptr_t)echo_recv_buf, len, addr);
         }
     }
-    echo_recv_ready_reg_callback(echo_has_data, cookie);
-}
-
-void pre_init() {
-    echo_recv_ready_reg_callback(echo_has_data, NULL);
 }
 
 void post_init() {

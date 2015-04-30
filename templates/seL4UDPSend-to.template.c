@@ -19,12 +19,22 @@
 /* assume a function exists to get a dataport */
 void */*? me.to_interface.name?*/_buf_buf(unsigned int client_id);
 
-/*- set ports = configuration[me.from_instance.name].get('%s_ports' % me.from_interface.name) -*/
+/*- set clients = [] -*/
+/*- for id, c in enumerate(composition.connections) -*/
+    /*- if c.to_instance.name == me.to_instance.name and c.to_interface.name == me.to_interface.name -*/
+        /*- if c.type.name == me.type.name -*/
+            /*- set ports = configuration[c.from_instance.name].get('%s_ports' % c.from_interface.name) -*/
+            /*- set client = configuration[c.from_instance.name].get('%s_attributes' % c.from_interface.name) -*/
+            /*- set client = client.strip('"') -*/
+            /*- do clients.append( (client, ports['source'], ports['dest']) ) -*/
+        /*- endif -*/
+    /*- endif -*/
+/*- endfor -*/
 
 void lwip_lock();
 void lwip_unlock();
 
-static struct udp_pcb *upcb;
+static struct udp_pcb *upcb[/*? len(clients) ?*/];
 
 void /*? me.to_interface.name ?*/__run(void) {
     while(1) {
@@ -46,7 +56,13 @@ void /*? me.to_interface.name ?*/__run(void) {
             p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
             if (p) {
                 memcpy(p->payload, /*? me.to_interface.name?*/_buf_buf(badge), len);
-                udp_sendto(upcb, p, &addr, /*? ports['dest'] ?*/);
+                switch (badge) {
+                /*- for client, source, dest in clients -*/
+                case /*? client ?*/:
+                    udp_sendto(upcb[/*? loop.index0 ?*/], p, &addr, /*? dest ?*/);
+                    break;
+                /*- endfor -*/
+                }
                 pbuf_free(p);
             }
             lwip_unlock();
@@ -57,11 +73,13 @@ void /*? me.to_interface.name ?*/__run(void) {
 
 void /*? me.to_interface.name ?*/__init(void) {
     lwip_lock();
-    upcb = udp_new();
-    assert(upcb);
-    /* we cheat here and set a local port without using the actual lwip bind function.
-     * this is because we want to persuade lwip to send packets with this as the from
-     * port, but we don't actually want to receive packets here */
-    upcb->local_port = /*? ports['source'] ?*/;
+    /*- for client, source, dest in clients -*/
+        upcb[/*? loop.index0 ?*/] = udp_new();
+        assert(upcb[/*? loop.index0 ?*/]);
+        /* we cheat here and set a local port without using the actual lwip bind function.
+         * this is because we want to persuade lwip to send packets with this as the from
+         * port, but we don't actually want to receive packets here */
+        upcb[/*? loop.index0 ?*/]->local_port = /*? source ?*/;
+    /*- endfor -*/
     lwip_unlock();
 }

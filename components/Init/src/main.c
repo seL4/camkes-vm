@@ -39,7 +39,9 @@
 #include "fsclient.h"
 
 #include <boost/preprocessor/facilities/apply.hpp>
-#include <boost/preprocessor/list/adt.hpp>
+#include <boost/preprocessor/list.hpp>
+#include <boost/preprocessor/repeat.hpp>
+#include <boost/preprocessor/stringize.hpp>
 
 #define BRK_VIRTUAL_SIZE 400000000
 

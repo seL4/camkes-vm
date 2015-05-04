@@ -9,25 +9,15 @@
  */
 
 #include <autoconf.h>
-#include <boost/preprocessor/arithmetic.hpp>
-#include <boost/preprocessor/cat.hpp>
-#include <boost/preprocessor/list.hpp>
-#include <boost/preprocessor/comparison.hpp>
-#include <boost/preprocessor/stringize.hpp>
-#include <boost/preprocessor/expand.hpp>
-#include <boost/preprocessor/tuple.hpp>
-#include <boost/preprocessor/control.hpp>
-#include <boost/preprocessor/repeat.hpp>
 
 #define _VAR_STRINGIZE(...) #__VA_ARGS__
 #define VAR_STRINGIZE(...) _VAR_STRINGIZE(__VA_ARGS__)
 
-#define VM_CONFIGURATION_HEADER() BOOST_PP_STRINGIZE(CAMKES_VM_CONFIG.h)
+#define _CAT(x, y) x ## y
+#define CAT(x, y) _CAT(x, y)
+
+#define VM_CONFIGURATION_HEADER() VAR_STRINGIZE(CAMKES_VM_CONFIG.h)
 #include VM_CONFIGURATION_HEADER()
-
-/* Now define a bunch of general definitions for constructing the VM */
-
-#define CAT BOOST_PP_CAT
 
 /* For all the async sources on the intready endpoint the high bit
  * is set to indicate that an async event occured, and the low bits
@@ -123,17 +113,17 @@
 #endif
 
 #define VM_PER_VM_CONFIG_DEF(num, numplustwo) \
-    vm##num.fs_attributes = BOOST_PP_STRINGIZE(num); \
-    vm##num.init_timer_global_endpoint = BOOST_PP_STRINGIZE(vm##num); \
-    vm##num.init_timer_badge = BOOST_PP_STRINGIZE(VM_INIT_TIMER_BADGE); \
-    vm##num.init_timer_attributes = BOOST_PP_STRINGIZE(numplustwo); \
-    vm##num.intready_global_endpoint = BOOST_PP_STRINGIZE(vm##num); \
-    vm##num.intready_connector_global_endpoint = BOOST_PP_STRINGIZE(vm##num); \
-    vm##num.putchar_attributes = BOOST_PP_STRINGIZE(num); \
-    vm##num.guest_putchar_attributes = BOOST_PP_STRINGIZE(num); \
-    vm##num.serial_getchar_global_endpoint = BOOST_PP_STRINGIZE(vm##num); \
-    vm##num.serial_getchar_badge = BOOST_PP_STRINGIZE(VM_PIC_BADGE_SERIAL_HAS_DATA); \
-    vm##num.serial_getchar_attributes = BOOST_PP_STRINGIZE(num); \
+    vm##num.fs_attributes = VAR_STRINGIZE(num); \
+    vm##num.init_timer_global_endpoint = VAR_STRINGIZE(vm##num); \
+    vm##num.init_timer_badge = VAR_STRINGIZE(VM_INIT_TIMER_BADGE); \
+    vm##num.init_timer_attributes = VAR_STRINGIZE(numplustwo); \
+    vm##num.intready_global_endpoint = VAR_STRINGIZE(vm##num); \
+    vm##num.intready_connector_global_endpoint = VAR_STRINGIZE(vm##num); \
+    vm##num.putchar_attributes = VAR_STRINGIZE(num); \
+    vm##num.guest_putchar_attributes = VAR_STRINGIZE(num); \
+    vm##num.serial_getchar_global_endpoint = VAR_STRINGIZE(vm##num); \
+    vm##num.serial_getchar_badge = VAR_STRINGIZE(VM_PIC_BADGE_SERIAL_HAS_DATA); \
+    vm##num.serial_getchar_attributes = VAR_STRINGIZE(num); \
     vm##num.cnode_size_bits = 21; \
     vm##num.simple = true; \
     VM_MAYBE_ZONE_DMA(num) \

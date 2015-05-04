@@ -17,6 +17,7 @@
 #include <boost/preprocessor/expand.hpp>
 #include <boost/preprocessor/tuple.hpp>
 #include <boost/preprocessor/control.hpp>
+#include <boost/preprocessor/repeat.hpp>
 
 #define _VAR_STRINGIZE(...) #__VA_ARGS__
 #define VAR_STRINGIZE(...) _VAR_STRINGIZE(__VA_ARGS__)
@@ -97,13 +98,13 @@
     /**/
 
 /* VM and per VM componenents */
-#define VM_COMP_DEF(num) \
+#define VM_PER_VM_COMPONENTS(num) \
     component Init##num vm##num; \
     component VMConfig CAT(vm##num, _config); \
     /**/
 
 
-#define VM_CONNECT_DEF(num) \
+#define VM_PER_VM_CONNECTIONS(num) \
     /* Connect the intready to itself to generate a template for retrieving the AEP */ \
     connection seL4GlobalAsynch intreadycon##num(from vm##num.intready_connector, to vm##num.intready); \
     /* Connect all Init components to the fileserver */ \
@@ -164,7 +165,9 @@
 #define VM_IRQ_OUTPUT(r, data, elem) BOOST_PP_TUPLE_ELEM(0, elem)
 #define VM_IRQS(num) VM_CONFIG_LIST(num, VM_IRQ_OUTPUT, VM_PASSTHROUGH_IRQ_, irqs)
 
-#define VM_CONFIG_DEF(num) \
+#define REPEAT_WRAPPER(num, iteration, data) data(iteration)
+
+#define VM_PER_VM_CONFIG_DEF(num) \
     vm##num.fs_attributes = BOOST_PP_STRINGIZE(num); \
     vm##num.init_timer_global_endpoint = BOOST_PP_STRINGIZE(vm##num); \
     vm##num.init_timer_badge = BOOST_PP_STRINGIZE(VM_INIT_TIMER_BADGE); \
@@ -184,3 +187,75 @@
     VM_MMIO(num) \
     /**/
 
+#define VM_COMPOSITION_DEF() \
+    component FileServer fserv; \
+    /* Hardware multiplexing components */ \
+    component SerialServer serial; \
+    component PCIConfigIO pci_config; \
+    component TimeServer time_server; \
+    component RTC rtc; \
+    /* Hardware components that are not actuall instantiated */ \
+    component PIT pit; \
+    component CMOS cmos; \
+    component Serial hw_serial; \
+    /* Hack to get hardware definitions sensibly in camkes for the cmoment */ \
+    component PieceOfHardware poh; \
+    /* These components don't do much output, but just in case they can pretend to \
+     * be vm0 */ \
+    connection seL4RPCCall serial_pci_config(from pci_config.putchar, to serial.vm_putchar); \
+    connection seL4RPCCall serial_time_server(from time_server.putchar, to serial.vm_putchar); \
+    connection seL4RPCCall serial_rtc(from rtc.putchar, to serial.vm_putchar); \
+    /* Connect the hardware RTC to the RTC component */ \
+    connection seL4HardwareIOPort rtc_cmos_address(from rtc.cmos_address, to cmos.cmos_address); \
+    connection seL4HardwareIOPort rtc_cmos_data(from rtc.cmos_data, to cmos.cmos_data); \
+    /* COnnect the serial server to the timer server */ \
+    connection seL4TimeServer serialserver_timer(from serial.timeout, to time_server.the_timer); \
+    /* Connect io ports to pci config space */ \
+    connection seL4HardwareIOPort config_address_ports(from pci_config.config_address, to poh.pci_config_address); \
+    connection seL4HardwareIOPort config_data_ports(from pci_config.config_data, to poh.pci_config_data); \
+    /* Connect the hardware pit to the timer driver */ \
+    connection seL4HardwareIOPort pit_command(from time_server.pit_command, to pit.command); \
+    connection seL4HardwareIOPort pit_channel0(from time_server.pit_channel0, to pit.channel0); \
+    connection seL4IOAPICHardwareInterrupt pit_irq(from pit.irq, to time_server.irq); \
+    /* Connect the hardware serial to the serial server */ \
+    connection seL4HardwareIOPort serial_ioport(from serial.serial_port, to hw_serial.serial); \
+    connection seL4IOAPICHardwareInterrupt serial_irq(from hw_serial.serial_irq, to serial.serial_irq); \
+    /**/
+
+#define VM_PER_VM_COMP_DEF(num) \
+    VM_PER_VM_COMPONENTS(num) \
+    VM_PER_VM_CONNECTIONS(num) \
+    /**/
+
+#define VM_CONFIGURATION_DEF() \
+    serial.timeout_attributes = "1"; \
+    serial.timeout_global_endpoint = "serial_server"; \
+    serial.timeout_badge = "1"; \
+    time_server.putchar_attributes = "0"; \
+    time_server.timers_per_client = 9; \
+    pit.command_attributes = "0x43:0x43"; \
+    pit.channel0_attributes = "0x40:0x40"; \
+    pit.irq_attributes = "2,0,0"; \
+    /* Serial port definitions */ \
+    hw_serial.serial_attributes="0x3f8:0x3ff"; \
+    hw_serial.serial_irq_attributes = "4,0,0"; \
+    pci_config.putchar_attributes = "0"; \
+    rtc.putchar_attributes = "0"; \
+    /* PCI config space definitions */ \
+    poh.pci_config_address_attributes = "0xcf8:0xcfb"; \
+    poh.pci_config_data_attributes = "0xcfc:0xcff"; \
+    cmos.cmos_address_attributes = "0x70:0x70"; \
+    cmos.cmos_data_attributes = "0x71:0x71"; \
+    /* Put the time server interrupt at the highest priority */ \
+    time_server.irq_priority = 255; \
+    /* Also put the rest of the time server high to avoid \
+     * priority inversion when invoking it */ \
+    time_server.the_timer_priority = 255; \
+    /* Put the serial interrupt at the next priority \
+     * but Leave the rest of the serial at default priority */ \
+    serial.serial_irq_priority = 254; \
+    /* Now the VMM, guest and everything else should be at \
+     * the default priority of 253 */ \
+    /* The serial will be put at a priority below the guest \
+     * in the PLAT_CONFIG_DEF */ \
+    /**/

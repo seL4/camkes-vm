@@ -29,16 +29,6 @@
 
 #define CAT BOOST_PP_CAT
 
-/* Each VM has 1 timer assigned to it, and the serial server also uses 1 */
-#define VTIMER_FIRST 1
-#define VTIMER_NUM   1
-#define VTIMERNUM_I(t, n) BOOST_PP_INC(BOOST_PP_ADD(VTIMER_FIRST, BOOST_PP_ADD(t, BOOST_PP_MUL(VTIMER_NUM, n))))
-#define VTIMERNUM(t, n) VTIMERNUM_I(t, n)
-
-#define VM_NUM_TIMERS BOOST_PP_ADD(VTIMER_FIRST, BOOST_PP_MUL(VTIMER_NUM, VM_NUM_GUESTS))
-
-#define VM_NUM_TIMER_CLIENTS VM_NUM_TIMERS
-
 /* For all the async sources on the intready endpoint the high bit
  * is set to indicate that an async event occured, and the low bits
  * indicate which async events */
@@ -132,11 +122,11 @@
 #define VM_MAYBE_ZONE_DMA(num)
 #endif
 
-#define VM_PER_VM_CONFIG_DEF(num) \
+#define VM_PER_VM_CONFIG_DEF(num, numplustwo) \
     vm##num.fs_attributes = BOOST_PP_STRINGIZE(num); \
     vm##num.init_timer_global_endpoint = BOOST_PP_STRINGIZE(vm##num); \
     vm##num.init_timer_badge = BOOST_PP_STRINGIZE(VM_INIT_TIMER_BADGE); \
-    vm##num.init_timer_attributes = BOOST_PP_STRINGIZE(VTIMERNUM(0, num)); \
+    vm##num.init_timer_attributes = BOOST_PP_STRINGIZE(numplustwo); \
     vm##num.intready_global_endpoint = BOOST_PP_STRINGIZE(vm##num); \
     vm##num.intready_connector_global_endpoint = BOOST_PP_STRINGIZE(vm##num); \
     vm##num.putchar_attributes = BOOST_PP_STRINGIZE(num); \

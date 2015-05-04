@@ -128,44 +128,11 @@
     connection seL4VMPCIDevices vm_pci_devices##num(from vm##num.pci_devices, to CAT(vm##num,_config).pci_devices); \
     /**/
 
-#define VM_CONFIG_LIST(num, func, list, name) \
-    BOOST_PP_EXPR_IF( \
-        BOOST_PP_COMPL(BOOST_PP_LIST_IS_NIL(BOOST_PP_TUPLE_TO_LIST(CAT(list, num)()))), \
-        vm##num.name = \
-            VAR_STRINGIZE( \
-                BOOST_PP_LIST_ENUM( \
-                    BOOST_PP_LIST_TRANSFORM( \
-                        func, \
-                        num, \
-                        BOOST_PP_TUPLE_TO_LIST(CAT(list,num)()) \
-                    ) \
-                ) \
-            ) \
-        ; \
-    ) \
-/**/
-
 #ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE
 #define VM_MAYBE_ZONE_DMA(num) vm##num.mmio = "0x8000:0x97000:12";
 #else
 #define VM_MAYBE_ZONE_DMA(num)
 #endif
-
-/* Generate IOSpace capabilities if using the IOMMU */
-#ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_IOMMU
-#define IOSPACE_OUTPUT(r, data, elem) elem
-#define VM_MAYBE_IOSPACE(num) VM_CONFIG_LIST(num, IOSPACE_OUTPUT, VM_CONFIGURATION_IOSPACES_, iospaces)
-#else
-#define VM_MAYBE_IOSPACE(num)
-#endif
-
-#define MMIO_OUTPUT(r, data, elem) elem
-#define VM_MMIO(num) VM_CONFIG_LIST(num, MMIO_OUTPUT, VM_CONFIGURATION_MMIO_, mmios)
-
-#define VM_IRQ_OUTPUT(r, data, elem) BOOST_PP_TUPLE_ELEM(0, elem)
-#define VM_IRQS(num) VM_CONFIG_LIST(num, VM_IRQ_OUTPUT, VM_PASSTHROUGH_IRQ_, irqs)
-
-#define REPEAT_WRAPPER(num, iteration, data) data(iteration)
 
 #define VM_PER_VM_CONFIG_DEF(num) \
     vm##num.fs_attributes = BOOST_PP_STRINGIZE(num); \
@@ -181,10 +148,7 @@
     vm##num.serial_getchar_attributes = BOOST_PP_STRINGIZE(num); \
     vm##num.cnode_size_bits = 21; \
     vm##num.simple = true; \
-    VM_IRQS(num) \
     VM_MAYBE_ZONE_DMA(num) \
-    VM_MAYBE_IOSPACE(num) \
-    VM_MMIO(num) \
     /**/
 
 #define VM_COMPOSITION_DEF() \

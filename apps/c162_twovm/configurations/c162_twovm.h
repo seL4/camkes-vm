@@ -50,7 +50,6 @@
     .get_buf = &vchan_con_get_buf, \
     .status = &vchan_con_status,\
     .alert_status = &vchan_con_alert_status, \
-    .reg_callback = &vevent_reg_callback, \
     .alert = &vchan_con_ping, \
     .component_dom_num = 0, \
     }; \

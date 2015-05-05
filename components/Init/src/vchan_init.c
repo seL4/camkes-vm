@@ -50,8 +50,6 @@ static int guest_vchan_init(int domain, int port, int server);
 
 void vchan_vmcall_init();
 
-static void vchan_callback(void *addr);
-
 VCHAN_COMPONENT_DEF()
 
 /* Struct for managing copyin's/copyout's to a dataport via touch callback */
@@ -82,9 +80,16 @@ static vmm_vcpu_t *run_vmm = NULL;
 static bool driver_connected = 0;
 static char driver_arg[1024];
 static vmcall_args_t driver_vmcall;
+static void *vchan_callback_addr = NULL;
 
-static void vchan_callback(void *addr) {
+void vchan_interrupt(void) {
     vchan_alert_t in_alert;
+    void *addr = vchan_callback_addr;
+
+    if (!addr) {
+        return;
+    }
+
     data_from_guest(run_vmm, (uintptr_t) addr, sizeof(vchan_alert_t), &in_alert);
 
     vchan_ctrl_t ct = {
@@ -97,7 +102,6 @@ static void vchan_callback(void *addr) {
 
     data_to_guest(run_vmm, (uintptr_t) addr, sizeof(vchan_alert_t), &in_alert);
     i8259_gen_irq(VCHAN_EVENT_IRQ);
-    vchan_set_callback(&vchan_callback, addr);
 }
 
 
@@ -134,7 +138,7 @@ static int guest_vchan_init(int domain, int port, int server) {
 /*
     Initialise the shared memory dataport struct
 */
-void vchan_vmcall_init() {
+void vchan_init() {
     VCHAN_COMPONENT_INIT_MEM()
 }
 
@@ -336,7 +340,7 @@ static int vchan_connect(vmm_vcpu_t *vcpu, void *data, uint64_t cmd) {
     vchan_connect_t *pass = (vchan_connect_t *)args->ret_data;
 
     guest_vchan_init(pass->v.dest, pass->v.port, pass->server);
-    vchan_set_callback(&vchan_callback, (void *) pass->event_mon);
+    vchan_callback_addr = (void*)pass->event_mon;
 
     return 0;
 }

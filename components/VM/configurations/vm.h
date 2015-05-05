@@ -44,6 +44,7 @@
 #define VM_PIC_BADGE_IRQ_15 134283264 /* BIT(27) | BIT(16) */
 
 #define VM_PIC_BADGE_SERIAL_HAS_DATA 134348800 /* BIT(27) | BIT(17) */
+#define VM_PIC_BADGE_VCHAN_HAS_DATA 134479872 /* BIT(27) | BIT(18) */
 
 /* First available badge for user bits */
 #define VM_FIRST_BADGE_BIT 18

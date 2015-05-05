@@ -37,6 +37,7 @@
 #include "i8259.h"
 #include "timers.h"
 #include "fsclient.h"
+#include "vchan_init.h"
 
 #include <boost/preprocessor/facilities/apply.hpp>
 #include <boost/preprocessor/list.hpp>
@@ -522,7 +523,6 @@ static device_notify_t *device_notify_list = NULL;
 void pit_timer_interrupt(void);
 void rtc_timer_interrupt(uint32_t);
 void serial_timer_interrupt(uint32_t);
-void vchan_vmcall_init(void);
 
 static seL4_Word irq_badges[16] = {
     VM_PIC_BADGE_IRQ_0,
@@ -559,8 +559,11 @@ static int handle_async_event(seL4_Word badge) {
                 serial_timer_interrupt(completed);
             }
         }
-        if (badge & VM_PIC_BADGE_SERIAL_HAS_DATA) {
+        if ( (badge & VM_PIC_BADGE_SERIAL_HAS_DATA) == VM_PIC_BADGE_SERIAL_HAS_DATA) {
             serial_character_interrupt();
+        }
+        if ( (badge & VM_PIC_BADGE_VCHAN_HAS_DATA) == VM_PIC_BADGE_VCHAN_HAS_DATA) {
+            vchan_interrupt();
         }
         for (int i = 0; i < 16; i++) {
             if ( (badge & irq_badges[i]) == irq_badges[i]) {
@@ -618,7 +621,7 @@ void *main_continued(void *arg) {
     int device_init_list_len = 0;
 
 #ifdef VCHAN_COMPONENT_DEF
-    vchan_vmcall_init();
+    vchan_init();
 #endif
 
     rtc_time_date_t time_date = system_rtc_time_date();

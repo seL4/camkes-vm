@@ -9,6 +9,7 @@
  */
 
 #include "vm.h"
+#include <sel4/sel4.h>
 #include <camkes.h>
 #include "vmm/debug.h"
 

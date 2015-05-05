@@ -323,35 +323,12 @@ static memory_range_t guest_fake_devices[] = {
 #endif
 };
 
-/* this struct holds a bunch of compile time data for dealing with extra
- * async notifications for native devices. everything here is known at
- * build time but it is convenient to be able to inspect it programatically
- * instead of through insane macros
- */
-
 typedef struct device_notify {
-    /* which extra bit to badge */
-    uint32_t badge_bit;
+    uint32_t badge;
     /* the function (as described by the user in the configuration) to call
      * when the message has been received. */
-    void (*func)();
+    void (*func)(vmm_t *vmm);
 } device_notify_t;
-#define ASYNC_DEVICE_MEMBER(r, data, elem) \
-    {BOOST_PP_TUPLE_ELEM(0, elem), BOOST_PP_TUPLE_ELEM(1, elem)}, \
-    /**/
-#define ASYNC_DEVICE_OUTPUT(num, iteration, data) \
-    device_notify_t device_notify_vm##iteration[] = { \
-        BOOST_PP_LIST_FOR_EACH(ASYNC_DEVICE_MEMBER, iteration, BOOST_PP_TUPLE_TO_LIST(CAT(VM_ASYNC_DEVICE_BADGES_, iteration)())) \
-    }; \
-    /**/
-BOOST_PP_REPEAT(VM_NUM_GUESTS, ASYNC_DEVICE_OUTPUT, _)
-
-#define DEVICE_INIT_OUTPUT(num, iteration, data) \
-    static void(*device_init_fn_vm##iteration[])(vmm_t *) = { \
-        CAT(VM_DEVICE_INIT_FN_, iteration)() \
-    }; \
-    /**/
-BOOST_PP_REPEAT(VM_NUM_GUESTS, DEVICE_INIT_OUTPUT, _)
 
 /* Wrappers for passing PCI config space calls to camkes */
 static uint8_t camkes_pci_read8(void *cookie, vmm_pci_address_t addr, unsigned int offset) {
@@ -571,10 +548,10 @@ static int handle_async_event(seL4_Word badge) {
             }
         }
         for (int i = 0; i < device_notify_list_len; i++) {
-            uint32_t device_badge = BIT(27) | BIT(device_notify_list[i].badge_bit);
+            uint32_t device_badge = device_notify_list[i].badge;
             if ( (badge & device_badge) == device_badge) {
                 assert(device_notify_list[i].func);
-                device_notify_list[i].func();
+                device_notify_list[i].func(&vmm);
             }
         }
     }
@@ -612,17 +589,31 @@ int fake_vchan_handler(vmm_vcpu_t *vcpu) {
     return 0;
 }
 
+void init_con_irq_init(void) {
+    int i;
+    int irqs = 0;
+    unsigned int badge;
+    unsigned int fun;
+    for (i = 0; i < init_cons_num_connections(); i++) {
+        if (init_cons_has_interrupt(i, &badge, &fun)) {
+            irqs++;
+        }
+    }
+    device_notify_list_len = irqs;
+    device_notify_list = malloc(sizeof(*device_notify_list) * irqs);
+    assert(device_notify_list);
+    for (i = 0; i < irqs; i++) {
+        init_cons_has_interrupt(i, &badge, &fun);
+        device_notify_list[i].badge = badge;
+        device_notify_list[i].func = (void (*)(vmm_t*))fun;
+    }
+}
+
 void *main_continued(void *arg) {
     int error;
     int i;
     int have_initrd = 0;
     ps_io_port_ops_t ioops;
-    void (**device_init_list)(vmm_t*) = NULL;
-    int device_init_list_len = 0;
-
-#ifdef VCHAN_COMPONENT_DEF
-    vchan_init();
-#endif
 
     rtc_time_date_t time_date = system_rtc_time_date();
     printf("Starting VM %s at: %04d:%02d:%02d %02d:%02d:%02d\n", get_instance_name(), time_date.year, time_date.month, time_date.day, time_date.hour, time_date.minute, time_date.second);
@@ -653,16 +644,9 @@ void *main_continued(void *arg) {
     error = vmm_init_guest(&vmm, CONFIG_CAMKES_DEFAULT_PRIORITY);
     assert(!error);
 
-    /* Do per vm configuration */
-#define PER_VM_CONFIG(num, iteration, data) \
-    if (strcmp(get_instance_name(), BOOST_PP_STRINGIZE(vm_vm##iteration)) == 0) { \
-        device_notify_list = BOOST_PP_CAT(device_notify_vm, iteration); \
-        device_notify_list_len = ARRAY_SIZE(BOOST_PP_CAT(device_notify_vm, iteration)); \
-        device_init_list = BOOST_PP_CAT(device_init_fn_vm, iteration); \
-        device_init_list_len = ARRAY_SIZE(BOOST_PP_CAT(device_init_fn_vm, iteration)); \
-    } \
-    /**/
-    BOOST_PP_REPEAT(VM_NUM_GUESTS, PER_VM_CONFIG, _)
+    /* Initialize the init device badges and notification functions */
+    init_con_irq_init();
+
     have_initrd = !(strcmp(initrd_image, "") == 0);
 
     init_irqs();
@@ -757,8 +741,10 @@ void *main_continued(void *arg) {
         assert(!error);
     }
 
-    for (i = 0; i < device_init_list_len; i++) {
-        device_init_list[i](&vmm);
+    /* Initialize any extra init devices */
+    for (i = 0; i < init_cons_num_connections(); i++) {
+        void (*proc)(vmm_t*) = (void (*)(vmm_t*))init_cons_init_function(i);
+        proc(&vmm);
     }
 
     /* Add any IO ports */
@@ -800,13 +786,8 @@ void *main_continued(void *arg) {
 
     vmm_plat_init_guest_boot_structure(&vmm, kernel_cmdline);
 
-#ifdef VCHAN_COMPONENT_DEF
     error = reg_new_handler(&vmm, &vchan_handler, VMM_MANAGER_TOKEN);
     assert(!error);
-#else
-    error = reg_new_handler(&vmm, &fake_vchan_handler, VMM_MANAGER_TOKEN);
-    assert(!error);
-#endif
 
     /* Final VMM setup now that everything is defined and loaded */
     error = vmm_finalize(&vmm);

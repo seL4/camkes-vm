@@ -30,6 +30,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <platsupport/plat/rtc.h>
+#include <sel4/sel4.h>
 #include <camkes.h>
 #include "timers.h"
 #include "i8259.h"

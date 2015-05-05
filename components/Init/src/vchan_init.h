@@ -13,7 +13,6 @@
 
 #include <vmm/vmm.h>
 
-void vchan_init(void);
 void vchan_interrupt(vmm_t *vmm);
 
 #endif

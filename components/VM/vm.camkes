@@ -26,6 +26,7 @@ import <VMIOPorts.idl4>;
 import <VMIRQs.idl4>;
 import <VMPCIDevices.idl4>;
 import <FileServerInterface.idl4>;
+import <InitConnection.idl4>;
 
 import "PIC.camkes";
 import "PIT.camkes";
@@ -80,6 +81,11 @@ connector seL4ExtraRAM {
     to Interface server_extra_ram;
 }
 
+connector seL4InitConnection {
+    from Procedure client template "seL4InitConnection.template.c";
+    to Interface server_init_con;
+}
+
 connector seL4VMIOPorts {
     from Procedure client template "seL4VMIOPorts.template.c";
     to Interface vm_io_ports;
@@ -120,6 +126,11 @@ connector seL4MultiSharedData {
     to Dataport server template "seL4MultiSharedData-to.template.c";
 }
 
+connector seL4VChanConnection {
+    from Procedure client template "seL4VChanConnection-from.template.c";
+    to Procedure client template "seL4VChanConnection-to.template.c";
+}
+
 component PieceOfHardware {
     hardware;
     provides IOPort pci_config_address;
@@ -138,4 +149,5 @@ component VMConfig {
     provides VMIOPorts ioports;
     provides VMIRQs irqs;
     provides VMPCIDevices pci_devices;
+    provides InitConnection init_cons;
 };

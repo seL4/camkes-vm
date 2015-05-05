@@ -43,23 +43,6 @@
 #define C162_ROOTFS "rootfs.cpio"
 #define VM_GUEST_CMDLINE "console=ttyS0,115200 console=tty0 root=/dev/mem i8042.nokbd=y i8042.nomux=y i8042.noaux=y io_delay=udelay noisapnp pci=nomsi"
 
-#define VCHAN_COMPONENT_DEF() \
-    static camkes_vchan_con_t vchan_camkes_component = { \
-    .connect = &vchan_con_new_connection, \
-    .disconnect = &vchan_con_rem_connection, \
-    .get_buf = &vchan_con_get_buf, \
-    .status = &vchan_con_status,\
-    .alert_status = &vchan_con_alert_status, \
-    .alert = &vchan_con_ping, \
-    .component_dom_num = 0, \
-    }; \
-    /**/
-
-#define VCHAN_COMPONENT_INIT_MEM() \
-    vchan_camkes_component.data_buf = (void *) share_mem; \
-    init_camkes_vchan(&vchan_camkes_component); \
-    /**/
-
 #define VM_ASYNC_DEVICE_BADGES_0() \
     /**/
 

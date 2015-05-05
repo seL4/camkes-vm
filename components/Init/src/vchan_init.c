@@ -30,8 +30,6 @@
 
 #include <camkes.h>
 
-#ifdef VCHAN_COMPONENT_DEF
-
 static int vm_args(uintptr_t phys, void *vaddr, size_t size, size_t offset, void *cookie);
 static int vchan_sync_copy(uintptr_t phys, void *vaddr, size_t size, size_t offset, void *cookie);
 
@@ -49,8 +47,6 @@ static int vchan_state(vmm_t *vmm, void *data, uint64_t cmd);
 static int guest_vchan_init(int domain, int port, int server);
 
 void vchan_vmcall_init();
-
-VCHAN_COMPONENT_DEF()
 
 /* Struct for managing copyin's/copyout's to a dataport via touch callback */
 typedef struct vchan_copy_mem {
@@ -79,6 +75,14 @@ static bool driver_connected = 0;
 static char driver_arg[1024];
 static vmcall_args_t driver_vmcall;
 static void *vchan_callback_addr = NULL;
+static camkes_vchan_con_t vchan_camkes_component;
+static int have_vchan = 0;
+
+void vchan_init_camkes(camkes_vchan_con_t vchan) {
+    vchan_camkes_component = vchan;
+    have_vchan = 1;
+    init_camkes_vchan(&vchan_camkes_component);
+}
 
 void vchan_interrupt(vmm_t *vmm) {
     vchan_alert_t in_alert;
@@ -131,13 +135,6 @@ static int guest_vchan_init(int domain, int port, int server) {
 
     vchan_camkes_component.connect(t);
     return 0;
-}
-
-/*
-    Initialise the shared memory dataport struct
-*/
-void vchan_init() {
-    VCHAN_COMPONENT_INIT_MEM()
 }
 
 /*
@@ -389,6 +386,9 @@ int vchan_handler(vmm_vcpu_t *vcpu) {
     void *data;
     int cmd;
     uintptr_t paddr = vmm_read_user_context(&vcpu->guest_state, USER_CONTEXT_EBX);
+    if (!have_vchan) {
+        return 0;
+    }
 
     /*
         Get the location of the arguments in virtual memory
@@ -417,5 +417,3 @@ int vchan_handler(vmm_vcpu_t *vcpu) {
     /* Return success */
     return 0;
 }
-
-#endif

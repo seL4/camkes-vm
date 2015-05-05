@@ -11,6 +11,7 @@
 #include "vm.h"
 #include <sel4/sel4.h>
 #include <camkes.h>
+#include <string.h>
 #include "vmm/debug.h"
 
 #include "fsclient.h"

@@ -41,8 +41,6 @@
 
 #define BRK_VIRTUAL_SIZE 400000000
 
-VM_INIT_SOURCE_DEFS()
-
 reservation_t muslc_brk_reservation;
 void *muslc_brk_reservation_start;
 vspace_t  *muslc_this_vspace;

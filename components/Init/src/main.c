@@ -39,11 +39,6 @@
 #include "fsclient.h"
 #include "vchan_init.h"
 
-#include <boost/preprocessor/facilities/apply.hpp>
-#include <boost/preprocessor/list.hpp>
-#include <boost/preprocessor/repeat.hpp>
-#include <boost/preprocessor/stringize.hpp>
-
 #define BRK_VIRTUAL_SIZE 400000000
 
 VM_INIT_SOURCE_DEFS()

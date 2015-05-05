@@ -532,9 +532,6 @@ static int handle_async_event(seL4_Word badge) {
         if ( (badge & VM_PIC_BADGE_SERIAL_HAS_DATA) == VM_PIC_BADGE_SERIAL_HAS_DATA) {
             serial_character_interrupt();
         }
-        if ( (badge & VM_PIC_BADGE_VCHAN_HAS_DATA) == VM_PIC_BADGE_VCHAN_HAS_DATA) {
-            vchan_interrupt(&vmm);
-        }
         for (int i = 0; i < 16; i++) {
             if ( (badge & irq_badges[i]) == irq_badges[i]) {
                 i8259_gen_irq(i);

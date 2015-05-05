@@ -11,7 +11,9 @@
 #ifndef VM_INIT_VCHAN_INIT_H
 #define VM_INIT_VCHAN_INIT_H
 
+#include <vmm/vmm.h>
+
 void vchan_init(void);
-void vchan_interrupt(void);
+void vchan_interrupt(vmm_t *vmm);
 
 #endif

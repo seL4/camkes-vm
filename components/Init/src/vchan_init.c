@@ -35,16 +35,16 @@
 static int vm_args(uintptr_t phys, void *vaddr, size_t size, size_t offset, void *cookie);
 static int vchan_sync_copy(uintptr_t phys, void *vaddr, size_t size, size_t offset, void *cookie);
 
-static void data_to_guest(vmm_vcpu_t *vcpu, uintptr_t phys_ptr, size_t size, void *buf);
-static void *data_from_guest(vmm_vcpu_t *vcpu, uintptr_t phys_ptr, size_t size, void *buf);
+static void data_to_guest(vmm_t *vmm, uintptr_t phys_ptr, size_t size, void *buf);
+static void *data_from_guest(vmm_t *vmm, uintptr_t phys_ptr, size_t size, void *buf);
 
-static int driver_connect(vmm_vcpu_t *vcpu, void *data, uint64_t cmd);
+static int driver_connect(vmm_t *vmm, void *data, uint64_t cmd);
 
-static int vchan_connect(vmm_vcpu_t *vcpu, void *data, uint64_t cmd);
-static int vchan_close(vmm_vcpu_t *vcpu, void *data, uint64_t cmd);
-static int vchan_buf_state(vmm_vcpu_t *vcpu, void *data, uint64_t cmd);
-static int vchan_readwrite(vmm_vcpu_t *vcpu, void *data, uint64_t cmd);
-static int vchan_state(vmm_vcpu_t *vcpu, void *data, uint64_t cmd);
+static int vchan_connect(vmm_t *vmm, void *data, uint64_t cmd);
+static int vchan_close(vmm_t *vmm, void *data, uint64_t cmd);
+static int vchan_buf_state(vmm_t *vmm, void *data, uint64_t cmd);
+static int vchan_readwrite(vmm_t *vmm, void *data, uint64_t cmd);
+static int vchan_state(vmm_t *vmm, void *data, uint64_t cmd);
 
 static int guest_vchan_init(int domain, int port, int server);
 
@@ -61,7 +61,7 @@ typedef struct vchan_copy_mem {
 
 /* Function lookup table for handling requests */
 static struct vmm_manager_ops {
-    int (*op_func[NUM_VMM_OPS])(vmm_vcpu_t *, void *, uint64_t);
+    int (*op_func[NUM_VMM_OPS])(vmm_t *, void *, uint64_t);
 } vmm_manager_ops_table = {
 
     .op_func[VMM_CONNECT]       =   &driver_connect,
@@ -75,14 +75,12 @@ static struct vmm_manager_ops {
 
 };
 
-static vmm_vcpu_t *run_vmm = NULL;
-
 static bool driver_connected = 0;
 static char driver_arg[1024];
 static vmcall_args_t driver_vmcall;
 static void *vchan_callback_addr = NULL;
 
-void vchan_interrupt(void) {
+void vchan_interrupt(vmm_t *vmm) {
     vchan_alert_t in_alert;
     void *addr = vchan_callback_addr;
 
@@ -90,7 +88,7 @@ void vchan_interrupt(void) {
         return;
     }
 
-    data_from_guest(run_vmm, (uintptr_t) addr, sizeof(vchan_alert_t), &in_alert);
+    data_from_guest(vmm, (uintptr_t) addr, sizeof(vchan_alert_t), &in_alert);
 
     vchan_ctrl_t ct = {
         .domain = vchan_camkes_component.component_dom_num,
@@ -100,7 +98,7 @@ void vchan_interrupt(void) {
 
     in_alert.alert = vchan_camkes_component.alert_status(ct);
 
-    data_to_guest(run_vmm, (uintptr_t) addr, sizeof(vchan_alert_t), &in_alert);
+    data_to_guest(vmm, (uintptr_t) addr, sizeof(vchan_alert_t), &in_alert);
     i8259_gen_irq(VCHAN_EVENT_IRQ);
 }
 
@@ -184,13 +182,13 @@ static int vchan_sync_copy(uintptr_t phys, void *vaddr, size_t size, size_t offs
 /*
     Return an address pointing to data inside the virtualised guest
 */
-static void *data_from_guest(vmm_vcpu_t *vcpu, uintptr_t phys_ptr, size_t size, void *buf) {
+static void *data_from_guest(vmm_t *vmm, uintptr_t phys_ptr, size_t size, void *buf) {
     vchan_copy_mem_t tok;
     tok.buf = buf;
     tok.copy_type = 0;
     tok.copy_size = size;
 
-    vspace_t *vs = &vcpu->vmm->guest_mem.vspace;
+    vspace_t *vs = &vmm->guest_mem.vspace;
     vmm_guest_vspace_touch(vs, phys_ptr, size, &vm_args, &tok);
 
     return buf;
@@ -199,13 +197,13 @@ static void *data_from_guest(vmm_vcpu_t *vcpu, uintptr_t phys_ptr, size_t size, 
 /*
     Return an address pointing to data inside the virtualised guest
 */
-static void data_to_guest(vmm_vcpu_t *vcpu, uintptr_t phys_ptr, size_t size, void *buf) {
+static void data_to_guest(vmm_t *vmm, uintptr_t phys_ptr, size_t size, void *buf) {
     vchan_copy_mem_t tok;
     tok.buf = buf;
     tok.copy_type = 1;
     tok.copy_size = size;
 
-    vspace_t *vs = &vcpu->vmm->guest_mem.vspace;
+    vspace_t *vs = &vmm->guest_mem.vspace;
     vmm_guest_vspace_touch(vs, phys_ptr, size, &vm_args, &tok);
 
 }
@@ -213,7 +211,7 @@ static void data_to_guest(vmm_vcpu_t *vcpu, uintptr_t phys_ptr, size_t size, voi
 /*
     Return the state of a given vchan connection
 */
-static int vchan_state(vmm_vcpu_t *vcpu, void *data, uint64_t cmd) {
+static int vchan_state(vmm_t *vmm, void *data, uint64_t cmd) {
     vchan_check_args_t *args = (vchan_check_args_t *)data;
 
     args->v.domain = vchan_camkes_component.component_dom_num;
@@ -228,10 +226,10 @@ static int vchan_state(vmm_vcpu_t *vcpu, void *data, uint64_t cmd) {
         Copies into a memory buffer, and then defers to VmmManager to finish the operation
         Defering is necessary for ensuring concurrency
 */
-static int vchan_readwrite(vmm_vcpu_t *vcpu, void *data, uint64_t cmd) {
+static int vchan_readwrite(vmm_t *vmm, void *data, uint64_t cmd) {
     vchan_copy_mem_t tok;
     vchan_args_t *args = (vchan_args_t *)data;
-    vspace_t *vs = &vcpu->vmm->guest_mem.vspace;
+    vspace_t *vs = &vmm->guest_mem.vspace;
 
     int *update;
     size_t size = args->size;
@@ -308,7 +306,7 @@ static int vchan_readwrite(vmm_vcpu_t *vcpu, void *data, uint64_t cmd) {
     See the state of a given vchan buffer
         i.e. how much data is in the buffer, how much can be written into the buffer
 */
-static int vchan_buf_state(vmm_vcpu_t *vcpu, void *data, uint64_t cmd) {
+static int vchan_buf_state(vmm_t *vmm, void *data, uint64_t cmd) {
     vchan_check_args_t *args = (vchan_check_args_t *)data;
 
     vchan_ctrl_t bargs = {
@@ -335,7 +333,7 @@ static int vchan_buf_state(vmm_vcpu_t *vcpu, void *data, uint64_t cmd) {
 /*
     Connect a vchan to a another guest vm
 */
-static int vchan_connect(vmm_vcpu_t *vcpu, void *data, uint64_t cmd) {
+static int vchan_connect(vmm_t *vmm, void *data, uint64_t cmd) {
     vmm_args_t *args = (vmm_args_t *)data;
     vchan_connect_t *pass = (vchan_connect_t *)args->ret_data;
 
@@ -348,7 +346,7 @@ static int vchan_connect(vmm_vcpu_t *vcpu, void *data, uint64_t cmd) {
 /*
     Close a vchan connection this guest vm is using
 */
-static int vchan_close(vmm_vcpu_t *vcpu, void *data, uint64_t cmd) {
+static int vchan_close(vmm_t *vmm, void *data, uint64_t cmd) {
     panic("init-side vchan close not implemented!");
     // vmm_args_t *args = (vmm_args_t *)data;
     // vchan_connect_t *pass = (vchan_connect_t *)args->ret_data;
@@ -361,7 +359,7 @@ static int vchan_close(vmm_vcpu_t *vcpu, void *data, uint64_t cmd) {
 /*
     Used for replying back to a driver successfully connecting
 */
-static int driver_connect(vmm_vcpu_t *vcpu, void *data, uint64_t cmd) {
+static int driver_connect(vmm_t *vmm, void *data, uint64_t cmd) {
     /* Only allow one vchan driver instance to be connected */
     if(driver_connected)
         return -1;
@@ -388,7 +386,6 @@ static int driver_connect(vmm_vcpu_t *vcpu, void *data, uint64_t cmd) {
     - Depending on the command and arguments, we perform the top level administration of the request
 */
 int vchan_handler(vmm_vcpu_t *vcpu) {
-    run_vmm = vcpu;
     void *data;
     int cmd;
     uintptr_t paddr = vmm_read_user_context(&vcpu->guest_state, USER_CONTEXT_EBX);
@@ -399,7 +396,7 @@ int vchan_handler(vmm_vcpu_t *vcpu) {
             - It also contains the physical address of the arguments for this request
             - Unrecognised tokens mean the request is rejected with an error
     */
-    data_from_guest(vcpu, paddr, sizeof(vmcall_args_t), &driver_vmcall);
+    data_from_guest(vcpu->vmm, paddr, sizeof(vmcall_args_t), &driver_vmcall);
     vmcall_args_t *args = (vmcall_args_t *) &driver_vmcall;
     cmd = args->cmd;
 
@@ -409,14 +406,14 @@ int vchan_handler(vmm_vcpu_t *vcpu) {
         args->err = -1;
     } else {
         /* Perform given token:command action */
-        data = data_from_guest(vcpu, args->phys_data, args->size, (void *) driver_arg);
-        args->err = (*vmm_manager_ops_table.op_func[cmd])(vcpu, data, cmd );
+        data = data_from_guest(vcpu->vmm, args->phys_data, args->size, (void *) driver_arg);
+        args->err = (*vmm_manager_ops_table.op_func[cmd])(vcpu->vmm, data, cmd );
         if(args->err != -1) {
-            data_to_guest(vcpu, args->phys_data, args->size, (void *) driver_arg);
+            data_to_guest(vcpu->vmm, args->phys_data, args->size, (void *) driver_arg);
         }
     }
 
-    data_to_guest(vcpu, paddr, sizeof(vmcall_args_t), &driver_vmcall);
+    data_to_guest(vcpu->vmm, paddr, sizeof(vmcall_args_t), &driver_vmcall);
     /* Return success */
     return 0;
 }

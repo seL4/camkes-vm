@@ -41,6 +41,9 @@ void echo2_recv_ready_callback() {
 }
 
 void post_init() {
+    /* Check it's the right year */
+    rtc_time_date_t time_date = rtc_time_date();
+    assert(time_date.year == 2015);
     /* timeout once a second */
     int ret;
     ret = timer_periodic(0, 1000000000);

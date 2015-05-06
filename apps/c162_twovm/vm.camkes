@@ -48,6 +48,9 @@ assembly {
         /* Connect Echo to the timer server */
         connection seL4TimeServer echo_timer(from echo.timer, to vm.time_server_timer);
         connection seL4GlobalAsynchCallback echo_int(from vm.time_server_complete, to echo.timer_complete);
+
+        /* Connect Echo to the RTC */
+        connection seL4RPCCall echo_rtc(from echo.rtc, to vm.rtc_interface);
     }
     configuration {
         /* The attributes for the receive buffer represent the client ID

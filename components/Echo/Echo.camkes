@@ -13,6 +13,7 @@ import <PutChar.idl4>;
 import <UDPRecv.idl4>;
 import <UDPSend.idl4>;
 import <Timer.idl4>;
+import <RTC.idl4>;
 
 component Echo {
     uses UDPRecv echo_recv;
@@ -27,4 +28,5 @@ component Echo {
     dataport Buf echo2_send_buf;
     uses Timer timer;
     consumes Notification timer_complete;
+    uses RTC rtc;
 }

@@ -26,6 +26,8 @@ component VM {
     /* We want to export the time interface up to our main spec */
     provides Timer time_server_timer;
     emits Notifcation time_server_complete;
+    /* Also export an interface to the RTC */
+    provides RTC rtc_interface;
     composition {
         VM_COMPOSITION_DEF()
         VM_PER_VM_COMP_DEF(0)
@@ -46,6 +48,8 @@ component VM {
         /* Export the time server interface up */
         connection ExportRPC export_timer(from time_server_timer, to time_server.the_timer);
         connection ExportAsynch export_timer_notify(from time_server.timer_notification, to time_server_complete);
+        /* Export the RTC up */
+        connection ExportRPC export_rpc(from rtc_interface, to rtc.rtc);
     }
     configuration {
         VM_CONFIGURATION_DEF()

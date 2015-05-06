@@ -16,34 +16,36 @@ assembly {
     composition {
         /* Our echo component */
         component Echo echo;
-        /* UDP server */
-        component UDPServer udpserver;
+        /* UDP servers */
+        component UDPServer udpserver0;
+        component UDPServer udpserver1;
         /* Ethernet driver */
         component Ethdriver ethdriver;
         component HWEthDriver HWEthDriver;
         /* The VM sub component */
         component VM vm;
 
-        /* Connect ethernet driver to udpserver */
-        connection seL4Ethdriver eth_driver(from udpserver.ethdriver, to ethdriver.client);
+        /* Connect ethernet drivers to udpservers */
+        connection seL4Ethdriver eth_driver0(from udpserver0.ethdriver, to ethdriver.client);
+        connection seL4Ethdriver eth_driver1(from udpserver1.ethdriver, to vm.ethdriver_interface);
 
         /* Hardware resources for ethernet driver */
         connection seL4HardwareMMIO ethdrivermmio1(from ethdriver.EthDriver, to HWEthDriver.mmio);
         connection seL4IOAPICHardwareInterrupt hwethirq(from HWEthDriver.irq, to ethdriver.irq);
 
         /* UDP connections for echo server */
-        connection seL4UDPRecv udp_echo_recv(from echo.echo_recv, to udpserver.client_recv);
-        connection seL4UDPSend udp_echo_send(from echo.echo_send, to udpserver.client_send);
-        connection seL4MultiSharedData udp_echo_send_buf(from echo.echo_send_buf, to udpserver.client_send_buf);
-        connection seL4MultiSharedData udp_echo_recv_buf(from echo.echo_recv_buf, to udpserver.client_recv_buf);
-        connection seL4GlobalAsynchCallback udp_echo_recv_ready(from udpserver.client_recv_ready, to echo.echo_recv_ready);
+        connection seL4UDPRecv udp_echo_recv(from echo.echo_recv, to udpserver0.client_recv);
+        connection seL4UDPSend udp_echo_send(from echo.echo_send, to udpserver0.client_send);
+        connection seL4MultiSharedData udp_echo_send_buf(from echo.echo_send_buf, to udpserver0.client_send_buf);
+        connection seL4MultiSharedData udp_echo_recv_buf(from echo.echo_recv_buf, to udpserver0.client_recv_buf);
+        connection seL4GlobalAsynchCallback udp_echo_recv_ready(from udpserver0.client_recv_ready, to echo.echo_recv_ready);
 
         /* Second set of UDP connections for echo server */
-        connection seL4UDPRecv udp_echo2_recv(from echo.echo2_recv, to udpserver.client_recv);
-        connection seL4UDPSend udp_echo2_send(from echo.echo2_send, to udpserver.client_send);
-        connection seL4MultiSharedData udp_echo2_send_buf(from echo.echo2_send_buf, to udpserver.client_send_buf);
-        connection seL4MultiSharedData udp_echo2_recv_buf(from echo.echo2_recv_buf, to udpserver.client_recv_buf);
-        connection seL4GlobalAsynchCallback udp_echo2_recv_ready(from udpserver.client_recv_ready, to echo.echo2_recv_ready);
+        connection seL4UDPRecv udp_echo2_recv(from echo.echo2_recv, to udpserver1.client_recv);
+        connection seL4UDPSend udp_echo2_send(from echo.echo2_send, to udpserver1.client_send);
+        connection seL4MultiSharedData udp_echo2_send_buf(from echo.echo2_send_buf, to udpserver1.client_send_buf);
+        connection seL4MultiSharedData udp_echo2_recv_buf(from echo.echo2_recv_buf, to udpserver1.client_recv_buf);
+        connection seL4GlobalAsynchCallback udp_echo2_recv_ready(from udpserver1.client_recv_ready, to echo.echo2_recv_ready);
 
         /* Connect Echo to the timer server */
         connection seL4TimeServer echo_timer(from echo.timer, to vm.time_server_timer);
@@ -59,7 +61,7 @@ assembly {
         echo.echo_recv_buf_attributes = "1";
 
         /* attributes for echo receive RPC indicate a client ID. This needs
-         * to be unique across all of the RPC connections to the udpserver.client_recv */
+         * to be unique across all of the RPC connections to the udpserver0.client_recv */
         echo.echo_recv_attributes = "1";
         /* The UDP port that this interface will receive packets on */
         echo.echo_recv_port = 7;
@@ -85,11 +87,11 @@ assembly {
         echo.echo2_recv_buf_attributes = "2";
 
         echo.echo2_recv_attributes = "2";
-        echo.echo2_recv_port = 8;
+        echo.echo2_recv_port = 7;
         echo.echo2_recv_global_endpoint = "echo2_recv_endpoint";
         echo.echo2_recv_ready_global_endpoint = "echo2_recv_endpoint";
 
-        echo.echo2_send_ports = { "source" : 8, "dest" : 8};
+        echo.echo2_send_ports = { "source" : 7, "dest" : 7};
         echo.echo2_send_attributes= "2";
 
         echo.echo2_send_buf_attributes = "2";
@@ -98,11 +100,16 @@ assembly {
         echo.timer_global_endpoint = "echo_timer";
         echo.timer_complete_global_endpoint = "echo_timer";
 
-        udpserver.num_client_recv_bufs = 8;
-        udpserver.udp_ip_addr = "10.13.1.215";
-        udpserver.ethdriver_attributes = "1";
-        udpserver.ethdriver_global_endpoint = "udpserver_endpoint";
-        udpserver.ethdriver_mac = [06, 00, 00, 12, 13, 14];
+        udpserver0.num_client_recv_bufs = 8;
+        udpserver0.udp_ip_addr = "10.13.1.215";
+        udpserver0.ethdriver_attributes = "1";
+        udpserver0.ethdriver_global_endpoint = "udpserver0_endpoint";
+        udpserver0.ethdriver_mac = [06, 00, 00, 12, 13, 14];
+        udpserver1.num_client_recv_bufs = 8;
+        udpserver1.udp_ip_addr = "10.13.1.216";
+        udpserver1.ethdriver_attributes = "2";
+        udpserver1.ethdriver_global_endpoint = "udpserver1_endpoint";
+        udpserver1.ethdriver_mac = [06, 00, 00, 13, 14, 15];
         HWEthDriver.mmio_attributes = "0xf1b80000:0x80000";
         HWEthDriver.irq_attributes = "16,1,1";
         ethdriver.simple = true;

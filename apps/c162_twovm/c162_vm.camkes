@@ -29,6 +29,8 @@ component VM {
     emits Notifcation time_server_complete;
     /* Also export an interface to the RTC */
     provides RTC rtc_interface;
+    /* Export an interface for the shared ethdriver */
+    provides Ethdriver ethdriver_interface;
     composition {
         VM_COMPOSITION_DEF()
         VM_PER_VM_COMP_DEF(0)
@@ -60,6 +62,8 @@ component VM {
         connection seL4IOAPICHardwareInterrupt hwethirq(from HWEthdriver.irq, to ethdriver.irq);
         /* Connect vm0 ethernet to the ethdriver */
         connection seL4Ethdriver ethdriver_con(from vm0.ethdriver, to ethdriver.client);
+        /* Export the shared ethdrover */
+        connection ExportRPC export_ethdriver(from ethdriver_interface, to ethdriver.client);
     }
     configuration {
         VM_CONFIGURATION_DEF()

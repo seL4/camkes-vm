@@ -12,6 +12,6 @@
 #define VM_INIT_VIRTIO_NET_H
 
 void make_virtio_net(vmm_t *vmm);
-void virtio_net_notify();
+void virtio_net_notify(vmm_t *vmm);
 
 #endif

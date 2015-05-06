@@ -40,7 +40,7 @@
 
 #define QUEUE_SIZE 128
 
-volatile Buf*__attribute__((weak)) packet;
+volatile Buf*__attribute__((weak)) ethdriver_buf;
 
 void __attribute__((weak)) ethdriver_tx(int len) {
     assert(!"should not be here");
@@ -85,7 +85,7 @@ static int virtio_net_io_out(void *cookie, unsigned int port_no, unsigned int si
 
 static int emul_raw_tx(struct eth_driver *driver, unsigned int num, uintptr_t *phys, unsigned int *len, void *cookie) {
     size_t tot_len = 0;
-    char *p = (char*)packet;
+    char *p = (char*)ethdriver_buf;
     /* copy to the data port */
     for (int i = 0; i < num; i++) {
         memcpy(p + tot_len, (void*)phys[i], len[i]);
@@ -129,7 +129,7 @@ static int emul_driver_init(struct eth_driver *driver, ps_io_ops_t io_ops, void 
     return 0;
 }
 
-void virtio_net_notify() {
+void virtio_net_notify(vmm_t *vmm) {
     int len;
     int status;
     status = ethdriver_rx(&len);
@@ -137,7 +137,7 @@ void virtio_net_notify() {
         void *cookie;
         void *emul_buf = (void*)virtio_net->emul_driver->i_cb.allocate_rx_buf(virtio_net->emul_driver->cb_cookie, len, &cookie);
         if (emul_buf) {
-            memcpy(emul_buf, (void*)packet, len);
+            memcpy(emul_buf, (void*)ethdriver_buf, len);
             virtio_net->emul_driver->i_cb.rx_complete(virtio_net->emul_driver->cb_cookie, 1, &cookie, (unsigned int*)&len);
         }
         if (status == 1) {

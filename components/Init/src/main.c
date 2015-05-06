@@ -33,7 +33,6 @@
 
 #include "vmm/vmm_manager.h"
 #include "vm.h"
-#include "virtio_net.h"
 #include "i8259.h"
 #include "timers.h"
 #include "fsclient.h"

@@ -37,6 +37,8 @@
 #define NO_SYS_NO_TIMERS                1
 #define LWIP_NETCONN                    0
 #define LWIP_SOCKET                     0
+#define LWIP_IGMP                       1
+#define LWIP_RAND                       rand
 
 #define MEM_ALIGNMENT 4
 #define MEM_SIZE                        16000

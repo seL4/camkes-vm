@@ -16,6 +16,7 @@
 #include <lwip/udp.h>
 #include <netif/etharp.h>
 #include <lwip/init.h>
+#include <lwip/igmp.h>
 #include <sel4/sel4.h>
 
 static void low_level_init(struct eth_driver *driver, uint8_t *mac, int *mtu) {
@@ -107,7 +108,7 @@ static struct netif _netif;
 static lwip_iface_t _lwip_driver;
 
 void pre_init(void) {
-    struct ip_addr netmask, ipaddr, gw;
+    struct ip_addr netmask, ipaddr, gw, multicast;
     struct netif *netif;
     lwip_iface_t *lwip_driver;
     memset(&io_ops, 0, sizeof(io_ops));
@@ -123,6 +124,7 @@ void pre_init(void) {
     assert(lwip_driver);
     ipaddr_aton("0.0.0.0",      &gw);
     ipaddr_aton(udp_ip_addr,  &ipaddr);
+    ipaddr_aton(multicast_addr,  &multicast);
     ipaddr_aton("255.255.255.0", &netmask);
     lwip_init();
     netif = netif_add(&_netif, &ipaddr, &netmask, &gw, lwip_driver, ethif_get_ethif_init(lwip_driver),
@@ -130,6 +132,10 @@ void pre_init(void) {
     assert(netif);
     netif_set_up(netif);
     netif_set_default(netif);
+
+    if (ip_addr_ismulticast(&multicast)) {
+        igmp_joingroup(&ipaddr, &multicast);
+    }
 }
 
 /* Provided by the Ethdriver template */

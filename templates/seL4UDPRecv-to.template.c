@@ -68,7 +68,6 @@ static void udprecv(void *arg, struct udp_pcb *pcb, struct pbuf *p, ip_addr_t *a
     udp_client_t *client = (udp_client_t*)arg;
     if (!client->free_head) {
         pbuf_free(p);
-        lwip_unlock();
         return;
     }
     udp_message_t *m = client->free_head;

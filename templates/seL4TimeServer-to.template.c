@@ -22,7 +22,7 @@
             /*- set interface = c.from_interface.name -*/
             /*- include 'global-endpoint.template.c' -*/
             /*- set aep = pop('aep') -*/
-            /*- set badge = configuration[c.from_instance.name].get("%s_attributes" % c.from_interface.name).strip('"') -*/
+            /*- set badge = int(configuration[c.from_instance.name].get("%s_attributes" % c.from_interface.name).strip('"')) -*/
             void /*? me.to_interface.name ?*/_emit_/*? badge ?*/(void) {
                 seL4_Notify(/*? aep ?*/, 0);
             }

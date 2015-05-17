@@ -23,7 +23,6 @@
 #include <ethdrivers/raw.h>
 #include <sel4utils/iommu_dma.h>
 #include <sel4platsupport/arch/io.h>
-#include <boost/preprocessor/tuple.hpp>
 
 #define RX_BUFS 256
 

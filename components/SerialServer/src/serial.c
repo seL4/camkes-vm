@@ -17,20 +17,19 @@
 
 /* configuration */
 #define BAUD_RATE 115200
-#define COM_BASE 0x3f8
 
-/* register layout */
-#define THR_ADDR (COM_BASE + 0)
-#define RBR_ADDR (COM_BASE + 0)
-#define LATCH_LOW_ADDR (COM_BASE + 0)
-#define LATCH_HIGH_ADDR (COM_BASE + 1)
-#define IER_ADDR (COM_BASE + 1)
-#define FCR_ADDR (COM_BASE + 2)
-#define IIR_ADDR (COM_BASE + 2)
-#define LCR_ADDR (COM_BASE + 3)
-#define MCR_ADDR (COM_BASE + 4)
-#define LSR_ADDR (COM_BASE + 5)
-#define MSR_ADDR (COM_BASE + 6)
+/* register layout. Done by offset from base port */
+#define THR_ADDR (0)
+#define RBR_ADDR (0)
+#define LATCH_LOW_ADDR (0)
+#define LATCH_HIGH_ADDR (1)
+#define IER_ADDR (1)
+#define FCR_ADDR (2)
+#define IIR_ADDR (2)
+#define LCR_ADDR (3)
+#define MCR_ADDR (4)
+#define LSR_ADDR (5)
+#define MSR_ADDR (6)
 
 #define IER_RESERVED_MASK (BIT(6) | BIT(7))
 
@@ -114,46 +113,46 @@ const char *all_output_colours[MAX_GUESTS * 2] = {
 };
 
 static inline void write_ier(uint8_t val) {
-    serial_port_out8(IER_ADDR, val);
+    serial_port_out8_offset(IER_ADDR, val);
 }
 static inline uint8_t read_ier() {
-    return serial_port_in8(IER_ADDR);
+    return serial_port_in8_offset(IER_ADDR);
 }
 
 static inline void write_lcr(uint8_t val) {
-    serial_port_out8(LCR_ADDR, val);
+    serial_port_out8_offset(LCR_ADDR, val);
 }
 static inline uint8_t read_lcr() {
-    return serial_port_in8(LCR_ADDR);
+    return serial_port_in8_offset(LCR_ADDR);
 }
 
 static inline void write_fcr(uint8_t val) {
-    serial_port_out8(FCR_ADDR, val);
+    serial_port_out8_offset(FCR_ADDR, val);
 }
 /* you cannot read the fcr */
 
 static inline void write_mcr(uint8_t val) {
-    serial_port_out8(MCR_ADDR, val);
+    serial_port_out8_offset(MCR_ADDR, val);
 }
 
 static inline uint8_t read_lsr() {
-    return serial_port_in8(LSR_ADDR);
+    return serial_port_in8_offset(LSR_ADDR);
 }
 
 static inline uint8_t read_rbr() {
-    return serial_port_in8(RBR_ADDR);
+    return serial_port_in8_offset(RBR_ADDR);
 }
 
 static inline void write_thr(uint8_t val) {
-    serial_port_out8(THR_ADDR, val);
+    serial_port_out8_offset(THR_ADDR, val);
 }
 
 static inline uint8_t read_iir() {
-    return serial_port_in8(IIR_ADDR);
+    return serial_port_in8_offset(IIR_ADDR);
 }
 
 static inline uint8_t read_msr() {
-    return serial_port_in8(MSR_ADDR);
+    return serial_port_in8_offset(MSR_ADDR);
 }
 
 static void wait_for_fifo() {
@@ -270,10 +269,10 @@ static void handle_char(uint8_t c) {
 
 /* assume DLAB == 1*/
 static inline void write_latch_high(uint8_t val) {
-    serial_port_out8(LATCH_HIGH_ADDR, val);
+    serial_port_out8_offset(LATCH_HIGH_ADDR, val);
 }
 static inline void write_latch_low(uint8_t val) {
-    serial_port_out8(LATCH_LOW_ADDR, val);
+    serial_port_out8_offset(LATCH_LOW_ADDR, val);
 }
 
 static void set_dlab(int v) {

@@ -13,7 +13,6 @@
 
 #include <sel4/sel4.h>
 #include <SerialServer.h>
-#include <boost/preprocessor/repeat.hpp>
 #include "vm.h"
 
 /* configuration */

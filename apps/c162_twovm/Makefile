@@ -12,7 +12,7 @@ TARGETS := $(notdir ${SOURCE_DIR}).cdl
 ADL := vm.camkes
 
 # Subdirectory containing extra templates.
-TEMPLATES := templates
+TEMPLATES := templates global-templates
 
 VM_CONFIG := c162_twovm
 VM_NUM_VM := 2

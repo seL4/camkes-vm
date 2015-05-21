@@ -26,11 +26,6 @@
 
 #include <camkes/dataport.h>
 
-#define SERVER_CORE_SIZE 4096
-static char core_buf[SERVER_CORE_SIZE];
-extern char *morecore_area;
-extern size_t morecore_size;
-
 static char char_buf[256];
 
 static void rec_packet(libvchan_t * con);
@@ -99,8 +94,6 @@ static void puffout_strings(libvchan_t * con) {
 
 void pre_init(void) {
     con.data_buf = (void *) share_mem;
-    morecore_area = core_buf;
-    morecore_size = SERVER_CORE_SIZE;
     init_camkes_vchan(&con);
 }
 

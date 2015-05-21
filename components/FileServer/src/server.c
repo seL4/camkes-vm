@@ -23,11 +23,6 @@
 #define FS_ERR_NOFILE -1
 #define FS_ERR_BLOCKED_PORT -2
 
-#define SERVER_CORE_SIZE 4096
-static char core_buf[SERVER_CORE_SIZE];
-extern char *morecore_area;
-extern size_t morecore_size;
-
 /* Files are loaded from the cpio archive */
 extern char _cpio_archive[];
 
@@ -65,8 +60,6 @@ static void init_cpio_list(void) {
 }
 
 void pre_init(void) {
-    morecore_area = core_buf;
-    morecore_size = SERVER_CORE_SIZE;
     fs_dataport = (void *) fs_mem;
     init_cpio_list();
 }

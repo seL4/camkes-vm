@@ -55,12 +55,6 @@ static client_timer_t *timer_head = NULL;
 /* declare the memory needed for the clients */
 static client_state_t *client_state = NULL;
 
-/* We want a small malloc region */
-#define SERVER_CORE_SIZE 8192
-static char core_buf[SERVER_CORE_SIZE];
-extern char *morecore_area;
-extern size_t morecore_size;
-
 static uint64_t tsc_frequency = 0;
 
 void the_timer_emit(unsigned int);
@@ -236,11 +230,6 @@ uint64_t the_timer_time() {
 
 uint64_t the_timer_tsc_frequency() {
     return tsc_frequency;
-}
-
-void pre_init(void) {
-    morecore_area = core_buf;
-    morecore_size = SERVER_CORE_SIZE;
 }
 
 static int pit_port_in(void *cookie, uint32_t port, int io_size, uint32_t *result) {

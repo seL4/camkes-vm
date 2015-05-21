@@ -12,6 +12,7 @@ import <VM/vm.camkes>;
 import <Echo/Echo.camkes>;
 import "c162_vm.camkes";
 
+
 assembly {
     composition {
         /* Our echo component */
@@ -99,6 +100,7 @@ assembly {
         echo.timer_attributes = "5";
         echo.timer_global_endpoint = "echo_timer";
         echo.timer_complete_global_endpoint = "echo_timer";
+        echo.heap_size = 0;
 
         udpserver0.num_client_recv_bufs = 8;
         udpserver0.udp_ip_addr = "10.13.1.215";
@@ -106,12 +108,14 @@ assembly {
         udpserver0.ethdriver_attributes = "1";
         udpserver0.ethdriver_global_endpoint = "udpserver0_endpoint";
         udpserver0.ethdriver_mac = [06, 00, 00, 12, 13, 14];
+        udpserver0.heap_size = 0;
         udpserver1.num_client_recv_bufs = 8;
         udpserver1.udp_ip_addr = "10.13.1.216";
         udpserver1.multicast_addr = "0.0.0.0";
         udpserver1.ethdriver_attributes = "2";
         udpserver1.ethdriver_global_endpoint = "udpserver1_endpoint";
         udpserver1.ethdriver_mac = [06, 00, 00, 13, 14, 15];
+        udpserver1.heap_size = 0;
         HWEthDriver.mmio_attributes = "0xf1b80000:0x80000";
         HWEthDriver.irq_attributes = "16,1,1";
         ethdriver.simple = true;
@@ -120,5 +124,7 @@ assembly {
         ethdriver.iospace_id = 0x12;
         ethdriver.pci_bdf = "1:0.0";
         ethdriver.simple_untyped20_pool = 2;
+        /* the ethernet driver has a dynamic heap, so set the static one to 0 */
+        ethdriver.heap_size = 0;
     }
 }

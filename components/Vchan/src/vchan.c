@@ -25,11 +25,6 @@
 
 #include "vmm/vmm_manager.h"
 
-#define SERVER_CORE_SIZE 4096
-static char core_buf[SERVER_CORE_SIZE];
-extern char *morecore_area;
-extern size_t morecore_size;
-
 /*
     State needed to represent a vchan instance in the vmm
 */
@@ -60,8 +55,6 @@ static vchan_headers_t *headers = NULL; /* Shared dataport struct for intervm co
 void pre_init(void) {
     headers = (vchan_headers_t *) share_mem;
     headers->token = VCHAN_DATA_TOKEN;
-    morecore_area = core_buf;
-    morecore_size = SERVER_CORE_SIZE;
     init_buffer();
 }
 

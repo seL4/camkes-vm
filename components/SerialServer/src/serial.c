@@ -399,14 +399,7 @@ int run(void) {
     return 0;
 }
 
-#define SERVER_CORE_SIZE 4096
-static char core_buf[SERVER_CORE_SIZE];
-extern char *morecore_area;
-extern size_t morecore_size;
-
 void pre_init(void) {
-    morecore_area = core_buf;
-    morecore_size = SERVER_CORE_SIZE;
     serial_lock();
     // Initialize the serial port
     set_dlab(0); // we always assume the dlab is 0 unless we explicitly change it

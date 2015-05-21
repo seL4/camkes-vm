@@ -75,6 +75,7 @@ component VM {
         ethdriver.iospace_id = 0x11;
         ethdriver.pci_bdf = "1:0.1";
         ethdriver.simple_untyped20_pool = 2;
+        ethdriver.heap_size = 0;
         HWEthdriver.mmio_attributes = "0xf1a80000:0x80000";
         HWEthdriver.irq_attributes = "17,1,1";
         vm0.ethdriver_attributes = "1";
@@ -82,13 +83,17 @@ component VM {
         vm0.ethdriver_badge = "134479872";
         vm0.ethdriver_mac = [06, 00, 00, 11, 12, 13];
         vm0.simple_untyped24_pool = 2;
+        vm0.heap_size = 0;
         vm1.simple_untyped24_pool = 2;
         vm0.guest_ram_mb = 80;
         vm1.guest_ram_mb = 80;
+        vm1.heap_size = 0;
         hello.putchar_attributes = "1";
+        hello.heap_size = 4096;
         vchan.putchar_attributes = "1";
         vchan.vevent_cl_badge = VAR_STRINGIZE(VM_PIC_BADGE_VCHAN_HAS_DATA);
         vchan.vevent_cl_global_endpoint = "vm1";
+        vchan.heap_size = 4096;
         vm1.vchan_con_domain = 0;
         vm1.vchan_con_dataport = "share_mem";
         vm1.vevent_global_endpoint = "vm1";

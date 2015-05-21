@@ -173,24 +173,31 @@
     /**/
 
 #define VM_CONFIGURATION_DEF() \
+    fserv.heap_size = 4096; \
     serial.timeout_attributes = "1"; \
     serial.timeout_global_endpoint = "serial_server"; \
     serial.timeout_badge = "1"; \
+    serial.heap_size = 4096; \
     time_server.putchar_attributes = "0"; \
     time_server.timers_per_client = 9; \
+    time_server.heap_size = 8192; \
     pit.command_attributes = "0x43:0x43"; \
     pit.channel0_attributes = "0x40:0x40"; \
     pit.irq_attributes = "2,0,0"; \
+    pit.heap_size = 0; \
     /* Serial port definitions */ \
     hw_serial.serial_attributes="0x3f8:0x3ff"; \
     hw_serial.serial_irq_attributes = "4,0,0"; \
     pci_config.putchar_attributes = "0"; \
+    pci_config.heap_size = 0; \
     rtc.putchar_attributes = "0"; \
+    rtc.heap_size = 0; \
     /* PCI config space definitions */ \
     poh.pci_config_address_attributes = "0xcf8:0xcfb"; \
     poh.pci_config_data_attributes = "0xcfc:0xcff"; \
     cmos.cmos_address_attributes = "0x70:0x70"; \
     cmos.cmos_data_attributes = "0x71:0x71"; \
+    cmos.heap_size = 0; \
     /* Put the time server interrupt at the highest priority */ \
     time_server.irq_priority = 255; \
     /* Also put the rest of the time server high to avoid \

@@ -98,7 +98,7 @@ intptr_t vchan_com_get_buf(vchan_ctrl_t args, int cmd) {
 
     vchan_instance_t *i = get_vchan_instance(args.domain, args.dest, args.port);
     if(i == NULL)
-        return -1;
+        return -2;
 
     if(cmd == VCHAN_RECV) {
         b = get_dom_buf(args.domain, i->buffers);
@@ -235,6 +235,8 @@ static int new_vchan_instance(vchan_connect_t *con) {
             return -1;
         }
         DPRINTF(4, "vchan: client connection %d|%d|%d established\n", domx, domy, port);
+        new->buffers->bufs[0].owner = domx;
+        new->buffers->bufs[1].owner = domy;
         new->client_connected = 1;
     }
 
@@ -248,8 +250,10 @@ static int new_vchan_instance(vchan_connect_t *con) {
 static vchan_buf_t *get_dom_buf(uint32_t buf, vchan_shared_mem_t *b) {
 
     if(b->bufs[0].owner == buf) {
+        DPRINTF(4, "Tagged buf 0 - returning\n");
         return &b->bufs[0];
     } else if(b->bufs[1].owner == buf) {
+        DPRINTF(4, "Tagged buf 1 - returning\n");
         return &b->bufs[1];
     }
 

@@ -87,7 +87,6 @@ void vchan_init_camkes(camkes_vchan_con_t vchan) {
 void vchan_interrupt(vmm_t *vmm) {
     vchan_alert_t in_alert;
     void *addr = vchan_callback_addr;
-
     if (!addr) {
         return;
     }
@@ -224,6 +223,7 @@ static int vchan_state(vmm_t *vmm, void *data, uint64_t cmd) {
         Defering is necessary for ensuring concurrency
 */
 static int vchan_readwrite(vmm_t *vmm, void *data, uint64_t cmd) {
+
     vchan_copy_mem_t tok;
     vchan_args_t *args = (vchan_args_t *)data;
     vspace_t *vs = &vmm->guest_mem.vspace;
@@ -240,7 +240,10 @@ static int vchan_readwrite(vmm_t *vmm, void *data, uint64_t cmd) {
 
     /* Perfom copy of data to appropriate destination */
     vchan_buf_t *b = get_vchan_buf(&bargs, &vchan_camkes_component, cmd);
+    assert(b != NULL);
+
     size_t filled = abs(b->read_pos - b->write_pos);
+    tok.copy_type = cmd;
 
     /*
         If streaming, send as much data as possible
@@ -252,21 +255,16 @@ static int vchan_readwrite(vmm_t *vmm, void *data, uint64_t cmd) {
         } else if(args->size > filled) {
             return -1;
         }
+        update = &(b->read_pos);
     } else {
         if(args->stream) {
             args->size = MIN(VCHAN_BUF_SIZE - filled, args->size);
         } else if (args->size > (VCHAN_BUF_SIZE - filled)) {
             return -1;
         }
-    }
-
-    tok.copy_type = cmd;
-
-    if(cmd == VCHAN_SEND) {
         update = &(b->write_pos);
-    } else {
-        update = &(b->read_pos);
     }
+
 
     off_t start = (*update % VCHAN_BUF_SIZE);
     off_t remain = 0;
@@ -284,17 +282,17 @@ static int vchan_readwrite(vmm_t *vmm, void *data, uint64_t cmd) {
 
     tok.buf = &b->sync_data;
     tok.copy_size = remain;
-    if(vmm_guest_vspace_touch(vs, phys, remain, &vchan_sync_copy, &tok) < 0) {
+    if(vmm_guest_vspace_touch(vs, phys + size, remain, &vchan_sync_copy, &tok) < 0) {
         DPRINTF(2, "vmcall_readwrite: did not perform a good write!\n");
         return -1;
     }
 
     *update += (size + remain);
+    filled = abs(b->read_pos - b->write_pos);
     vchan_camkes_component.alert();
 
-    DPRINTF(4, "vmcall_readwrite: finished action %d | %d | %d\n", (int) cmd, size, (int) remain);
-
     args->size = (size + remain);
+
 
     return 0;
 }
@@ -386,9 +384,6 @@ int vchan_handler(vmm_vcpu_t *vcpu) {
     void *data;
     int cmd;
     uintptr_t paddr = vmm_read_user_context(&vcpu->guest_state, USER_CONTEXT_EBX);
-    if (!have_vchan) {
-        return 0;
-    }
 
     /*
         Get the location of the arguments in virtual memory
@@ -399,6 +394,11 @@ int vchan_handler(vmm_vcpu_t *vcpu) {
     data_from_guest(vcpu->vmm, paddr, sizeof(vmcall_args_t), &driver_vmcall);
     vmcall_args_t *args = (vmcall_args_t *) &driver_vmcall;
     cmd = args->cmd;
+    if (!have_vchan) {
+        args->err = -1;
+        data_to_guest(vcpu->vmm, paddr, sizeof(vmcall_args_t), &driver_vmcall);
+        return 0;
+    }
 
     /* Catch if the request is for an invalid command */
     if(cmd >= NUM_VMM_OPS || vmm_manager_ops_table.op_func[cmd] == NULL) {

@@ -13,8 +13,8 @@
 
 #define VCHAN_EVENT_IRQ 10
 
-#define DATATYPE_INT 		0
-#define DATATYPE_STRING 	1
+#define DATATYPE_INT        0
+#define DATATYPE_STRING     1
 
 /* Vchan defines */
 #define VCHAN_PACKET_SIZE 4096
@@ -37,59 +37,60 @@
 
 /* Used in arguments referring to a vchan instance */
 typedef struct vchan_ctrl {
-	int domain;
-	int dest;
-	int port;
+    int domain;
+    int dest;
+    int port;
 } vchan_ctrl_t;
 
 /* Used in arguments referring to a vchan instance */
 typedef struct vchan_alert {
-	int alert;
-	int dest;
-	int port;
+    int alert;
+    int dest;
+    int port;
 } vchan_alert_t;
 
 /* Arguments structure used for vchan write/read actions between guest os's */
 typedef struct vchan_args {
-	vchan_ctrl_t v;
-	void *mmap_ptr;
-	int stream;
-	int size;
-	int mmap_phys_ptr;
+    vchan_ctrl_t v;
+    void *mmap_ptr;
+    int stream;
+    int size;
+    int mmap_phys_ptr;
 } vchan_args_t;
 
 /* Argument structure used for vchan  */
 typedef struct vchan_check_args {
-	vchan_ctrl_t v;
-	int nowait;
-	int state;
-	int checktype;
+    vchan_ctrl_t v;
+    int nowait;
+    int state;
+    int checktype;
 } vchan_check_args_t;
 
 /* Argument structure used for vchan connects  */
 typedef struct vchan_connect {
-	vchan_ctrl_t v;
-	int server;
-	int eventfd;
-	unsigned event_mon;
+    vchan_ctrl_t v;
+    int server;
+    int eventfd;
+    unsigned event_mon;
 } vchan_connect_t;
 
 void volatile_copy(void *dest, void *rec, int size);
 
-#define NUM_PACKETS 800
-#define MSG_HELLO 	0
-#define MSG_ACK 	1
-#define MSG_CONC	2
+/* Used for helloworld testsuite */
+#define MSG_HELLO   0
+#define MSG_ACK     1
+#define MSG_CONC    2
+#define TEST_VCHAN_PAK_GUARD    0xBEEDEADA
 
-/* Used in testing */
 typedef struct vchan_header {
-	int msg_type;
-	int len;
+    int msg_type;
+    int len;
 } vchan_header_t;
 
-/* Testing */
 typedef struct vchan_packet {
-	char pnum[6];
+    int pnum;
+    int datah[4];
+    int guard;
 } vchan_packet_t;
 
 #endif

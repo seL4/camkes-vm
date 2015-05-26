@@ -136,8 +136,8 @@ static int __init vmm_manager_init(void) {
 
     /* Check with the hypervisor for ok connection */
     err = call_into_hypervisor(VMM_CONNECT, uvargs, DRIVER_ARGS_MAX_SIZE, vargs);
-    if (err || uvargs->datatype != DATATYPE_INT) {
-        printk ("k_vmm_manager: failed on sel4 hypervisor connection");
+    if (err) {
+        printk ("k_vmm_manager: failed on sel4 hypervisor connection |%d|\n", err);
         kfree(vargs->data);
         kfree(vmm_mem_buf);
         return -EINVAL;

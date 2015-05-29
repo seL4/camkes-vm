@@ -25,6 +25,76 @@
 #include <assert.h>
 #include <time.h>
 
+static int funnel(libvchan_t *con);
+static int send_packet(libvchan_t *con, int num_packets);
+static int read_arg(char *str);
+static int ftp_esque(libvchan_t *con);
+
+static int ftp_esque(libvchan_t *con) {
+	int portnumber = 890;
+	int ack = 0;
+	// con, the base communication channel
+	printf("testsuite: ftp_esque: start\n");
+
+
+	// tell the component we want a new connection on this port
+	libvchan_write(con, &portnumber, sizeof(int));
+	// wait for an ok
+	libvchan_wait(con);
+	libvchan_read(con, &ack, sizeof(int));
+	if(!ack) { // error
+		printf("testsuite: ftp_esque: error on returned ack %d|%d\n", ack, 1);
+	}
+
+	/* Do tests */
+	libvchan_t *sample = libvchan_client_init(50, portnumber);
+	if(sample == NULL) {
+		printf("bad client connection on %d\n", portnumber);
+	}
+
+	if(send_packet(sample, 30000) != 0) {
+		printf("testsuite: ftp_esque: error on data channel\n");
+		return -1;
+	}
+
+    libvchan_close(sample);
+	printf("testsuite: ftp_esque: done\n");
+
+	return 0;
+}
+
+
+static int funnel(libvchan_t *con) {
+    int c = 0;
+    int val;
+    size_t sz;
+    printf("testsuite funnel: waiting\n");
+    while(libvchan_data_ready(con) != FILE_DATAPORT_MAX_SIZE) {
+    	continue;
+    }
+
+    printf("testsuite funnel: checking data\n");
+
+    while(libvchan_data_ready(con) > 0) {
+        sz = libvchan_read(con, &val, sizeof(int));
+        if(sz != sizeof(int)) {
+    		printf("funnel: bad size\n");
+    		return -1;
+        }
+    	if(val != c) {
+    		printf("funnel: bad val for %d|%d\n", c, val);
+    		return -1;
+    	}
+    	if(libvchan_buffer_space(con) != FILE_DATAPORT_MAX_SIZE) {
+    		printf("funnel: bad dport size %d\n", libvchan_buffer_space(con));
+    		return -1;
+    	}
+    	c++;
+    }
+
+    printf("testsuite funnel: done\n");
+    return 0;
+}
 
 static int send_packet(libvchan_t *con, int num_packets) {
 
@@ -34,6 +104,21 @@ static int send_packet(libvchan_t *con, int num_packets) {
 	char fnack;
 
 	printf("testsuite: packet start\n");
+
+	/* Check that buffer data is correct */
+	sz = libvchan_data_ready(con);
+	if(sz != 0) {
+		printf("error: incorrect start packet buffer size (data ready) %d\n", sz);
+		return -1;
+	}
+
+	sz = libvchan_buffer_space(con);
+	if(sz != FILE_DATAPORT_MAX_SIZE) {
+		printf("error: incorrect start packet buffer size (bspace) %d\n", sz);
+		return -1;
+	}
+
+	/* Start */
 
 	sz = libvchan_send(con, &num_packets, sizeof(int));
 	if(sz < sizeof(int)) {
@@ -70,7 +155,7 @@ static int send_packet(libvchan_t *con, int num_packets) {
 	return 0;
 }
 
-
+/* Read arguments */
 static int read_arg(char *str) {
 	char *pend = NULL;
 	long int ret = strtol(str, &pend, 10);
@@ -106,12 +191,11 @@ int main(int argc, char **argv) {
 	assert(ctrl != NULL);
 	printf("testsuite: Connection Established!\n");
 
-	char test[] = "Hello World!, this is a test string.";
-	// ecount += bad_values(ctrl);
-
-	if(ecount == 0) {
+	ecount += funnel(ctrl);
+	if(ecount >= 0)
+		ecount += ftp_esque(ctrl);
+	if(ecount >= 0)
 		ecount += send_packet(ctrl, pnum);
-	}
 
 	printf("testsuite: %d errors\n", ecount);
 

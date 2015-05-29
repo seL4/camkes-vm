@@ -16,7 +16,7 @@ all:
 	cd libvirt && $(MAKE)
 	cd driver_module && $(MAKE)
 
-	../editfs -i
-	../editfs -p
+	fakeroot ../editfs -i
+	fakeroot ../editfs -p
 	rm libs/libsel4vchan.a
 

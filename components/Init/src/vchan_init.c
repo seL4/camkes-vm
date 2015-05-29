@@ -30,6 +30,8 @@
 
 #include <camkes.h>
 
+#define VCHAN_VM_MAX_ACTIVE_PORTS 25
+
 static int vm_args(uintptr_t phys, void *vaddr, size_t size, size_t offset, void *cookie);
 static int vchan_sync_copy(uintptr_t phys, void *vaddr, size_t size, size_t offset, void *cookie);
 
@@ -59,22 +61,21 @@ typedef struct vchan_copy_mem {
 static struct vmm_manager_ops {
     int (*op_func[NUM_VMM_OPS])(vmm_t *, void *, uint64_t);
 } vmm_manager_ops_table = {
-
     .op_func[VMM_CONNECT]       =   &driver_connect,
-
     .op_func[SEL4_VCHAN_CONNECT]    =   &vchan_connect,
     .op_func[SEL4_VCHAN_CLOSE]      =   &vchan_close,
     .op_func[VCHAN_SEND]            =   &vchan_readwrite,
     .op_func[VCHAN_RECV]            =   &vchan_readwrite,
     .op_func[SEL4_VCHAN_BUF]        =   &vchan_buf_state,
     .op_func[SEL4_VCHAN_STATE]      =   &vchan_state,
-
 };
 
 static bool driver_connected = 0;
 static char driver_arg[1024];
 static vmcall_args_t driver_vmcall;
-static void *vchan_callback_addr = NULL;
+
+void *vchan_callback_addr_buffer[VCHAN_VM_MAX_ACTIVE_PORTS];
+
 static camkes_vchan_con_t vchan_camkes_component;
 static int have_vchan = 0;
 
@@ -82,27 +83,50 @@ void vchan_init_camkes(camkes_vchan_con_t vchan) {
     vchan_camkes_component = vchan;
     have_vchan = 1;
     init_camkes_vchan(&vchan_camkes_component);
+    for(int i = 0; i < VCHAN_VM_MAX_ACTIVE_PORTS; i++) {
+        vchan_callback_addr_buffer[i] = NULL;
+    }
+}
+
+static int add_new_callback_addr(void *addr) {
+    for(int i = 0; i < VCHAN_VM_MAX_ACTIVE_PORTS; i++) {
+        if(vchan_callback_addr_buffer[i] == NULL) {
+            vchan_callback_addr_buffer[i] = addr;
+            return 0;
+        }
+    }
+    return -1;
+}
+
+static int rem_callback_addr(void *addr) {
+    for(int i = 0; i < VCHAN_VM_MAX_ACTIVE_PORTS; i++) {
+        if(vchan_callback_addr_buffer[i] == addr) {
+            vchan_callback_addr_buffer[i] = NULL;
+            return 0;
+        }
+    }
+    return -1;
 }
 
 void vchan_interrupt(vmm_t *vmm) {
-    vchan_alert_t in_alert;
-    void *addr = vchan_callback_addr;
-    if (!addr) {
-        return;
+    for(int i = 0; i < VCHAN_VM_MAX_ACTIVE_PORTS; i++) {
+        if(vchan_callback_addr_buffer[i] != NULL) {
+            vchan_alert_t in_alert;
+            uintptr_t addr = (uintptr_t) vchan_callback_addr_buffer[i];
+            data_from_guest(vmm, addr, sizeof(vchan_alert_t), &in_alert);
+
+            vchan_ctrl_t ct = {
+                .domain = vchan_camkes_component.component_dom_num,
+                .dest = in_alert.dest,
+                .port = in_alert.port,
+            };
+
+            in_alert.alert = vchan_camkes_component.alert_status(ct);
+
+            data_to_guest(vmm, addr, sizeof(vchan_alert_t), &in_alert);
+            i8259_gen_irq(VCHAN_EVENT_IRQ);
+        }
     }
-
-    data_from_guest(vmm, (uintptr_t) addr, sizeof(vchan_alert_t), &in_alert);
-
-    vchan_ctrl_t ct = {
-        .domain = vchan_camkes_component.component_dom_num,
-        .dest = in_alert.dest,
-        .port = in_alert.port,
-    };
-
-    in_alert.alert = vchan_camkes_component.alert_status(ct);
-
-    data_to_guest(vmm, (uintptr_t) addr, sizeof(vchan_alert_t), &in_alert);
-    i8259_gen_irq(VCHAN_EVENT_IRQ);
 }
 
 
@@ -242,7 +266,7 @@ static int vchan_readwrite(vmm_t *vmm, void *data, uint64_t cmd) {
     vchan_buf_t *b = get_vchan_buf(&bargs, &vchan_camkes_component, cmd);
     assert(b != NULL);
 
-    size_t filled = abs(b->read_pos - b->write_pos);
+    size_t filled = abs(b->write_pos - b->read_pos);
     tok.copy_type = cmd;
 
     /*
@@ -288,7 +312,7 @@ static int vchan_readwrite(vmm_t *vmm, void *data, uint64_t cmd) {
     }
 
     *update += (size + remain);
-    filled = abs(b->read_pos - b->write_pos);
+    filled = abs(b->write_pos - b->read_pos);
     vchan_camkes_component.alert();
 
     args->size = (size + remain);
@@ -300,6 +324,8 @@ static int vchan_readwrite(vmm_t *vmm, void *data, uint64_t cmd) {
 /*
     See the state of a given vchan buffer
         i.e. how much data is in the buffer, how much can be written into the buffer
+             - if NOWAIT_DATA_READY, return how much data is in the buffer to read
+             - if NOWAIT_BUF_SPACE, return how much data can be read into buffer
 */
 static int vchan_buf_state(vmm_t *vmm, void *data, uint64_t cmd) {
     vchan_check_args_t *args = (vchan_check_args_t *)data;
@@ -310,11 +336,14 @@ static int vchan_buf_state(vmm_t *vmm, void *data, uint64_t cmd) {
         .port = args->v.port,
     };
 
-    /* Perfom copy of data to appropriate destination */
-    vchan_buf_t *b = get_vchan_buf(&bargs, &vchan_camkes_component, cmd);
+    vchan_buf_t *b;
+    if(args->checktype == NOWAIT_DATA_READY) {
+        b = get_vchan_buf(&bargs, &vchan_camkes_component, VCHAN_RECV);
+    } else { /* NOWAIT_BUF_SPACE */
+        b = get_vchan_buf(&bargs, &vchan_camkes_component, VCHAN_SEND);
+    }
 
-
-    size_t filled = abs(b->read_pos - b->write_pos);
+    size_t filled = abs(b->write_pos - b->read_pos);
     if(args->checktype == NOWAIT_DATA_READY) {
         args->state = filled;
     } else {
@@ -324,16 +353,17 @@ static int vchan_buf_state(vmm_t *vmm, void *data, uint64_t cmd) {
     return 0;
 }
 
-
 /*
     Connect a vchan to a another guest vm
 */
 static int vchan_connect(vmm_t *vmm, void *data, uint64_t cmd) {
-    vmm_args_t *args = (vmm_args_t *)data;
-    vchan_connect_t *pass = (vchan_connect_t *)args->ret_data;
+    vchan_connect_t *pass = (vchan_connect_t *)data;
+    if(add_new_callback_addr((void *) pass->event_mon) != 0) {
+        return -1;
+    }
 
+    DPRINTF(4, "ADDING %x as ADDR\n", pass->event_mon);
     guest_vchan_init(pass->v.dest, pass->v.port, pass->server);
-    vchan_callback_addr = (void*)pass->event_mon;
 
     return 0;
 }
@@ -342,12 +372,21 @@ static int vchan_connect(vmm_t *vmm, void *data, uint64_t cmd) {
     Close a vchan connection this guest vm is using
 */
 static int vchan_close(vmm_t *vmm, void *data, uint64_t cmd) {
-    panic("init-side vchan close not implemented!");
-    // vmm_args_t *args = (vmm_args_t *)data;
-    // vchan_connect_t *pass = (vchan_connect_t *)args->ret_data;
-    // uint32_t domx = get_vm_num();
-    // uint32_t domy = pass->v.domain;
-    // ctrl_rem_vchan_connection(domx, domy, pass->server, pass->v.port);
+    vchan_connect_t *pass = (vchan_connect_t *)data;
+
+    vchan_connect_t t = {
+        .v.domain = vchan_camkes_component.component_dom_num,
+        .v.dest = pass->v.dest,
+        .v.port = pass->v.port,
+        .server = pass->server,
+        .event_mon = pass->event_mon,
+    };
+
+    vchan_camkes_component.disconnect(t);
+
+    DPRINTF(4, "REMOVING %x as ADDR\n", pass->event_mon);
+    rem_callback_addr((void *) pass->event_mon);
+
     return 0;
 }
 

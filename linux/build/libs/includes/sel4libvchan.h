@@ -25,6 +25,7 @@ typedef struct libsel4vchan {
     int blocking;
     int domain_num, port_num;
     int driver_fd, event_fd;
+    unsigned event_mon;
 } libsel4vchan_t;
 
 

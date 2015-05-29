@@ -26,10 +26,7 @@
 
 #include <camkes/dataport.h>
 
-static char char_buf[256];
-
 static void rec_packet(libvchan_t * con);
-static void puffout_strings(libvchan_t * con);
 
 static camkes_vchan_con_t con = {
     .connect = &vchan_con_new_connection,
@@ -44,6 +41,28 @@ static camkes_vchan_con_t con = {
     .component_dom_num = 50,
 };
 
+
+static int ftp_esque(libvchan_t *con) {
+    int portnumber;
+    int ack = 1;
+    size_t size;
+    // con, the base communication channel
+    libvchan_wait(con);
+    // tell the component we want a new connection on this port
+    libvchan_read(con, &portnumber, sizeof(int));
+    libvchan_write(con, &ack, sizeof(int));
+
+    /* Do tests */
+    libvchan_t *sample = libvchan_server_init(0, portnumber, 0, 0);
+    assert(sample != NULL);
+    rec_packet(sample);
+    libvchan_close(sample);
+    DPRINTF(2, "hello: ftp_esque: done");
+
+    return 0;
+}
+
+
 /*
     Check if data in a test packet is correct
 */
@@ -57,6 +76,25 @@ static int verify_packet(vchan_packet_t *pak) {
     return 1;
 }
 
+
+static void funnel(libvchan_t *con) {
+    int c = 0;
+    size_t sz;
+
+    assert(libvchan_buffer_space(con) == FILE_DATAPORT_MAX_SIZE);
+    DPRINTF(4, "hello funnel: remaining space: %d\n", libvchan_buffer_space(con));
+
+    while(libvchan_buffer_space(con) > 0) {
+        sz = libvchan_write(con, &c, sizeof(int));
+        assert(sz == sizeof(int));
+        DPRINTF(4, "hello funnel: remaining space: %d\n", libvchan_buffer_space(con));
+        c++;
+        assert(libvchan_data_ready(con) == 0);
+    }
+    DPRINTF(4, "hello funnel: done\n");
+}
+
+
 static void rec_packet(libvchan_t * con) {
     size_t sz;
     char done = 1;
@@ -69,15 +107,19 @@ static void rec_packet(libvchan_t * con) {
     assert(sz == sizeof(int));
 
     DPRINTF(2, "hello: number of packets to recieve = %d\n", pnum);
+
     for(x = 0; x < pnum; x++) {
         libvchan_wait(con);
+        /* Buffer sanity checking */
+        assert(libvchan_data_ready(con) != 0);
+        assert(libvchan_buffer_space(con) == FILE_DATAPORT_MAX_SIZE);
+        /* Perform read operation */
         sz = libvchan_read(con, &pak, sizeof(pak));
         /* See if the given packet is correct */
         assert(sz == sizeof(pak));
         assert(pak.pnum == x);
         assert(verify_packet(&pak) == 1);
         assert(pak.guard == TEST_VCHAN_PAK_GUARD);
-
         DPRINTF(4, "hello.packet %d|%d\n", x, sizeof(pak));
     }
 
@@ -101,7 +143,8 @@ int run(void) {
     assert(connection != NULL);
 
     DPRINTF(2, "Connection Active\n");
-
+    funnel(connection);
+    ftp_esque(connection);
     while(1) {
         DPRINTF(2, "hello.packet: begin\n");
         rec_packet(connection);

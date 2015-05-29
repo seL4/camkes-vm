@@ -39,8 +39,10 @@ typedef struct vchan_connection {
 
 static void init_buffer(void);
 static void clear_buf(vchan_buf_t *b);
+static void print_vchan_instances();
 
 static int new_vchan_instance(vchan_connect_t *con);
+static void rem_vchan_instance(vchan_instance_t *inst);
 static int vchan_status(uint32_t domx, uint32_t domy, uint32_t port);
 
 static vchan_shared_mem_t *alloc_buffer(void);
@@ -87,9 +89,28 @@ int vchan_com_new_connection(vchan_connect_t con) {
     return res;
 }
 
+/*
+    Disconnect or destroy a given vchan connection
+*/
 int vchan_com_rem_connection(vchan_connect_t con) {
-    DPRINTF(2, "vchan: rem connection called but not implemented\n");
-    return -1;
+    /* See if this connection already exists */
+    vchan_instance_t *inst = get_vchan_instance(con.v.domain, con.v.dest, con.v.port);
+    if(inst != NULL) {
+        DPRINTF(4, "vchan: closing down on %d side\n", con.server);
+        if(con.server)
+            inst->server_connected = -1;
+        else
+            inst->client_connected = -1;
+
+        if(inst->client_connected == -1 && inst->server_connected == -1) {
+            DPRINTF(4, "vchan: SHUTTING DOWN CONNECTIOn\n");
+            rem_vchan_instance(inst);
+        } else {
+            vchan_com_ping();
+        }
+    }
+
+    return 0;
 }
 
 
@@ -125,13 +146,13 @@ int vchan_com_status(vchan_ctrl_t args) {
         return 0;
     }
 
-    // -closed connection
+    /* closed connection - no client or server connected */
     if(inst->client_connected == -1 || inst->server_connected == -1) {
         val = 0;
-    // full connection
+    /* full connection - client and server connected */
     } else if (inst->client_connected == 1 && inst->server_connected == 1) {
         val = 1;
-    // server initialised, but no client connected
+    /* server initialised, but no client connected */
     } else if (inst->client_connected == 0 && inst->server_connected == 1) {
         val = 2;
     }
@@ -143,7 +164,12 @@ int vchan_com_status(vchan_ctrl_t args) {
 int vchan_com_alert_status(vchan_ctrl_t args) {
     int alert = VCHAN_EMPTY_BUF;
     vchan_instance_t *i = get_vchan_instance(args.domain, args.dest, args.port);
-    int closed = vchan_status(i->domx, i->domy, i->port);
+    vchan_ctrl_t cargs = {
+        .domain = args.domain,
+        .dest = args.dest,
+        .port =  args.port,
+    };
+    int closed = vchan_com_status(cargs);
 
     vchan_buf_t *b = get_dom_buf(args.domain, i->buffers);
     assert(b != NULL);
@@ -167,15 +193,6 @@ int vchan_com_alert_status(vchan_ctrl_t args) {
     }
 
     return alert;
-}
-
-
-/*
-    Modifies an integer in a guest vm to notify a guest vm of changed state
-*/
-void vchan_alert_domain(vchan_instance_t *i) {
-    assert(i != NULL);
-    vchan_com_ping();
 }
 
 /*
@@ -226,21 +243,21 @@ static int new_vchan_instance(vchan_connect_t *con) {
 
     if(con->server) {
         DPRINTF(4, "vchan: server connection %d|%d|%d established\n", domx, domy, port);
+        new->buffers->bufs[0].owner = MIN(domx, domy);
+        new->buffers->bufs[1].owner = MAX(domx, domy);
         new->server_connected = 1;
-        new->buffers->bufs[0].owner = domx;
-        new->buffers->bufs[1].owner = domy;
     } else {
         if(new->server_connected == -1) {
             DPRINTF(2, "vchan: trying to connect to closed server\n");
             return -1;
         }
         DPRINTF(4, "vchan: client connection %d|%d|%d established\n", domx, domy, port);
-        new->buffers->bufs[0].owner = domx;
-        new->buffers->bufs[1].owner = domy;
+        new->buffers->bufs[0].owner = MIN(domx, domy);
+        new->buffers->bufs[1].owner = MAX(domx, domy);
         new->client_connected = 1;
     }
 
-    vchan_alert_domain(new);
+    vchan_com_ping();
     return 0;
 }
 
@@ -263,7 +280,6 @@ static vchan_buf_t *get_dom_buf(uint32_t buf, vchan_shared_mem_t *b) {
 /*
     Free the memory of a given vchan instance
 */
-#if 0
 static void rem_vchan_instance(vchan_instance_t *inst) {
     vchan_instance_t *prev = NULL;
     vchan_instance_t *find = first_inst;
@@ -275,7 +291,7 @@ static void rem_vchan_instance(vchan_instance_t *inst) {
             } else {
                 first_inst = find->next;
             }
-
+            printf("vchan: removing %d | %d | %d\n", inst->domx, inst->domy, inst->port);
             inst->buffers->alloced = 0;
             free(find);
             return;
@@ -284,7 +300,6 @@ static void rem_vchan_instance(vchan_instance_t *inst) {
         find = find->next;
     }
 }
-#endif
 
 /*
     Buffer manipulation functions
@@ -315,36 +330,13 @@ static vchan_shared_mem_t *get_buffer(uint32_t id) {
 }
 
 /*
-    Return the status of a given vchan instance
-*/
-static int vchan_status(uint32_t domx, uint32_t domy, uint32_t port) {
-    int val = -1;
-    vchan_instance_t *inst = get_vchan_instance(domx, domy, port);
-    if(inst == NULL) {
-        return 0;
-    }
-
-    // -closed connection
-    if(inst->client_connected == -1 || inst->server_connected == -1) {
-        val = 0;
-    // full connection
-    } else if (inst->client_connected == 1 && inst->server_connected == 1) {
-        val = 1;
-    // server initialised, but no client connected
-    } else if (inst->client_connected == 0 && inst->server_connected == 1) {
-        val = 2;
-    }
-    return val;
-}
-
-/*
     Find and return a given vchan instance
 */
 static vchan_instance_t *get_vchan_instance(uint32_t domx, uint32_t domy, uint32_t port) {
     vchan_instance_t *inst = first_inst;
     while(inst != NULL) {
         if(inst->domx == MIN(domx, domy)) {
-            if(inst->domy == MAX(domx, domy) && port == inst->port) {
+            if(inst->domy == MAX(domx, domy) && inst->port == port) {
                 return inst;
             }
         }
@@ -353,60 +345,11 @@ static vchan_instance_t *get_vchan_instance(uint32_t domx, uint32_t domy, uint32
     return NULL;
 }
 
-/*
-    Disconnect or destroy a given vchan connection
-        This is an old implementation not currently reimplemented
-*/
-// int ctrl_rem_vchan_connection(uint32_t domx, uint32_t domy, uint32_t con_type, uint32_t port) {
-
-//
-//  vchan_instance_t *inst = get_vchan_instance(domx, domy, port);
-//  if(inst != NULL) {
-//      if(con_type == VCHAN_SERVER) {
-//          inst->server_connected = -1;
-//      } else {
-//          inst->client_connected = -1;
-//      }
-
-//      if(inst->alerts[0].dom == domx) {
-//          inst->alerts[0].alert_ptr = 0;
-//      } else {
-//          inst->alerts[1].alert_ptr = 0;
-//      }
-
-//      if(inst->client_connected == -1 && inst->server_connected == -1) {
-//          rem_vchan_instance(inst);
-//      } else {
-//          vchan_alert_domain(inst);
-//      }
-//  }
-//
-
-//  return 0;
-// }
-
-/*
-    Return some information about the state of a given buffer,
-     assigned to a vchan instance
-*/
-int ctrl_vchan_buf_state(uint32_t source, uint32_t dest, uint32_t port, uint32_t type) {
-    int val = 0;
-    vchan_instance_t *inst = get_vchan_instance(source, dest, port);
-    if(inst == NULL) {
-        DPRINTF(2, "vchan_bufstate: bad instance\n");
-        return -1;
+static void print_vchan_instances() {
+    vchan_instance_t *inst = first_inst;
+    while(inst != NULL) {
+        printf("(inst|%d|%d|%d)\n", inst->domx, inst->domy, inst->port);
+        inst = inst->next;
     }
-
-    vchan_buf_t *b;
-    if(type == NOWAIT_DATA_READY) {
-        b = get_dom_buf(source, inst->buffers);
-        assert(b != NULL);
-        val = b->filled;
-    } else if (type == NOWAIT_BUF_SPACE) {
-        b = get_dom_buf(dest, inst->buffers);
-        assert(b != NULL);
-        val = VCHAN_BUF_SIZE - b->filled;
-    }
-
-    return val;
 }
+

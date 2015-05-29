@@ -405,7 +405,6 @@ int vmm_guest_num(void *cont, ioctl_arg_t *args, int cmd) {
         by notifying the vmm and creating kernel level state
 */
 int sel4_driver_vchan_connect(void *cont, ioctl_arg_t *args, int cmd) {
-
     int err;
 
     vchan_alert_t *event_mon;
@@ -433,10 +432,16 @@ int sel4_driver_vchan_connect(void *cont, ioctl_arg_t *args, int cmd) {
     if (err) {
         printk("k_vmm_manager_vchan_connect: bad hypervisor call\n");
         rem_event_instance(pass->v.dest, pass->v.port);
-        return err;
+        return -EINVAL;
     }
 
-    return sizeof(vchan_connect_t);
+    err = copy_to_user(args->ptr, cont, sizeof(vchan_connect_t));
+    if(err) {
+        printk("k_vmm_manager_vchan_state: bad copy\n");
+        return -EINVAL;
+    }
+
+    return 0;
 }
 
 /*

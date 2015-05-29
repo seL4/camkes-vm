@@ -27,7 +27,7 @@
 #include <time.h>
 #include <fcntl.h>
 
-int libvchan_checkbuf(libsel4vchan_t *com, int nowait);
+static int libvchan_checkbuf(libsel4vchan_t *com, int checktype, int nowait);
 libvchan_t *libvchan_new_instance(int domain, int port, size_t read_min, size_t write_min, int server);
 int vchan_readwrite(libvchan_t *ctrl, const void *data, size_t size, int cmd, int stream);
 static uint64_t u;
@@ -88,17 +88,17 @@ libvchan_t *libvchan_client_init(int domain, int port) {
 * Waits for reads or writes to unblock, or for a close
 */
 int libvchan_wait(libvchan_t *ctrl) {
-    return libvchan_checkbuf(ctrl->sel4vchan, 0);
+    return libvchan_checkbuf(ctrl->sel4vchan, 0, 0);
 }
 
  /** Amount of data ready to read, in bytes */
 int libvchan_data_ready(libvchan_t *ctrl) {
-    return libvchan_checkbuf(ctrl->sel4vchan, NOWAIT_DATA_READY);
+    return libvchan_checkbuf(ctrl->sel4vchan, NOWAIT_DATA_READY, 1);
 }
 
 /** Amount of data it is possible to send without blocking */
 int libvchan_buffer_space(libvchan_t *ctrl) {
-    return libvchan_checkbuf(ctrl->sel4vchan, NOWAIT_BUF_SPACE);
+    return libvchan_checkbuf(ctrl->sel4vchan, NOWAIT_BUF_SPACE, 1);
 }
 
 /**
@@ -156,7 +156,6 @@ int libvchan_write(libvchan_t *ctrl, const void *data, size_t size) {
 * return 2 [server only] when no client has yet connected
 */
 int libvchan_is_open(libvchan_t *ctrl) {
-
     int res;
     libsel4vchan_t *com = ctrl->sel4vchan;
     vchan_check_args_t args = {
@@ -216,9 +215,8 @@ int vchan_readwrite(libvchan_t *ctrl, const void *data, size_t size, int cmd, in
         .mmap_phys_ptr = 0,
     };
 
-    if(size == 0) {
+    if(size == 0)
         return size;
-    }
 
     res = ioctl(com->driver_fd, VM_IOCTL_CMD(cmd, vchan_args_t), &args);
 
@@ -228,7 +226,7 @@ int vchan_readwrite(libvchan_t *ctrl, const void *data, size_t size, int cmd, in
         fd_set_blocking(com->event_fd, 1);
     }
 
-    if(stream == 0 && args.size != res) {
+    if(!stream && args.size != res) {
         return -1;
     } else {
         return res;
@@ -240,18 +238,19 @@ int vchan_readwrite(libvchan_t *ctrl, const void *data, size_t size, int cmd, in
 /*
      Check the state of the shared bufffer
      @nowait - if 0, block until data is recieved
-             - if NOWAIT_DATA_READY, return how much data is in the buffer to read
-             - if NOWAIT_BUF_SPACE, return how much data can be read into buffer
+     @checktype
+        - if NOWAIT_DATA_READY, return how much data is in the buffer to read
+        - if NOWAIT_BUF_SPACE, return how much data can be read into buffer
     return -1 on error, 1 if nowait and data is avaliable, or above
 */
-int libvchan_checkbuf(libsel4vchan_t *com, int nowait) {
-
+static int libvchan_checkbuf(libsel4vchan_t *com, int checktype, int nowait) {
     int err;
 
     vchan_check_args_t args = {
         .v.dest = com->domain_num,
         .v.port = com->port_num,
         .nowait = nowait,
+        .checktype = checktype,
         .state = -80,
     };
 
@@ -308,7 +307,7 @@ libvchan_t *libvchan_new_instance(int domain, int port, size_t read_min, size_t 
 
     /* Get the id of the vm this driver is running off */
     res = ioctl(fd, VM_IOCTL_CMD(SEL4_VCHAN_CONNECT, vchan_connect_t), &args);
-    if (res < 0)
+    if (res)
         return NULL;
 
 
@@ -321,6 +320,9 @@ libvchan_t *libvchan_new_instance(int domain, int port, size_t read_min, size_t 
     if(server) {
         ret_type->is_server = 1;
         ret_type->server_persists = 1;
+    } else {
+        ret_type->is_server = 0;
+        ret_type->server_persists = 0;
     }
 
     ret_type->blocking = 1;
@@ -328,6 +330,7 @@ libvchan_t *libvchan_new_instance(int domain, int port, size_t read_min, size_t 
     ret_type->event_fd = evfd;
     ret_type->port_num = port;
     ret_type->domain_num = domain;
+    ret_type->event_mon = args.event_mon;
 
     v->sel4vchan = ret_type;
     return v;
@@ -344,6 +347,7 @@ void libvchan_close(libvchan_t *ctrl) {
         .v.dest         =   com->domain_num,
         .v.port         =   com->port_num,
         .server         =   com->is_server,
+        .event_mon      =   com->event_mon,
     };
 
     ioctl(com->driver_fd, VM_IOCTL_CMD(SEL4_VCHAN_CLOSE, vchan_connect_t), &args);
@@ -352,5 +356,5 @@ void libvchan_close(libvchan_t *ctrl) {
 
     free(com);
     free(ctrl);
-
+    ctrl = NULL;
 }

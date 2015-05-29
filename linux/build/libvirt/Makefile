@@ -9,7 +9,7 @@
 #
 
 CC=gcc
-CFLAGS=-O3 -Wall -Werror -m32 -I ../libs/includes
+CFLAGS=-O3 -Wall -m32 -I ../libs/includes
 
 FILES = vmm_manager_tests vm_guest_manip sel4_vchan_testsuite
 

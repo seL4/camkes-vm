@@ -9,6 +9,7 @@
  */
 
 procedure VMIRQs {
+    include <sel4/sel4.h>;
     int num_irqs();
     string get_irq(in int irq, out seL4_CPtr irq_handler, out uint8_t source, out int level_trig, out int active_low, out uint8_t dest);
 };

@@ -275,15 +275,15 @@ static int vchan_readwrite(vmm_t *vmm, void *data, uint64_t cmd) {
     */
     if(cmd == VCHAN_RECV) {
         if(args->stream) {
-            args->size = MIN(filled, args->size);
-        } else if(args->size > filled) {
+            size = MIN(filled, args->size);
+        } else if(size > filled) {
             return -1;
         }
         update = &(b->read_pos);
     } else {
         if(args->stream) {
-            args->size = MIN(VCHAN_BUF_SIZE - filled, args->size);
-        } else if (args->size > (VCHAN_BUF_SIZE - filled)) {
+            size = MIN(VCHAN_BUF_SIZE - filled, args->size);
+        } else if (size > (VCHAN_BUF_SIZE - filled)) {
             return -1;
         }
         update = &(b->write_pos);

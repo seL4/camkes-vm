@@ -55,6 +55,7 @@ typedef struct udp_client {
     seL4_CPtr aep;
     udp_message_t *free_head;
     udp_message_t *used_head;
+    udp_message_t *used_tail;
     udp_message_t message_memory[ /*? bufs ?*/];
 } udp_client_t;
 
@@ -76,14 +77,19 @@ static void udprecv(void *arg, struct udp_pcb *pcb, struct pbuf *p, ip_addr_t *a
     m->pbuf = p;
     m->addr = *addr;
     m->port = port;
+    m->next = NULL;
 
     if (client->need_signal) {
         seL4_Notify(client->aep, 0);
         client->need_signal = 0;
     }
 
-    m->next = client->used_head;
-    client->used_head = m;
+    if (!client->used_head) {
+        client->used_head = client->used_tail = m;
+    } else {
+        client->used_tail->next = m;
+        client->used_tail = m;
+    }
 }
 
 void /*? me.to_interface.name ?*/__run(void) {

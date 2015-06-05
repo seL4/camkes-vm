@@ -229,13 +229,13 @@ int check_event(einstance_t *inst) {
             if(have_data(a)) {
                 return 1;
             }
-            printk("ret -1 : %d\n", a);
+            // printk("ret -1 : %d\n", a);
             return -1;
         }
     } else {
         if(a != VCHAN_BUF_FULL) {
             if(a == VCHAN_CLOSED || a == VCHAN_CLOSED_DATA) {
-                printk("ret -1 : %d\n", a);
+                // printk("ret -1 : %d\n", a);
                 return -1;
             }
             return 1;

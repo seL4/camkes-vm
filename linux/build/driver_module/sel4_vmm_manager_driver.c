@@ -333,7 +333,7 @@ int vmm_read_write(void *cont, ioctl_arg_t *args, int cmd) {
     if(cmd == VCHAN_SEND) {
         err = copy_from_user(vchan_args->mmap_ptr, user_ptr, vchan_args->size);
         if(err) {
-            printk("k_vmm_manager_vchan: BAD 2nd COPY\n");
+            // printk("k_vmm_manager_vchan: BAD 2nd COPY\n");
             kfree(vchan_args->mmap_ptr);
             return -EINVAL;
         }
@@ -365,7 +365,7 @@ int vmm_read_write(void *cont, ioctl_arg_t *args, int cmd) {
 
     send_size = vchan_args->size;
 
-    if(cmd == VCHAN_RECV) {
+    if(cmd == VCHAN_RECV && send_size >= 0) {
         err = copy_to_user(user_ptr, vchan_args->mmap_ptr, vchan_args->size);
         if(err) {
             printk("k_vmm_manager_vchan_readwrite: copying out %d failed\n", vchan_args->size);

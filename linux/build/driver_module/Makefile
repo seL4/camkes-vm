@@ -10,11 +10,17 @@
 
 obj-m += driver.o
 driver-objs += sel4_vmm_manager_driver.o event_thread.o
-KHEAD=linux-3.15
+KHEAD=linux-3.15.1
 
 all: vmm_module
-	mv driver.ko ../out/lib/modules/3.15.0/kernel/drivers/vmm/vmm_manager.ko
+	mv driver.ko vmm_manager.ko
 
 vmm_module:
 	echo "DIR   $(PWD)"
 	make -C $(KHEAD) M=$(PWD) modules
+
+# get .config file < prop setup
+# set KHEAD to linux driver name,
+# make oldconfig
+# make prepare
+# make modules_prepare

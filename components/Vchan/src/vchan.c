@@ -291,7 +291,7 @@ static void rem_vchan_instance(vchan_instance_t *inst) {
             } else {
                 first_inst = find->next;
             }
-            printf("vchan: removing %d | %d | %d\n", inst->domx, inst->domy, inst->port);
+            DPRINTF(2, "vchan: removing %d | %d | %d\n", inst->domx, inst->domy, inst->port);
             inst->buffers->alloced = 0;
             free(find);
             return;

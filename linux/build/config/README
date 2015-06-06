@@ -2,16 +2,16 @@ For compiling the vmm manager ko module
 
 -- SETTING UP ENVIRONMENT --
 
-1. Download a linux kernal archive,
-	the one used and tested with these instructions is: https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.15.1.tar.gz
+1. Download a linux kernel archive,
+	the one used and tested with these instructions is: https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.15.tar.gz
 
 2. Extract the archive into linux/build/driver_module
 
-3. Move the .config file located in this directory into the head directory of the kernel archive (e.g. linux/build/driver_module/linux-3.15.1/)
+3. Move the .config file located in this directory into the head directory of the kernel archive (e.g. linux/build/driver_module/linux-3.15/)
 
 4. In the linux/build/driver_module makefile, set KHEAD to be the name of the head kernel directory
 
-5. In the top level makefile for the linux kernel, change the version magic number to:
+5. If your Linux source is not version 3.15, then you could try the following. In the top level makefile for the linux kernel, change the version magic number to:
 
 VERSION = 3
 PATCHLEVEL = 15

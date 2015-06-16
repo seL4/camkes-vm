@@ -198,16 +198,11 @@
     cmos.cmos_address_attributes = "0x70:0x70"; \
     cmos.cmos_data_attributes = "0x71:0x71"; \
     cmos.heap_size = 0; \
-    /* Put the time server interrupt at the highest priority */ \
-    time_server.irq_priority = 255; \
-    /* Also put the rest of the time server high to avoid \
-     * priority inversion when invoking it */ \
-    time_server.the_timer_priority = 255; \
-    /* Put the serial interrupt at the next priority \
+    /* Put the entire time server at the highest priority */ \
+    time_server.priority = 255; \
+    /* Put the serial interrupt at 200  \
      * but Leave the rest of the serial at default priority */ \
-    serial.serial_irq_priority = 254; \
+    serial.serial_irq_priority = 200; \
     /* Now the VMM, guest and everything else should be at \
-     * the default priority of 253 */ \
-    /* The serial will be put at a priority below the guest \
-     * in the PLAT_CONFIG_DEF */ \
+     * the default priority of 100 */ \
     /**/

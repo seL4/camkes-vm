@@ -26,7 +26,7 @@
             /*- set badge = configuration[c.from_instance.name].get("%s_attributes" % c.from_interface.name).strip('"') -*/
             /*- set mac = configuration[c.from_instance.name].get("%s_mac" % c.from_interface.name) -*/
             void /*? me.to_interface.name ?*/_emit_/*? badge ?*/(void) {
-                seL4_Notify(/*? aep ?*/, 0);
+                seL4_Signal(/*? aep ?*/);
             }
             /*- do badges.append(badge) -*/
             /*- do macs.append( (badge, mac) ) -*/

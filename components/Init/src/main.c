@@ -113,7 +113,7 @@ int proxy_vka_utspace_alloc(void *data, const cspacepath_t *dest, seL4_Word type
     if (!node) {
         return -1;
     }
-    if (type == seL4_IA32_4K && vka->have_mem && vka->vspace.map_pages && !vka->recurse) {
+    if (type == seL4_IA32_4K && vka->have_mem && vka->vspace.map_pages_at_vaddr && !vka->recurse) {
         cookie = _utspace_trickle_alloc(vka->allocman, &vka->ram_ut_manager, seL4_PageBits, seL4_IA32_4K, dest, &error);
         if (error != 0) {
             vka->have_mem = 0;
@@ -566,7 +566,7 @@ static void init_irqs() {
         assert(!error);
         error = seL4_IRQHandler_SetMode(irq_handler, level_trig, active_low);
         assert(!error);
-        error = seL4_IRQHandler_SetEndpoint(irq_handler, badge_path.capPtr);
+        error = seL4_IRQHandler_SetNotification(irq_handler, badge_path.capPtr);
         assert(!error);
         error = seL4_IRQHandler_Ack(irq_handler);
         assert(!error);

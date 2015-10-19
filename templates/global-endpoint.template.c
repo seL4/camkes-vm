@@ -40,7 +40,7 @@
 
 /*# Create the endpoint if we need to #*/
 /*- if maybe_aep is none -*/
-    /*- set aep_object = alloc_obj(name, seL4_AsyncEndpointObject) -*/
+    /*- set aep_object = alloc_obj(name, seL4_NotificationObject) -*/
     /*- do _aep_object.append(aep_object) -*/
 /*- else -*/
     /*- do _aep_object.append(maybe_aep) -*/

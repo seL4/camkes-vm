@@ -716,6 +716,10 @@ void *main_continued(void *arg) {
         }
         assert(irq != -1);
         libpci_device_t *device = libpci_find_device_bdf(bus, dev, fun);
+        if (!device) {
+            LOG_ERROR("Failed to find device %02x:%02x.%d\n", bus, dev, fun);
+            return NULL;
+        }
         /* Allocate resources */
         vmm_pci_bar_t bars[6];
         int num_bars = vmm_pci_helper_map_bars(&vmm, &device->cfg, bars);

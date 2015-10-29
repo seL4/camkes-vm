@@ -80,7 +80,7 @@ static void udprecv(void *arg, struct udp_pcb *pcb, struct pbuf *p, ip_addr_t *a
     m->next = NULL;
 
     if (client->need_signal) {
-        seL4_Notify(client->aep, 0);
+        seL4_Signal(client->aep);
         client->need_signal = 0;
     }
 

@@ -794,7 +794,7 @@ void *main_continued(void *arg) {
 }
 
 int run(void) {
-    sel4utils_run_on_stack(&vspace, main_continued, NULL);
+    sel4utils_run_on_stack(&vspace, main_continued, NULL, NULL);
     assert(!"Should not get here");
 
     return 0;

@@ -1,0 +1,36 @@
+/*
+ * Copyright 2014, NICTA
+ *
+ * This software may be distributed and modified according to the terms of
+ * the GNU General Public License version 2. Note that NO WARRANTY is provided.
+ * See "LICENSE_GPLv2.txt" for details.
+ *
+ * @TAG(NICTA_GPL)
+ */
+#include <autoconf.h>
+#include <configurations/vm.h>
+
+component Init0 {
+    VM_INIT_DEF()
+}
+
+component VM {
+    composition {
+        VM_COMPOSITION_DEF()
+        VM_PER_VM_COMP_DEF(0)
+    }
+    configuration {
+        VM_CONFIGURATION_DEF()
+        VM_PER_VM_CONFIG_DEF(0, 2)
+        vm0.simple_untyped24_pool = 12;
+        vm0.heap_size = 0;
+        vm0.guest_ram_mb = 1536;
+        vm0.kernel_cmdline = VM_GUEST_CMDLINE;
+        vm0.kernel_image = C162_KERNEL_IMAGE;
+        vm0.kernel_relocs = C162_KERNEL_IMAGE;
+        vm0.initrd_image = C162_ROOTFS;
+        vm0.iospace_domain = 0x0f;
+        vm0_config.ram = [ [ 0x20800000, 23 ], [ 0x21000000, 24 ], [ 0x22000000, 25 ], [ 0x24000000, 26], [ 0x28000000, 27], [0x30000000, 28], [0x40000000, 29] , [0x60000000, 30], [0xa0000000, 28]];
+        vm0_config.pci_devices_iospace = 1;
+    }
+}

@@ -36,7 +36,7 @@
  * applies to. This is the mechanism by which different VMs can be given different
  * resources */
 
-#define VM_NUM_GUESTS 1
+#define VM_NUM_GUESTS 2
 
 /* All our guests use the same kernel image, rootfs and cmdline */
 #define C162_KERNEL_IMAGE "bzimage"
@@ -51,3 +51,4 @@
 
 #define VM_DEVICE_INIT_FN_0() \
     /**/
+

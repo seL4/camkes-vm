@@ -10,6 +10,7 @@
 
 #include <RTC.h>
 #include <platsupport/plat/rtc.h>
+#include <utils/util.h>
 
 #define CMOS_ADDRESS 0x70
 #define CMOS_DATA    0x71
@@ -51,7 +52,7 @@ cmos_io_port_out(void *cookie, uint32_t port, int io_size, uint32_t val) {
 
 rtc_time_date_t rtc_time_date(void) {
     rtc_time_date_t time_date;
-    int error;
+    int error UNUSED;
     ps_io_port_ops_t ops = (ps_io_port_ops_t){.io_port_in_fn = cmos_io_port_in, .io_port_out_fn = cmos_io_port_out};
     error = rtc_get_time_date_reg(&ops, 0, &time_date);
     assert(!error);

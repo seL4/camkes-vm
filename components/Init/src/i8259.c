@@ -22,6 +22,7 @@
 #include <sel4/sel4.h>
 #include <stdio.h>
 #include <camkes.h>
+#include <utils/util.h>
 #include "i8259.h"
 
 #define I8259_MASTER   0
@@ -153,8 +154,7 @@ static void pic_clear_isr(struct i8259_state *s, int irq) {
 
     if (irq != 2) {
         if (hw_irq_handlers[irq]) {
-            int error;
-            error = seL4_IRQHandler_Ack(hw_irq_handlers[irq]);
+            int error UNUSED = seL4_IRQHandler_Ack(hw_irq_handlers[irq]);
             assert(!error);
         }
     }

@@ -9,7 +9,9 @@
  */
 
 #include <autoconf.h>
+#include <camkes.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include <sel4/sel4.h>
 #include <SerialServer.h>

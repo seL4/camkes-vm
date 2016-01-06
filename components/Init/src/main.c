@@ -20,6 +20,7 @@
 #include <allocman/bootstrap.h>
 #include <allocman/vka.h>
 #include <simple/simple_helpers.h>
+#include <utils/util.h>
 #include <vka/capops.h>
 
 #include <camkes.h>
@@ -173,7 +174,7 @@ static void proxy_give_vspace(vka_t *vka, vspace_t *vspace, void *vaddr, reserva
 
 static void make_proxy_vka(vka_t *vka, allocman_t *allocman) {
     int num = ram_num_untypeds();
-    int error;
+    int error UNUSED;
 
     proxy_vka_t *proxy = &proxy_vka;
     memset(proxy, 0, sizeof(*proxy));
@@ -549,7 +550,7 @@ static int handle_async_event(seL4_Word badge) {
 }
 
 static void init_irqs() {
-    int error;
+    int error UNUSED;
     for (int i = 0; i < irqs_num_irqs(); i++) {
         seL4_CPtr irq_handler;
         uint8_t source;

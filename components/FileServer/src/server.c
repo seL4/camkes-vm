@@ -16,6 +16,7 @@
 #include <sel4utils/mapping.h>
 
 #include <sel4/sel4.h>
+#include <utils/util.h>
 
 #include <FileServer.h>
 
@@ -49,8 +50,7 @@ static void *fs_dataport;
         that can be searched and indexed
 */
 static void init_cpio_list(void) {
-    int error;
-    error = cpio_info(_cpio_archive, &cinfo);
+    int error UNUSED = cpio_info(_cpio_archive, &cinfo);
     assert(error == 0);
     cpio_file_list = malloc(sizeof(cpio_entry_t) * cinfo.file_count);
     assert(cpio_file_list != NULL);

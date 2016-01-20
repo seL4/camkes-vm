@@ -32,15 +32,15 @@ component VM {
         VM_PER_VM_CONFIG_DEF(0, 2)
 
 
-        vm0.simple_untyped24_pool = 6;
+        vm0.simple_untyped24_pool = 12;
         vm0.heap_size = 0;
-        vm0.guest_ram_mb = 128;
+        vm0.guest_ram_mb = 1024;
         vm0.kernel_cmdline = VM_GUEST_CMDLINE;
         vm0.kernel_image = C162_KERNEL_IMAGE;
         vm0.kernel_relocs = C162_KERNEL_IMAGE;
         vm0.initrd_image = C162_ROOTFS;
         vm0.iospace_domain = 0x0f;
-        vm0_config.ram = [ [ 0x20800000, 23 ], [ 0x21000000, 24 ], [ 0x22000000, 25 ], [ 0x24000000, 26], [ 0x28000000, 27]];
+        vm0_config.ram = [ [ 0x20800000, 23 ], [ 0x21000000, 24 ], [ 0x22000000, 25 ], [ 0x24000000, 26], [ 0x28000000, 27], [0x30000000, 28], [0x40000000, 29], [0x60000000, 30], [0xa0000000, 28]];
         vm0_config.pci_devices_iospace = 1;
 
 
@@ -104,27 +104,6 @@ component VM {
             {"name":"USB3", "source":0x17, "level_trig":1, "active_low":1, "dest":15}
 
         ];
-
-
-
-/*
-
-        vm0_config.irqs = [
-            {"name":"USB", "source":21, "level_trig":1, "active_low":1, "dest":16}
-        ];
-
-        vm0_config.pci_devices = [
-            {"name":"USB",
-                "bus":0, "dev":20, "fun":0,
-                "irq":"USB",
-                "memory":[
-                    {"paddr":0xc0700000, "size":0x10000, "page_bits":12},
-                ],
-            },
-        ];
-*/
-
-
 
     }
 }

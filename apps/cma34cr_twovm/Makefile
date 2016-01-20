@@ -14,7 +14,7 @@ ADL := vm.camkes
 # Subdirectory containing extra templates.
 TEMPLATES := templates global-templates
 
-VM_CONFIG := cma34cr_onevm
+VM_CONFIG := cma34cr_twovm
 VM_NUM_VM := 2
 
 include TimeServer/TimeServer.mk

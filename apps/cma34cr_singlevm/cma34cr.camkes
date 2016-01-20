@@ -1,0 +1,130 @@
+/*
+ * Copyright 2014, NICTA
+ *
+ * This software may be distributed and modified according to the terms of
+ * the GNU General Public License version 2. Note that NO WARRANTY is provided.
+ * See "LICENSE_GPLv2.txt" for details.
+ *
+ * @TAG(NICTA_GPL)
+ */
+#include <autoconf.h>
+#include <configurations/vm.h>
+
+component Init0 {
+    uses Ethdriver ethdriver;
+    VM_INIT_DEF()
+}
+
+component VM {
+
+    /* We want to export the time interface up to our main spec */
+    provides Timer time_server_timer;
+    emits Notifcation time_server_complete;
+
+    composition {
+        VM_COMPOSITION_DEF()
+        VM_PER_VM_COMP_DEF(0)
+
+    }
+
+    configuration {
+        VM_CONFIGURATION_DEF()
+        VM_PER_VM_CONFIG_DEF(0, 2)
+
+
+        vm0.simple_untyped24_pool = 6;
+        vm0.heap_size = 0;
+        vm0.guest_ram_mb = 128;
+        vm0.kernel_cmdline = VM_GUEST_CMDLINE;
+        vm0.kernel_image = C162_KERNEL_IMAGE;
+        vm0.kernel_relocs = C162_KERNEL_IMAGE;
+        vm0.initrd_image = C162_ROOTFS;
+        vm0.iospace_domain = 0x0f;
+        vm0_config.ram = [ [ 0x20800000, 23 ], [ 0x21000000, 24 ], [ 0x22000000, 25 ], [ 0x24000000, 26], [ 0x28000000, 27]];
+        vm0_config.pci_devices_iospace = 1;
+
+
+        vm0_config.ioports = [
+            {"start":0x3000, "end":0x3020, "pci_device":0, "name":"Ethernet5"}, // From PCI Scan dev 10d3, bus 5
+            {"start":0x2000, "end":0x2020, "pci_device":0, "name":"Ethernet6"} // From PCI Scan dev 10d3, bus 6
+        ];
+
+        vm0_config.pci_devices = [
+          {
+              "name":"Ethernet5",
+              "bus":5, "dev":0, "fun":0,
+              "irq":"Ethernet5",
+              "memory":[
+                  {"paddr":0xc0500000, "size":0x20000, "page_bits":12},
+                  {"paddr":0xc0520000, "size":0x4000, "page_bits":12}
+              ],
+          },
+
+          {
+              "name":"Ethernet6",
+              "bus":6, "dev":0, "fun":0,
+              "irq":"Ethernet6",
+              "memory":[
+                  {"paddr":0xc0400000, "size":0x20000, "page_bits":12},
+                  {"paddr":0xc0420000, "size":0x4000, "page_bits":12}
+              ],
+          },
+
+          {
+              "name":"USB",
+              "bus":0, "dev":20, "fun":0,
+              "irq":"USB",
+              "memory":[
+                  {"paddr":0xc0700000, "size":0x10000, "page_bits":12},
+              ],
+          },
+
+          {"name":"USB2",
+              "bus":0, "dev":0x1a, "fun":0,
+              "irq":"USB2",
+              "memory":[
+                  {"paddr":0xc0715000, "size":0x400, "page_bits":12},
+              ],
+          },
+          {"name":"USB3",
+              "bus":0, "dev":0x1d, "fun":0,
+              "irq":"USB3",
+              "memory":[
+                  {"paddr":0xc0714000, "size":0x400, "page_bits":12},
+              ],
+          },
+
+        ];
+
+        vm0_config.irqs = [
+            {"name":"Ethernet5", "source":0x11, "level_trig":1, "active_low":1, "dest":10},
+            {"name":"Ethernet6", "source":0x12, "level_trig":1, "active_low":1, "dest":12},
+            {"name":"USB", "source":0x15, "level_trig":1, "active_low":1, "dest":13},
+            {"name":"USB2", "source":0x10, "level_trig":1, "active_low":1, "dest":14},
+            {"name":"USB3", "source":0x17, "level_trig":1, "active_low":1, "dest":15}
+
+        ];
+
+
+
+/*
+
+        vm0_config.irqs = [
+            {"name":"USB", "source":21, "level_trig":1, "active_low":1, "dest":16}
+        ];
+
+        vm0_config.pci_devices = [
+            {"name":"USB",
+                "bus":0, "dev":20, "fun":0,
+                "irq":"USB",
+                "memory":[
+                    {"paddr":0xc0700000, "size":0x10000, "page_bits":12},
+                ],
+            },
+        ];
+*/
+
+
+
+    }
+}

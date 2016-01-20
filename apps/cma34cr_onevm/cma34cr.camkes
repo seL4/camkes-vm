@@ -15,6 +15,7 @@ component Init0 {
 }
 
 component Init1 {
+  
     VM_INIT_DEF()
 }
 

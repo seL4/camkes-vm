@@ -50,49 +50,52 @@ component VM {
         ];
 
         vm0_config.pci_devices = [
-          {
-              "name":"Ethernet5",
-              "bus":5, "dev":0, "fun":0,
-              "irq":"Ethernet5",
-              "memory":[
-                  {"paddr":0xc0500000, "size":0x20000, "page_bits":12},
-                  {"paddr":0xc0520000, "size":0x4000, "page_bits":12}
-              ],
-          },
+            {
+                "name":"Ethernet5",
+                "bus":5, "dev":0, "fun":0,
+                "irq":"Ethernet5",
+                "memory":[
+                    {"paddr":0xc0500000, "size":0x20000, "page_bits":12},
+                    {"paddr":0xc0520000, "size":0x4000, "page_bits":12}
+                ],
+            },
 
-          {
-              "name":"Ethernet6",
-              "bus":6, "dev":0, "fun":0,
-              "irq":"Ethernet6",
-              "memory":[
-                  {"paddr":0xc0400000, "size":0x20000, "page_bits":12},
-                  {"paddr":0xc0420000, "size":0x4000, "page_bits":12}
-              ],
-          },
+            {
+                "name":"Ethernet6",
+                "bus":6, "dev":0, "fun":0,
+                "irq":"Ethernet6",
+                "memory":[
+                    {"paddr":0xc0400000, "size":0x20000, "page_bits":12},
+                    {"paddr":0xc0420000, "size":0x4000, "page_bits":12}
+                ],
+            },
 
-          {
-              "name":"USB",
-              "bus":0, "dev":20, "fun":0,
-              "irq":"USB",
-              "memory":[
-                  {"paddr":0xc0700000, "size":0x10000, "page_bits":12},
-              ],
-          },
+            {
+                "name":"USB",
+                "bus":0, "dev":20, "fun":0,
+                "irq":"USB",
+                "memory":[
+                    {"paddr":0xc0700000, "size":0x10000, "page_bits":12},
+                ],
+            },
 
-          {"name":"USB2",
-              "bus":0, "dev":0x1a, "fun":0,
-              "irq":"USB2",
-              "memory":[
-                  {"paddr":0xc0715000, "size":0x400, "page_bits":12},
-              ],
-          },
-          {"name":"USB3",
-              "bus":0, "dev":0x1d, "fun":0,
-              "irq":"USB3",
-              "memory":[
-                  {"paddr":0xc0714000, "size":0x400, "page_bits":12},
-              ],
-          },
+            {
+                "name":"USB2",
+                "bus":0, "dev":0x1a, "fun":0,
+                "irq":"USB2",
+                "memory":[
+                    {"paddr":0xc0715000, "size":0x400, "page_bits":12},
+                ],
+            },
+
+            {
+                "name":"USB3",
+                "bus":0, "dev":0x1d, "fun":0,
+                "irq":"USB3",
+                "memory":[
+                    {"paddr":0xc0714000, "size":0x400, "page_bits":12},
+                ],
+            },
 
         ];
 

@@ -20,11 +20,32 @@ component VM {
     /* We want to export the time interface up to our main spec */
     provides Timer time_server_timer;
     emits Notifcation time_server_complete;
+    /* Also export an interface to the RTC */
+    provides RTC rtc_interface;
+    /* Export an interface for the shared ethdriver */
+    provides Ethdriver ethdriver_interface;
 
     composition {
         VM_COMPOSITION_DEF()
         VM_PER_VM_COMP_DEF(0)
 
+        /* Ethernet driver that we share to Linux */
+        component Ethdriver ethdriver;
+        component HWEthDriver HWEthdriver;
+
+        /* Hardware resources for the ethernet driver */
+        connection seL4HardwareMMIO ethdrivermmio(from ethdriver.EthDriver, to HWEthdriver.mmio);
+        connection seL4IOAPICHardwareInterrupt hwethirq(from HWEthdriver.irq, to ethdriver.irq);
+        /* Connect vm0 ethernet to the ethdriver */
+        connection seL4Ethdriver ethdriver_con(from vm0.ethdriver, to ethdriver.client);
+        /* Export the shared ethdrover */
+        connection ExportRPC export_ethdriver(from ethdriver_interface, to ethdriver.client);
+
+        /* Export the time server interface up */
+        connection ExportRPC export_timer(from time_server_timer, to time_server.the_timer);
+        connection ExportAsynch export_timer_notify(from time_server.timer_notification, to time_server_complete);
+        /* Export the RTC up */
+        connection ExportRPC export_rpc(from rtc_interface, to rtc.rtc);
     }
 
     configuration {
@@ -33,7 +54,7 @@ component VM {
 
         vm0.simple_untyped24_pool = 12;
         vm0.heap_size = 0;
-        vm0.guest_ram_mb = 1024;
+        vm0.guest_ram_mb = 512;
         vm0.kernel_cmdline = VM_GUEST_CMDLINE;
         vm0.kernel_image = C162_KERNEL_IMAGE;
         vm0.kernel_relocs = C162_KERNEL_IMAGE;
@@ -43,12 +64,30 @@ component VM {
             [0x60000000, 30], [0xa0000000, 28]];
         vm0_config.pci_devices_iospace = 1;
 
+        ethdriver.simple = true;
+        ethdriver.cnode_size_bits = 12;
+        ethdriver.iospaces = "0x11:0x5:0x0:0";
+        ethdriver.iospace_id = 0x11;
+        ethdriver.pci_bdf = "5:0.0";
+        ethdriver.simple_untyped20_pool = 2;
+        ethdriver.device_model = "82574";
+        ethdriver.heap_size = 0;
+
+        HWEthdriver.mmio_attributes = "0xc0500000:0x20000";
+        HWEthdriver.irq_attributes = "17,1,1";
+
+        vm0.ethdriver_attributes = "1";
+        vm0.ethdriver_global_endpoint = "vm0";
+        vm0.ethdriver_badge = "134479872";
+        vm0.ethdriver_mac = [06, 00, 00, 11, 12, 13];
+        /*
         vm0_config.ioports = [
             {"start":0x3000, "end":0x3020, "pci_device":0, "name":"Ethernet5"}, // From PCI Scan dev 10d3, bus 5
             {"start":0x2000, "end":0x2020, "pci_device":0, "name":"Ethernet6"} // From PCI Scan dev 10d3, bus 6
         ];
-
+        */
         vm0_config.pci_devices = [
+        /*
         {
             "name":"Ethernet5",
             "bus":5, "dev":0, "fun":0,
@@ -67,7 +106,7 @@ component VM {
                 {"paddr":0xc0420000, "size":0x4000, "page_bits":12}
             ],
         },
-
+        */
         {
             "name":"USB2",
             "bus":0, "dev":0x1a, "fun":0,
@@ -87,11 +126,17 @@ component VM {
         ];
 
         vm0_config.irqs = [
+        /*
             {"name":"Ethernet5", "source":0x11, "level_trig":1, "active_low":1, "dest":10},
             {"name":"Ethernet6", "source":0x12, "level_trig":1, "active_low":1, "dest":12},
+        */
             {"name":"USB2", "source":0x10, "level_trig":1, "active_low":1, "dest":14},
             {"name":"USB3", "source":0x17, "level_trig":1, "active_low":1, "dest":15}
 
+        ];
+
+        vm0_config.init_cons = [
+            {"init":"make_virtio_net", "badge":134479872, "irq":"virtio_net_notify"},
         ];
 
     }

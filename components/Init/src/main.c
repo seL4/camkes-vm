@@ -212,11 +212,21 @@ static seL4_CPtr simple_ioport_wrapper(void *data, uint16_t start_port, uint16_t
 
 static seL4_Error simple_frame_cap_wrapper(void *data, void *paddr, int size_bits, cspacepath_t *path) {
     seL4_CPtr cap = pci_devices_get_device_mem_frame((uintptr_t)paddr);
-    if (cap == 0) {
-        return -1;
+    if (cap != 0) {
+        vka_cspace_make_path(&vka, cap, path);
+        return 0;
     }
-    vka_cspace_make_path(&vka, cap, path);
-    return 0;
+
+    /* Check whether it is a guest mapped region. */
+    cap = guest_mappings_get_mapping_mem_frame((uintptr_t)paddr);
+    if (cap != 0) {
+        printf("Guest map found at 0x%x\n", paddr);
+        vka_cspace_make_path(&vka, cap, path);
+        return 0;
+    }
+
+    /* Else */
+    return -1;
 }
 
 void pit_pre_init(void);
@@ -677,6 +687,14 @@ void *main_continued(void *arg) {
 
     for (i = 0; i < ARRAY_SIZE(guest_fake_devices); i++) {
         error = vmm_alloc_guest_device_at(&vmm, guest_fake_devices[i].base, guest_fake_devices[i].size);
+        assert(!error);
+    }
+
+    /* Add in the device mappings specified by the guest. */
+    for (i = 0; i < guest_mappings_num_guestmaps(); i++) {
+        uint64_t frame_paddr;
+        uint64_t size;
+        error = guest_mappings_get_guest_map(i, &frame_paddr, &size);
         assert(!error);
     }
 

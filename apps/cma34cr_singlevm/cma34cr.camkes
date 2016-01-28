@@ -39,7 +39,8 @@ component VM {
         vm0.kernel_relocs = C162_KERNEL_IMAGE;
         vm0.initrd_image = C162_ROOTFS;
         vm0.iospace_domain = 0x0f;
-        vm0_config.ram = [ [ 0x20800000, 23 ], [ 0x21000000, 24 ], [ 0x22000000, 25 ], [ 0x24000000, 26], [ 0x28000000, 27], [0x30000000, 28], [0x40000000, 29], [0x60000000, 30], [0xa0000000, 28]];
+        vm0_config.ram = [ [ 0x20800000, 23 ], [ 0x21000000, 24 ], [ 0x22000000, 25 ], [ 0x24000000, 26], [ 0x28000000, 27], [0x30000000, 28], [0x40000000, 29],
+            [0x60000000, 30], [0xa0000000, 28]];
         vm0_config.pci_devices_iospace = 1;
 
         vm0_config.ioports = [
@@ -68,14 +69,6 @@ component VM {
         },
 
         {
-            "name":"USB",
-            "bus":0, "dev":20, "fun":0,
-            "irq":"USB",
-            "memory":[
-                {"paddr":0xc0700000, "size":0x10000, "page_bits":12},
-            ],
-        },
-        {
             "name":"USB2",
             "bus":0, "dev":0x1a, "fun":0,
             "irq":"USB2",
@@ -91,13 +84,11 @@ component VM {
                 {"paddr":0xc0714000, "size":0x400, "page_bits":12},
             ],
         },
-        
         ];
 
         vm0_config.irqs = [
             {"name":"Ethernet5", "source":0x11, "level_trig":1, "active_low":1, "dest":10},
             {"name":"Ethernet6", "source":0x12, "level_trig":1, "active_low":1, "dest":12},
-            {"name":"USB", "source":0x15, "level_trig":1, "active_low":1, "dest":13},
             {"name":"USB2", "source":0x10, "level_trig":1, "active_low":1, "dest":14},
             {"name":"USB3", "source":0x17, "level_trig":1, "active_low":1, "dest":15}
 

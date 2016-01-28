@@ -27,6 +27,7 @@ import <VMIRQs.idl4>;
 import <VMPCIDevices.idl4>;
 import <FileServerInterface.idl4>;
 import <InitConnection.idl4>;
+import <GuestMaps.idl4>;
 
 import "PIC.camkes";
 import "PIT.camkes";
@@ -91,6 +92,11 @@ connector seL4VMIOPorts {
     to Interface vm_io_ports;
 }
 
+connector seL4GuestMaps {
+    from Procedure client template "seL4GuestMaps.template.c";
+    to Interface vm_guest_maps;
+}
+
 connector seL4VMIRQs {
     from Procedure client template "seL4VMIRQs.template.c";
     to Interface vm_irqs;
@@ -147,6 +153,7 @@ component VMConfig {
     hardware;
     provides ExtraRAM ram;
     provides VMIOPorts ioports;
+    provides GuestMaps guest_mappings;
     provides VMIRQs irqs;
     provides VMPCIDevices pci_devices;
     provides InitConnection init_cons;

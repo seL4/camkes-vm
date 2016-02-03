@@ -19,9 +19,10 @@
 /*- set config_irqs = configuration[me.to_instance.name].get(me.to_interface.name) -*/
 /*- set irqs = [] -*/
 /*- set irqaep_object = alloc_obj('irq_aep_obj', seL4_NotificationObject) -*/
+/*- set irqaep_object_cap = alloc_cap('irq_aep_obj', irqaep_object, read=True) -*/
 /*- if config_irqs is not none -*/
     /*- for irq in config_irqs -*/
-        /*- set cap = alloc('irq_%d' % irq['source'], seL4_IRQControl, number=irq['source'], notification=irqaep_object) -*/
+        /*- set cap = alloc('irq_%d' % irq['source'], seL4_IRQControl, number=irq['source'], notification=my_cnode[irqaep_object_cap]) -*/
         /*- do irqs.append( (irq['name'], irq['source'], irq['level_trig'], irq['active_low'], irq['dest'], cap) ) -*/
     /*- endfor -*/
 /*- endif -*/

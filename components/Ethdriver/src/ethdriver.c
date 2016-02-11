@@ -376,7 +376,17 @@ void post_init(void) {
     ethif_intel_config_t eth_config = (ethif_intel_config_t) {
         .bar0 = (void*)EthDriver
     };
-    error = ethif_e82580_init(&eth_driver, ioops, &eth_config);
+
+    if (strcmp(device_model, "82574") == 0){
+        error = ethif_e82574_init(&eth_driver, ioops, &eth_config);
+    } else if (strcmp(device_model, "82580") == 0){
+        error = ethif_e82580_init(&eth_driver, ioops, &eth_config);
+    } else {
+        /* Default to the 82574 model. */
+        printf("Warning:: Device Model not found. Using the 82574.\n");
+        error = ethif_e82574_init(&eth_driver, ioops, &eth_config);
+    }
+
     assert(!error);
     done_init = 1;
     irq_reg_callback(eth_interrupt, NULL);

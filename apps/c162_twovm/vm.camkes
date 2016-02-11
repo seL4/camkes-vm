@@ -124,6 +124,7 @@ assembly {
         ethdriver.iospace_id = 0x12;
         ethdriver.pci_bdf = "1:0.0";
         ethdriver.simple_untyped20_pool = 2;
+        ethdriver.device_model = "82580";
         /* the ethernet driver has a dynamic heap, so set the static one to 0 */
         ethdriver.heap_size = 0;
     }

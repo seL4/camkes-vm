@@ -23,4 +23,6 @@ component Ethdriver {
     attribute int iospace_id;
     /* format for bdf is "BUS:DEV.fun" where BUS and DEV are hex and FUN is decimal */
     attribute string pci_bdf;
+    /* the model of the ethernet device, available from the board documentation or PCI scan */
+    attribute string device_model;
 }

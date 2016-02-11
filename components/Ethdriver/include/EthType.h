@@ -10,8 +10,11 @@
 #ifndef VMM_CONFIG_ETHTYPE_H
 #define VMM_CONFIG_ETHTYPE_H
 
+/* Device configuration file from the apps/<vm-application>/configurations/device_config.h */
+#include "device_config.h"
+
 typedef struct EthDriverMMIO {
-    char buf[0x80000];
+    char buf[ETHDRIVER_MMIO_BUF_SZ];
 } EthDriverMMIO_t;
 
 #endif

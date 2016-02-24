@@ -18,7 +18,7 @@ all:
 	#
 	cp driver_module/vmm_manager.ko out/lib/modules/3.15.0/kernel/drivers/vmm/vmm_manager.ko
 
-	fakeroot ../editfs -i
-	fakeroot ../editfs -p
-	rm libs/libsel4vchan.a
+#	fakeroot ../editfs -i
+#	fakeroot ../editfs -p
+#	rm libs/libsel4vchan.a
 

@@ -96,14 +96,14 @@ int vchan_com_rem_connection(vchan_connect_t con) {
     /* See if this connection already exists */
     vchan_instance_t *inst = get_vchan_instance(con.v.domain, con.v.dest, con.v.port);
     if(inst != NULL) {
-        DPRINTF(4, "vchan: closing down on %d side\n", con.server);
+        //DPRINTF(4, "vchan: closing down on %d side\n", con.server);
         if(con.server)
             inst->server_connected = -1;
         else
             inst->client_connected = -1;
 
         if(inst->client_connected == -1 && inst->server_connected == -1) {
-            DPRINTF(4, "vchan: SHUTTING DOWN CONNECTIOn\n");
+            //DPRINTF(4, "vchan: SHUTTING DOWN CONNECTIOn\n");
             rem_vchan_instance(inst);
         } else {
             vchan_com_ping();
@@ -220,7 +220,7 @@ static int new_vchan_instance(vchan_connect_t *con) {
 
         buffers = alloc_buffer();
         if(buffers == NULL) {
-            DPRINTF(2, "vchan: bad buffer allocation!\n");
+            printf("vchan: bad buffer allocation!\n");
             return -1;
         }
 
@@ -242,16 +242,16 @@ static int new_vchan_instance(vchan_connect_t *con) {
     }
 
     if(con->server) {
-        DPRINTF(4, "vchan: server connection %d|%d|%d established\n", domx, domy, port);
+        //DPRINTF(4, "vchan: server connection %d|%d|%d established\n", domx, domy, port);
         new->buffers->bufs[0].owner = MIN(domx, domy);
         new->buffers->bufs[1].owner = MAX(domx, domy);
         new->server_connected = 1;
     } else {
         if(new->server_connected == -1) {
-            DPRINTF(2, "vchan: trying to connect to closed server\n");
+            printf("vchan: trying to connect to closed server\n");
             return -1;
         }
-        DPRINTF(4, "vchan: client connection %d|%d|%d established\n", domx, domy, port);
+        //DPRINTF(4, "vchan: client connection %d|%d|%d established\n", domx, domy, port);
         new->buffers->bufs[0].owner = MIN(domx, domy);
         new->buffers->bufs[1].owner = MAX(domx, domy);
         new->client_connected = 1;
@@ -267,10 +267,10 @@ static int new_vchan_instance(vchan_connect_t *con) {
 static vchan_buf_t *get_dom_buf(uint32_t buf, vchan_shared_mem_t *b) {
 
     if(b->bufs[0].owner == buf) {
-        DPRINTF(4, "Tagged buf 0 - returning\n");
+        //DPRINTF(4, "Tagged buf 0 - returning\n");
         return &b->bufs[0];
     } else if(b->bufs[1].owner == buf) {
-        DPRINTF(4, "Tagged buf 1 - returning\n");
+        //DPRINTF(4, "Tagged buf 1 - returning\n");
         return &b->bufs[1];
     }
 
@@ -291,7 +291,7 @@ static void rem_vchan_instance(vchan_instance_t *inst) {
             } else {
                 first_inst = find->next;
             }
-            DPRINTF(2, "vchan: removing %d | %d | %d\n", inst->domx, inst->domy, inst->port);
+            printf("vchan: removing %d | %d | %d\n", inst->domx, inst->domy, inst->port);
             inst->buffers->alloced = 0;
             free(find);
             return;
@@ -323,7 +323,7 @@ static vchan_shared_mem_t *alloc_buffer(void) {
 */
 static vchan_shared_mem_t *get_buffer(uint32_t id) {
     if(id >= NUM_BUFFERS) {
-        DPRINTF(2, "get_buffer: bad id\n");
+        printf("get_buffer: bad id\n");
         return NULL;
     }
     return &(headers->shared_buffers[id]);
@@ -352,4 +352,3 @@ static void print_vchan_instances() {
         inst = inst->next;
     }
 }
-

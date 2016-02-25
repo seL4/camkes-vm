@@ -200,8 +200,10 @@
 #include <unistd.h>
 #include <time.h>
 
-#include "../mod_create/includes/libvchan.h"
-
+#include <vmm_manager.h>
+#include <vchan_copy.h>
+#include <libvchan.h>
+#include <vmm_utils.h>
 
 int libvchan_write_all(struct libvchan *ctrl, char *buf, int size)
 {
@@ -245,11 +247,12 @@ void usage(char** argv)
 char buf[BUFSIZE];
 void reader(struct libvchan *ctrl)
 {
+    printf("starting read\n");
        int size;
        for (;;) {
                size = rand() % (BUFSIZE - 1) + 1;
                size = libvchan_read(ctrl, buf, size);
-               fprintf(stderr, "#");
+               printf("#");
                if (size < 0) {
                        perror("read vchan");
                        libvchan_close(ctrl);
@@ -273,6 +276,7 @@ void reader(struct libvchan *ctrl)
 
 void writer(struct libvchan *ctrl)
 {
+    printf("Begin Writer\n");
        int size;
        for (;;) {
                size = rand() % (BUFSIZE - 1) + 1;
@@ -328,7 +332,7 @@ int main(int argc, char **argv)
        }
 
        srand(seed);
-       fprintf(stderr, "seed=%d\n", seed);
+       printf("seed=%d\n", seed);
        if (wr) {
            writer(ctrl);
        } else {

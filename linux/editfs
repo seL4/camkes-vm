@@ -24,13 +24,12 @@ pack() {
 unpack() {
 	if [ -d "mod_rootfs" ]; then
 		rm -rf mod_rootfs
-	else
-		mkdir mod_rootfs
 	fi
-	zcat rootfs.cpio > rootfs
+#	else
+		mkdir mod_rootfs
 	cd mod_rootfs
-	cpio -idvm < ../rootfs
-	rm ../rootfs
+	cat ../rootfs.cpio | cpio -idvm
+#	rm ../rootfs
 }
 
 flush() {

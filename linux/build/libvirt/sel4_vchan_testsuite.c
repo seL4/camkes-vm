@@ -8,6 +8,15 @@
  * @TAG(NICTA_GPL)
  */
 
+
+/*
+ * seL4 Vchan Test Suite
+ *
+ * Tests the Vcahn connectiob between the Hello World component and the linux
+ * Vm that this is connected to.
+ *
+ */
+
 #include <vmm_manager.h>
 #include <vchan_copy.h>
 #include <libvchan.h>
@@ -30,12 +39,15 @@ static int send_packet(libvchan_t *con, int num_packets);
 static int read_arg(char *str);
 static int ftp_esque(libvchan_t *con);
 
+/* 
+ * Attempt to negotiate and send data using a different port over the same
+ * vchan connection. 
+ */
 static int ftp_esque(libvchan_t *con) {
 	int portnumber = 890;
 	int ack = 0;
 	// con, the base communication channel
 	printf("testsuite: ftp_esque: start\n");
-
 
 	// tell the component we want a new connection on this port
 	libvchan_write(con, &portnumber, sizeof(int));
@@ -57,24 +69,28 @@ static int ftp_esque(libvchan_t *con) {
 		return -1;
 	}
 
-    libvchan_close(sample);
+        libvchan_close(sample);
 	printf("testsuite: ftp_esque: done\n");
 
 	return 0;
 }
 
 
+/*
+ * Drains the buffer that should be filled in the Hello world component's Funnel
+ * function.
+ */
 static int funnel(libvchan_t *con) {
     int c = 0;
     int val;
-    size_t sz;
+    size_t sz; 
+
     printf("testsuite funnel: waiting\n");
     while(libvchan_data_ready(con) != FILE_DATAPORT_MAX_SIZE) {
     	continue;
     }
 
     printf("testsuite funnel: checking data\n");
-
     while(libvchan_data_ready(con) > 0) {
         sz = libvchan_read(con, &val, sizeof(int));
         if(sz != sizeof(int)) {
@@ -186,12 +202,15 @@ int main(int argc, char **argv) {
 		exit(1);
 	}
 
+	// Hardcoded to the connection defined in the server (HelloWorld component).
 	printf("testsuite: Creating connection in image\n");
 	libvchan_t *ctrl = libvchan_client_init(50, 25);
+
 	assert(ctrl != NULL);
 	printf("testsuite: Connection Established!\n");
 
 	ecount += funnel(ctrl);
+	printf("testsuite: Ecount is %d\n", ecount);
 	if(ecount >= 0)
 		ecount += ftp_esque(ctrl);
 	if(ecount >= 0)

@@ -7,23 +7,78 @@
  *
  * @TAG(NICTA_GPL)
  */
+
+
+/*
+ * Two VMs, with native ethernet and vchan. 
+ */
+
 #include <autoconf.h>
 #include <configurations/vm.h>
 
 component Init0 {
+    uses Ethdriver ethdriver;
     VM_INIT_DEF()
 }
 
 component Init1 {
-  
+    include "vmm/vchan_sharemem.h";
+    uses VchanInterface vchan_con;
+    consumes VchanEvent vevent;
+    dataport vchan_headers_t share_mem;
     VM_INIT_DEF()
 }
 
 component VM {
+
+    /* We want to export the time interface up to our main spec */
+    provides Timer time_server_timer;
+    emits Notifcation time_server_complete;
+    /* Also export an interface to the RTC */
+    provides RTC rtc_interface;
+    /* Export an interface for the shared ethdriver */
+    provides Ethdriver ethdriver_interface;
+
     composition {
         VM_COMPOSITION_DEF()
         VM_PER_VM_COMP_DEF(0)
         VM_PER_VM_COMP_DEF(1)
+
+
+        /* Vchan interface for communicating to native tasks */
+        component Vchan vchan;
+        component HelloWorld hello;
+        /* Connect hello to the vchan component */
+        connection seL4Asynch vchan_event(from vchan.vevent_sv, to hello.vevent);
+        connection seL4RPCCall hvchan(from hello.vchan_con, to vchan.vchan_com);
+        connection seL4SharedData hvchan_sharemem_0(from hello.share_mem, to vchan.share_mem);
+        /* Connect hello and vchan to the serial server (pretend to be vm1) */
+        connection seL4RPCCall hserial(from hello.putchar, to serial.vm_putchar);
+        connection seL4RPCCall vchanserial(from vchan.putchar, to serial.vm_putchar);
+        /* Connect vm1 to the vchan component */
+        connection seL4VChanConnection vchan_(from vm1.vchan_con, to vchan.vchan_com);
+        connection seL4SharedData vchan_sharemem(from vm1.share_mem, to vchan.share_mem);
+        connection seL4GlobalAsynch vchan_event_init(from vchan.vevent_cl, to vm1.vevent);
+
+
+        /* Ethernet driver that we share to Linux */
+        component Ethdriver ethdriver;
+        component HWEthDriver HWEthdriver;
+
+        /* Hardware resources for the ethernet driver */
+        connection seL4HardwareMMIO ethdrivermmio(from ethdriver.EthDriver, to HWEthdriver.mmio);
+        connection seL4IOAPICHardwareInterrupt hwethirq(from HWEthdriver.irq, to ethdriver.irq);
+        /* Connect vm0 ethernet to the ethdriver */
+        connection seL4Ethdriver ethdriver_con(from vm0.ethdriver, to ethdriver.client);
+        /* Export the shared ethdrover */
+        connection ExportRPC export_ethdriver(from ethdriver_interface, to ethdriver.client);
+
+        /* Export the time server interface up */
+        connection ExportRPC export_timer(from time_server_timer, to time_server.the_timer);
+        connection ExportAsynch export_timer_notify(from time_server.timer_notification, to time_server_complete);
+        /* Export the RTC up */
+        connection ExportRPC export_rpc(from rtc_interface, to rtc.rtc);
+
     }
     configuration {
         VM_CONFIGURATION_DEF()
@@ -47,7 +102,43 @@ component VM {
         vm1.kernel_relocs = C162_KERNEL_IMAGE;
         vm1.initrd_image = C162_ROOTFS;
         vm1.iospace_domain = 0x10;
-        vm1_config.ram = [ [ 0x30800000, 23 ], [ 0x31000000, 24 ], [ 0x32000000, 25 ], [ 0x34000000, 26], [ 0x38000000, 27]];
+        vm1_config.ram = [ [ 0x30800000, 23 ], [ 0x31000000, 24 ], [ 0x32000000, 25 ], [ 0x34000000, 26]];
         vm1_config.pci_devices_iospace = 1;
+
+        /* Vchan components */
+        hello.putchar_attributes = "1";
+        hello.heap_size = 8192;
+        vchan.putchar_attributes = "1";
+        vchan.vevent_cl_badge = VAR_STRINGIZE(VM_PIC_BADGE_VCHAN_HAS_DATA);
+        vchan.vevent_cl_global_endpoint = "vm1";
+        vchan.heap_size = 8192;
+        vm1.vchan_con_domain = 0;
+        vm1.vchan_con_dataport = "share_mem";
+        vm1.vevent_global_endpoint = "vm1";
+
+        ethdriver.simple = true;
+        ethdriver.cnode_size_bits = 12;
+        ethdriver.iospaces = "0x11:0x5:0x0:0";
+        ethdriver.iospace_id = 0x11;
+        ethdriver.pci_bdf = "5:0.0";
+        ethdriver.simple_untyped20_pool = 2;
+        ethdriver.device_model = "82574";
+        ethdriver.heap_size = 0;
+
+        HWEthdriver.mmio_attributes = "0xc0500000:0x20000";
+        HWEthdriver.irq_attributes = "17,1,1";
+
+        vm0.ethdriver_attributes = "1";
+        vm0.ethdriver_global_endpoint = "vm0";
+        vm0.ethdriver_badge = "134479872";
+        vm0.ethdriver_mac = [06, 00, 00, 11, 12, 13];
+
+        vm1_config.init_cons = [
+            {"init":"vchan_con_init", "badge":VM_PIC_BADGE_VCHAN_HAS_DATA, "irq":"vchan_interrupt"},
+        ];
+
+        vm0_config.init_cons = [
+            {"init":"make_virtio_net", "badge":134479872, "irq":"virtio_net_notify"},
+        ];
     }
 }

@@ -8,6 +8,13 @@
  * @TAG(NICTA_GPL)
  */
 
+/*
+ * Hello World Component.
+ *
+ * Tests the vchan connection between the comonent (me) and a server that should
+ * be running on linux component.
+ */
+
 #include <stdio.h>
 #include <stdint.h>
 #include <autoconf.h>
@@ -41,7 +48,9 @@ static camkes_vchan_con_t con = {
     .component_dom_num = 50,
 };
 
-
+/*
+ * Connects to sel4
+ */
 static int ftp_esque(libvchan_t *con) {
     int portnumber;
     int ack = 1;
@@ -57,15 +66,15 @@ static int ftp_esque(libvchan_t *con) {
     assert(sample != NULL);
     rec_packet(sample);
     libvchan_close(sample);
-    DPRINTF(2, "hello: ftp_esque: done");
+    printf("hello: ftp_esque: done\n");
 
     return 0;
 }
 
 
 /*
-    Check if data in a test packet is correct
-*/
+ *   Check if data in a test packet is correct
+ */
 static int verify_packet(vchan_packet_t *pak) {
     for(int i = 0; i < 4; i++) {
         if(pak->datah[i] != i + pak->pnum) {
@@ -77,21 +86,24 @@ static int verify_packet(vchan_packet_t *pak) {
 }
 
 
+/*
+ * Fills the buffer.
+ */
 static void funnel(libvchan_t *con) {
     int c = 0;
     size_t sz;
 
     assert(libvchan_buffer_space(con) == FILE_DATAPORT_MAX_SIZE);
-    DPRINTF(4, "hello funnel: remaining space: %d\n", libvchan_buffer_space(con));
 
     while(libvchan_buffer_space(con) > 0) {
         sz = libvchan_write(con, &c, sizeof(int));
         assert(sz == sizeof(int));
-        DPRINTF(4, "hello funnel: remaining space: %d\n", libvchan_buffer_space(con));
+        //printf("hello funnel: remaining space: %d\n", libvchan_buffer_space(con));
         c++;
         assert(libvchan_data_ready(con) == 0);
     }
-    DPRINTF(4, "hello funnel: done\n");
+    printf("hello funnel: Funnel done\n");
+
 }
 
 
@@ -106,7 +118,7 @@ static void rec_packet(libvchan_t * con) {
     sz = libvchan_read(con, &pnum, sizeof(int));
     assert(sz == sizeof(int));
 
-    DPRINTF(2, "hello: number of packets to recieve = %d\n", pnum);
+    printf("hello: number of packets to recieve = %d\n", pnum);
 
     for(x = 0; x < pnum; x++) {
         libvchan_wait(con);
@@ -120,10 +132,10 @@ static void rec_packet(libvchan_t * con) {
         assert(pak.pnum == x);
         assert(verify_packet(&pak) == 1);
         assert(pak.guard == TEST_VCHAN_PAK_GUARD);
-        DPRINTF(4, "hello.packet %d|%d\n", x, sizeof(pak));
+        //DPRINTF(4, "hello.packet %d|%d\n", x, sizeof(pak));
     }
 
-    DPRINTF(2, "hello: sending ack\n");
+    printf("hello: sending ack\n");
 
     sz = libvchan_write(con, &done, sizeof(char));
     assert(sz == sizeof(char));
@@ -135,19 +147,20 @@ void pre_init(void) {
 int run(void) {
     libvchan_t *connection;
 
-    DPRINTF(2, "Hello.Component Init\n");
+    printf("Hello component Init\n");
     init_camkes_vchan(&con);
     con.data_buf = (void *)share_mem;
 
+    // Hardcoded value that should match up with the clients.
     connection = libvchan_server_init(0, 25, 0, 0);
     assert(connection != NULL);
 
-    DPRINTF(2, "Connection Active\n");
+    printf("Hello componenet Connection active\n");
     funnel(connection);
     ftp_esque(connection);
     while(1) {
-        DPRINTF(2, "hello.packet: begin\n");
+        printf("Hello packet begin\n");
         rec_packet(connection);
-        DPRINTF(2, "hello.packet: end\n");
+        printf("Hello packet end\n");
     }
 }

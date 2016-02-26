@@ -138,7 +138,7 @@ int get_vm_num() {
     char *name = (char *) get_instance_name();
     int ret = sscanf(name, "vm_vm%d", &res);
     if(ret == 0) {
-        DPRINTF(2, "vchan_driver: failed to get run num\n");
+        printf("vchan_driver: failed to get run num\n");
         return -1;
     }
 
@@ -268,6 +268,7 @@ static int vchan_readwrite(vmm_t *vmm, void *data, uint64_t cmd) {
 
     size_t filled = abs(b->write_pos - b->read_pos);
     tok.copy_type = cmd;
+    //printf("Write pos - %d, Read pos - %d, Filled - %d, Owner - %d\n", b->write_pos, b->read_pos, filled, b->owner);
 
     /*
         If streaming, send as much data as possible
@@ -300,14 +301,14 @@ static int vchan_readwrite(vmm_t *vmm, void *data, uint64_t cmd) {
     tok.buf = (void *)b->sync_data + start;
     tok.copy_size = size;
     if(vmm_guest_vspace_touch(vs, phys, size, &vchan_sync_copy, &tok) < 0) {
-        DPRINTF(2, "vmcall_readwrite: did not perform a good write!\n");
+        printf("vmcall_readwrite: did not perform a good write!\n");
         return -1;
     }
 
     tok.buf = &b->sync_data;
     tok.copy_size = remain;
     if(vmm_guest_vspace_touch(vs, phys + size, remain, &vchan_sync_copy, &tok) < 0) {
-        DPRINTF(2, "vmcall_readwrite: did not perform a good write!\n");
+        printf("vmcall_readwrite: did not perform a good write!\n");
         return -1;
     }
 
@@ -362,7 +363,7 @@ static int vchan_connect(vmm_t *vmm, void *data, uint64_t cmd) {
         return -1;
     }
 
-    DPRINTF(4, "ADDING %x as ADDR\n", pass->event_mon);
+    //DPRINTF(4, "ADDING %x as ADDR\n", pass->event_mon);
     guest_vchan_init(pass->v.dest, pass->v.port, pass->server);
 
     return 0;
@@ -384,7 +385,7 @@ static int vchan_close(vmm_t *vmm, void *data, uint64_t cmd) {
 
     vchan_camkes_component.disconnect(t);
 
-    DPRINTF(4, "REMOVING %x as ADDR\n", pass->event_mon);
+    //DPRINTF(4, "REMOVING %x as ADDR\n", pass->event_mon);
     rem_callback_addr((void *) pass->event_mon);
 
     return 0;
@@ -408,7 +409,7 @@ static int driver_connect(vmm_t *vmm, void *data, uint64_t cmd) {
         return -1;
     }
 
-    DPRINTF(4, "vmcall: num is %d\n", *res);
+    //DPRINTF(4, "vmcall: num is %d\n", *res);
     return 0;
 }
 

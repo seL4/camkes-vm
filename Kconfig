@@ -50,6 +50,8 @@ menu "Applications"
     source "apps/c162_twovm/Kconfig"
     source "apps/optiplex9020_onevm/Kconfig"
     source "apps/cma34cr_singlevm/Kconfig"
+    source "apps/cma34cr_twovm/Kconfig"
+    source "apps/cma34cr_vchan/Kconfig"
     source "apps/cxx/Kconfig"
 endmenu
 

@@ -46,9 +46,9 @@ int fsclient_read(void *dest, int fd, off_t offset, size_t size) {
             return -1;
         }
 
-        DPRINTF(4, "plat: got %d|%d from fs\n", ret_len, copy_len);
+        //DPRINTF(4, "plat: got %d|%d from fs\n", ret_len, copy_len);
         memcpy(dest, port, ret_len);
-        DPRINTF(4, "plat: memcpy done\n");
+        //DPRINTF(4, "plat: memcpy done\n");
         offset += ret_len;
         dest += ret_len;
         copy_len -= ret_len;

@@ -93,7 +93,7 @@ static int done_init = 0;
 
 /* Functions provided by the Ethdriver template */
 void client_emit(unsigned int client_id);
-unsigned int client_get_badge(void);
+unsigned int client_get_sender_id(void);
 unsigned int client_num_badges(void);
 unsigned int client_enumerate_badge(unsigned int i);
 void *client_buf(unsigned int client_id);
@@ -232,7 +232,7 @@ int client_rx(int *len) {
         return -1;
     }
     int ret;
-    int id = client_get_badge();
+    int id = client_get_sender_id();
     client_t *client = NULL;
     for (int i = 0; i < num_clients; i++) {
         if (clients[i].client_id == id) {
@@ -273,7 +273,7 @@ void client_tx(int len) {
     if (len < 12) {
         return;
     }
-    int id = client_get_badge();
+    int id = client_get_sender_id();
     client_t *client = NULL;
     for (int i = 0; i < num_clients; i++) {
         if (clients[i].client_id == id) {
@@ -297,7 +297,7 @@ void client_tx(int len) {
 }
 
 void client_mac(uint8_t *b1, uint8_t *b2, uint8_t *b3, uint8_t *b4, uint8_t *b5, uint8_t *b6) {
-    int id = client_get_badge();
+    int id = client_get_sender_id();
     client_t *client = NULL;
     for (int i = 0; i < num_clients; i++) {
         if (clients[i].client_id == id) {

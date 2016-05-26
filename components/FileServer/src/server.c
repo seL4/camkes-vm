@@ -86,13 +86,13 @@ int fs_ctrl_lookup(const char *name) {
     return FS_ERR_NOFILE;
 }
 
-seL4_Word fs_ctrl_get_badge(void);
+seL4_Word fs_ctrl_get_sender_id(void);
 
 /*
     Ends a server-client lock
 */
 void fs_ctrl_read_complete() {
-    seL4_Word lock = fs_ctrl_get_badge();
+    seL4_Word lock = fs_ctrl_get_sender_id();
     if(lock == busy_with_request)
         busy_with_request = -1;
 }
@@ -112,7 +112,7 @@ int fs_ctrl_read(int fd, off_t offset, size_t size) {
     if(ent == NULL)
         return FS_ERR_NOFILE;
 
-    seL4_Word lock = fs_ctrl_get_badge();
+    seL4_Word lock = fs_ctrl_get_sender_id();
     if(busy_with_request == -1) {
         busy_with_request = lock;
     } else if(busy_with_request != lock) {

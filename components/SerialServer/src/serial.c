@@ -434,20 +434,20 @@ void pre_init(void) {
     serial_unlock();
 }
 
-seL4_Word vm_putchar_get_badge(void);
+seL4_Word vm_putchar_get_sender_id(void);
 
 void vm_putchar_putchar(int c) {
-    seL4_Word n = vm_putchar_get_badge();
+    seL4_Word n = vm_putchar_get_sender_id();
     internal_putchar((int)n, c);
     if (c == '\n') {
         internal_putchar(n, '\r');
     }
 }
 
-seL4_Word guest_putchar_get_badge(void);
+seL4_Word guest_putchar_get_sender_id(void);
 
 void guest_putchar_putchar(int c) {
-    seL4_Word n = guest_putchar_get_badge();
+    seL4_Word n = guest_putchar_get_sender_id();
     internal_putchar((int)n + VM_NUM_GUESTS, c);
 }
 

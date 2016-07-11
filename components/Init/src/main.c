@@ -46,14 +46,14 @@ void *muslc_brk_reservation_start;
 vspace_t  *muslc_this_vspace;
 static sel4utils_res_t muslc_brk_reservation_memory;
 
-seL4_CPtr intready_aep();
+seL4_CPtr intready_notification();
 /* TODO: these exist for other components that have been collapsed into
  * the init componenet, but we have not yet removed their dependency
  * on having a async endpoint interface */
 volatile seL4_CPtr hw_irq_handlers[16] = {0};
 
 static seL4_CPtr get_async_event_aep() {
-    return intready_aep();
+    return intready_notification();
 }
 
 void platsupport_serial_setup_simple(vspace_t *vspace, simple_t *simple, vka_t *vka) {
@@ -570,7 +570,7 @@ static void init_irqs() {
         cspacepath_t badge_path;
         cspacepath_t async_path;
         irqs_get_irq(i, &irq_handler, &source, &level_trig, &active_low, &dest);
-        vka_cspace_make_path(&vka, intready_aep(), &async_path);
+        vka_cspace_make_path(&vka, intready_notification(), &async_path);
         error = vka_cspace_alloc_path(&vka, &badge_path);
         assert(!error);
         error = vka_cnode_mint(&badge_path, &async_path, seL4_AllRights, seL4_CapData_Badge_new(irq_badges[dest]));

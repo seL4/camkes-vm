@@ -17,7 +17,7 @@
 /*- set instance = me.to_instance.name -*/
 /*- set interface = me.to_interface.name -*/
 /*- include 'global-endpoint.template.c' -*/
-/*- set aep = pop('aep') -*/
+/*- set aep = pop('notification') -*/
 
 void /*? me.to_interface.name ?*/_callback(void);
 

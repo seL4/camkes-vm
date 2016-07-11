@@ -17,7 +17,7 @@
 /*- set interface = me.from_interface.name -*/
 /*- include 'global-endpoint.template.c' -*/
 
-/*- set aep = pop('aep') -*/
+/*- set aep = pop('notification') -*/
 
 int /*? me.from_interface.name ?*/__run(void) {
     /* Nothing required. */

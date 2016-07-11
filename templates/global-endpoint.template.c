@@ -55,4 +55,4 @@
 /*- set aep = alloc_cap('%s_%s_aep_object_cap' % (name, badge), aep_object, read=is_reader, write=True) -*/
 /*- do cap_space.cnode[aep].set_badge(int(badge, 10)) -*/
 
-/*- do stash('aep', aep) -*/
+/*- do stash('notification', aep) -*/

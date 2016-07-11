@@ -22,7 +22,7 @@
             /*- set instance = c.from_instance.name -*/
             /*- set interface = c.from_interface.name -*/
             /*- include 'global-endpoint.template.c' -*/
-            /*- set aep = pop('aep') -*/
+            /*- set aep = pop('notification') -*/
             /*- set badge = configuration[c.from_instance.name].get("%s_attributes" % c.from_interface.name).strip('"') -*/
             /*- set mac = configuration[c.from_instance.name].get("%s_mac" % c.from_interface.name) -*/
             void /*? me.to_interface.name ?*/_emit_/*? badge ?*/(void) {

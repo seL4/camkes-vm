@@ -13,7 +13,7 @@ import <PutChar.idl4>;
 
 component RTC {
     provides RTC rtc;
-    uses PutChar putchar;
+    maybe uses PutChar putchar;
     uses IOPort cmos_address;
     uses IOPort cmos_data;
 }

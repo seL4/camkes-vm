@@ -13,7 +13,7 @@ import <PutChar.idl4>;
 
 component TimeServer {
     has mutex time_server;
-    uses PutChar putchar;
+    maybe uses PutChar putchar;
 
     emits Notification timer_notification;
 

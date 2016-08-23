@@ -14,5 +14,5 @@ import <FileServerInterface.idl4>;
 component FileServer {
     dataport Buf fs_mem;
     provides FileServerInterface fs_ctrl;
-    uses PutChar putchar;
+    maybe uses PutChar putchar;
 }

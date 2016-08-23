@@ -123,7 +123,7 @@
     vm##num.fs_attributes = VAR_STRINGIZE(num); \
     vm##num.init_timer_global_endpoint = VAR_STRINGIZE(vm##num); \
     vm##num.init_timer_badge = VAR_STRINGIZE(VM_INIT_TIMER_BADGE); \
-    vm##num.init_timer_attributes = VAR_STRINGIZE(numplustwo); \
+    vm##num.init_timer_attributes = numplustwo; \
     vm##num.intready_global_endpoint = VAR_STRINGIZE(vm##num); \
     vm##num.intready_connector_global_endpoint = VAR_STRINGIZE(vm##num); \
     vm##num.putchar_attributes = VAR_STRINGIZE(num); \
@@ -178,7 +178,7 @@
 
 #define VM_CONFIGURATION_DEF() \
     fserv.heap_size = 4096; \
-    serial.timeout_attributes = "1"; \
+    serial.timeout_attributes = 1; \
     serial.timeout_global_endpoint = "serial_server"; \
     serial.timeout_badge = "1"; \
     serial.heap_size = 4096; \

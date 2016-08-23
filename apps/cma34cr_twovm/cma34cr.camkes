@@ -24,6 +24,7 @@ component Init0 {
 component Init1 {
     include "vmm/vchan_sharemem.h";
     uses VchanInterface vchan_con;
+    uses VchanInitInterface vchan_init;
     consumes VchanEvent vevent;
     dataport vchan_headers_t share_mem;
     VM_INIT_DEF()
@@ -49,14 +50,15 @@ component VM {
         component Vchan vchan;
         component HelloWorld hello;
         /* Connect hello to the vchan component */
-        connection seL4Asynch vchan_event(from vchan.vevent_sv, to hello.vevent);
+        connection seL4Notification vchan_event(from vchan.vevent_sv, to hello.vevent);
         connection seL4RPCCall hvchan(from hello.vchan_con, to vchan.vchan_com);
         connection seL4SharedData hvchan_sharemem_0(from hello.share_mem, to vchan.share_mem);
         /* Connect hello and vchan to the serial server (pretend to be vm1) */
         connection seL4RPCCall hserial(from hello.putchar, to serial.vm_putchar);
         connection seL4RPCCall vchanserial(from vchan.putchar, to serial.vm_putchar);
         /* Connect vm1 to the vchan component */
-        connection seL4VChanConnection vchan_(from vm1.vchan_con, to vchan.vchan_com);
+        connection seL4VChanInit vchan_init(from vm1.vchan_init, to vchan.vchan_init);
+        connection seL4RPCCall vchan_(from vm1.vchan_con, to vchan.vchan_com);
         connection seL4SharedData vchan_sharemem(from vm1.share_mem, to vchan.share_mem);
         connection seL4GlobalAsynch vchan_event_init(from vchan.vevent_cl, to vm1.vevent);
 
@@ -71,13 +73,14 @@ component VM {
         /* Connect vm0 ethernet to the ethdriver */
         connection seL4Ethdriver ethdriver_con(from vm0.ethdriver, to ethdriver.client);
         /* Export the shared ethdrover */
-        connection ExportRPC export_ethdriver(from ethdriver_interface, to ethdriver.client);
+        export ethdriver.client -> ethdriver_interface;
 
         /* Export the time server interface up */
-        connection ExportRPC export_timer(from time_server_timer, to time_server.the_timer);
-        connection ExportAsynch export_timer_notify(from time_server.timer_notification, to time_server_complete);
+        export time_server.the_timer -> time_server_timer;
+        export time_server.timer_notification -> time_server_complete;
+
         /* Export the RTC up */
-        connection ExportRPC export_rpc(from rtc_interface, to rtc.rtc);
+        export rtc.rtc -> rtc_interface;
 
     }
     configuration {
@@ -85,7 +88,7 @@ component VM {
         VM_PER_VM_CONFIG_DEF(0, 2)
         VM_PER_VM_CONFIG_DEF(1, 3)
         vm0.simple_untyped24_pool = 6;
-        vm0.heap_size = 0;
+        vm0.heap_size = DEFAULT_HEAP_SIZE;
         vm0.guest_ram_mb = 128;
         vm0.kernel_cmdline = VM_GUEST_CMDLINE;
         vm0.kernel_image = C162_KERNEL_IMAGE;
@@ -95,13 +98,16 @@ component VM {
         vm0_config.ram = [ [ 0x20800000, 23 ], [ 0x21000000, 24 ], [ 0x22000000, 25 ], [ 0x24000000, 26]];
         vm0_config.pci_devices_iospace = 1;
         vm1.simple_untyped24_pool = 6;
-        vm1.heap_size = 0;
+        vm1.heap_size = DEFAULT_HEAP_SIZE;
         vm1.guest_ram_mb = 128;
         vm1.kernel_cmdline = VM_GUEST_CMDLINE;
         vm1.kernel_image = C162_KERNEL_IMAGE;
         vm1.kernel_relocs = C162_KERNEL_IMAGE;
         vm1.initrd_image = C162_ROOTFS;
         vm1.iospace_domain = 0x10;
+        vm1.vchan_init_dataport = "share_mem";
+        vm1.vchan_init_prefix = "vchan_con";
+        vm1.vchan_init_domain = 0;
         vm1_config.ram = [ [ 0x30800000, 23 ], [ 0x31000000, 24 ], [ 0x32000000, 25 ], [ 0x34000000, 26]];
         vm1_config.pci_devices_iospace = 1;
 
@@ -123,9 +129,11 @@ component VM {
         ethdriver.pci_bdf = "5:0.0";
         ethdriver.simple_untyped20_pool = 2;
         ethdriver.device_model = "82574";
-        ethdriver.heap_size = 0;
+        ethdriver.heap_size = DEFAULT_HEAP_SIZE;
+        ethdriver.dma_pool = 0x100000;
 
-        HWEthdriver.mmio_attributes = "0xc0500000:0x20000";
+        HWEthdriver.mmio_paddr = 0xc0500000;
+        HWEthdriver.mmio_size = 0x20000;
         HWEthdriver.irq_attributes = "17,1,1";
 
         vm0.ethdriver_attributes = "1";
@@ -134,7 +142,7 @@ component VM {
         vm0.ethdriver_mac = [06, 00, 00, 11, 12, 13];
 
         vm1_config.init_cons = [
-            {"init":"vchan_con_init", "badge":VM_PIC_BADGE_VCHAN_HAS_DATA, "irq":"vchan_interrupt"},
+            {"init":"vchan_init_init", "badge":VM_PIC_BADGE_VCHAN_HAS_DATA, "irq":"vchan_interrupt"},
         ];
 
         vm0_config.init_cons = [

@@ -67,11 +67,6 @@ connector seL4VMNet {
     to Dataport client2 template "seL4VMNet-to.template.c";
 }
 
-connector seL4ProdCon {
-    from Dataport server template "seL4ProdCon-from.template.c";
-    to Dataport client template "seL4ProdCon-to.template.c";
-}
-
 connector seL4TimeServer {
     from Procedure client template "seL4TimeServer-from.template.c";
     to Procedure server template "seL4TimeServer-to.template.c";

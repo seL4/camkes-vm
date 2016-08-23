@@ -10,35 +10,28 @@
 
 /*- include 'seL4RPCDataport-to.template.c' -*/
 
-/*# Look through the composition and find all '-to' connectors that would be
- *# duplicates of this one
- #*/
 /*- set badges = [] -*/
-/*- for id, c in enumerate(composition.connections) -*/
-    /*- if c.to_instance.name == me.to_instance.name and c.to_interface.name == me.to_interface.name -*/
-        /*- if c.type.name == me.type.name -*/
-            /*- set is_reader = False -*/
-            /*- set instance = c.from_instance.name -*/
-            /*- set interface = c.from_interface.name -*/
-            /*- include 'global-endpoint.template.c' -*/
-            /*- set aep = pop('notification') -*/
-            /*- set badge = configuration[c.from_instance.name].get("%s_attributes" % c.from_interface.name).strip('"') -*/
-            void /*? me.to_interface.name ?*/_emit_/*? badge ?*/(void) {
-                seL4_Signal(/*? aep ?*/);
-            }
-            /*- do badges.append(badge) -*/
-        /*- endif -*/
-    /*- endif -*/
+/*- for c in me.parent.from_ends -*/
+    /*- set is_reader = False -*/
+    /*- set instance = c.instance.name -*/
+    /*- set interface = c.interface.name -*/
+    /*- include 'global-endpoint.template.c' -*/
+    /*- set aep = pop('notification') -*/
+    /*- set badge = configuration[c.instance.name].get("%s_attributes" % c.interface.name).strip('"') -*/
+    void /*? me.interface.name ?*/_emit_/*? badge ?*/(void) {
+        seL4_Signal(/*? aep ?*/);
+    }
+    /*- do badges.append(badge) -*/
 /*- endfor -*/
 
 /*- do badges.sort() -*/
 
-void /*? me.to_interface.name ?*/_emit(unsigned int badge) {
+void /*? me.interface.name ?*/_emit(unsigned int badge) {
     /*# create a lookup table under the assumption that the
         badges are sensibly made as low as possible #*/
     static void (*lookup[])(void) = {
         /*- for badge in badges -*/
-            [/*? badge ?*/] = /*? me.to_interface.name ?*/_emit_/*? badge ?*/,
+            [/*? badge ?*/] = /*? me.interface.name ?*/_emit_/*? badge ?*/,
         /*- endfor -*/
     };
     assert(badge < ARRAY_SIZE(lookup));

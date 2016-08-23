@@ -8,8 +8,8 @@
  * @TAG(NICTA_BSD)
  */
 
-/*- set interface = me.from_interface -*/
-/*- set instance = me.from_instance -*/
+/*- set interface = me.interface -*/
+/*- set instance = me.instance -*/
 
 /*- set buf_order = false -*/
 

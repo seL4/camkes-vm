@@ -10,7 +10,7 @@
 
 #include <autoconf.h>
 
-#include <Ethdriver.h>
+#include <camkes.h>
 #include <platsupport/io.h>
 #include <vka/vka.h>
 #include <simple/simple.h>

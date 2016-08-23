@@ -8,7 +8,7 @@
  * @TAG(NICTA_GPL)
  */
 
-#include <RTC.h>
+#include <camkes.h>
 #include <platsupport/plat/rtc.h>
 #include <utils/util.h>
 

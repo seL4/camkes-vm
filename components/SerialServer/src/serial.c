@@ -14,7 +14,7 @@
 #include <stdint.h>
 
 #include <sel4/sel4.h>
-#include <SerialServer.h>
+#include <camkes.h>
 #include "vm.h"
 
 /* configuration */

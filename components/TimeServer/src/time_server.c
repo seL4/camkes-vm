@@ -16,7 +16,7 @@
 #include <stdio.h>
 #include <sel4/sel4.h>
 #include <sel4/arch/constants.h>
-#include <TimeServer.h>
+#include <camkes.h>
 #include <platsupport/plat/pit.h>
 #include <platsupport/arch/tsc.h>
 #include <utils/math.h>

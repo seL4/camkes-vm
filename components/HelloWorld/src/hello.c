@@ -22,7 +22,7 @@
 #include <sel4/sel4.h>
 #include <sel4utils/util.h>
 
-#include <HelloWorld.h>
+#include <camkes.h>
 
 #include "vm.h"
 #include "vmm/vmm_manager.h"

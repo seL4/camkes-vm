@@ -11,7 +11,7 @@
 #include <autoconf.h>
 
 #include <string.h>
-#include <UDPServer.h>
+#include <camkes.h>
 #include <ethdrivers/lwip.h>
 #include <lwip/udp.h>
 #include <netif/etharp.h>

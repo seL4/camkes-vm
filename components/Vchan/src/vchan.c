@@ -15,7 +15,7 @@
 #include <sel4/sel4.h>
 #include <sel4utils/util.h>
 
-#include <Vchan.h>
+#include <camkes.h>
 
 #include "vmm/vmm.h"
 #include "vmm/vchan_copy.h"

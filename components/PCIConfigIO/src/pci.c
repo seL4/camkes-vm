@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <PCIConfigIO.h>
+#include <camkes.h>
 
 #define CONFIG_ADDR 0xcf8
 #define CONFIG_DATA 0xcfc

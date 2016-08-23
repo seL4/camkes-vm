@@ -18,7 +18,7 @@
 #include <sel4/sel4.h>
 #include <utils/util.h>
 
-#include <FileServer.h>
+#include <camkes.h>
 
 #define BUF_SIZE PAGE_SIZE_4K
 #define FS_ERR_NOFILE -1

@@ -17,18 +17,17 @@
 /*- set ep = alloc('ep', seL4_EndpointObject, read=True, write=True) -*/
 
 /* assume a function exists to get a dataport */
-void */*? me.to_interface.name?*/_buf_buf(unsigned int client_id);
+void * /*? me.interface.name?*/_buf_buf(unsigned int client_id);
 
 /*- set clients = [] -*/
-/*- for id, c in enumerate(composition.connections) -*/
-    /*- if c.to_instance.name == me.to_instance.name and c.to_interface.name == me.to_interface.name -*/
-        /*- if c.type.name == me.type.name -*/
-            /*- set ports = configuration[c.from_instance.name].get('%s_ports' % c.from_interface.name) -*/
-            /*- set client = configuration[c.from_instance.name].get('%s_attributes' % c.from_interface.name) -*/
-            /*- set client = client.strip('"') -*/
-            /*- do clients.append( (client, ports['source'], ports['dest']) ) -*/
-        /*- endif -*/
-    /*- endif -*/
+
+/*- for c in me.parent.from_ends -*/
+
+    /*- set ports = configuration[c.instance.name].get('%s_ports' % c.interface.name) -*/
+    /*- set client = configuration[c.instance.name].get('%s_attributes' % c.interface.name) -*/
+    /*- set client = client.strip('"') -*/
+    /*- do clients.append( (client, ports['source'], ports['dest']) ) -*/
+
 /*- endfor -*/
 
 void lwip_lock();
@@ -36,7 +35,7 @@ void lwip_unlock();
 
 static struct udp_pcb *upcb[/*? len(clients) ?*/];
 
-void /*? me.to_interface.name ?*/__run(void) {
+void /*? me.interface.name ?*/__run(void) {
     while(1) {
         /*- set cnode = alloc_cap('cnode', my_cnode, write=True) -*/
         /*- set reply_cap_slot = alloc_cap('reply_cap_slot', None) -*/
@@ -55,7 +54,7 @@ void /*? me.to_interface.name ?*/__run(void) {
             lwip_lock();
             p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
             if (p) {
-                memcpy(p->payload, /*? me.to_interface.name?*/_buf_buf(badge), len);
+                memcpy(p->payload, /*? me.interface.name?*/_buf_buf(badge), len);
                 switch (badge) {
                 /*- for client, source, dest in clients -*/
                 case /*? client ?*/:
@@ -71,7 +70,7 @@ void /*? me.to_interface.name ?*/__run(void) {
     }
 }
 
-void /*? me.to_interface.name ?*/__init(void) {
+void /*? me.interface.name ?*/__init(void) {
     lwip_lock();
     /*- for client, source, dest in clients -*/
         upcb[/*? loop.index0 ?*/] = udp_new();

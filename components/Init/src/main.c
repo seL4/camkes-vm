@@ -31,6 +31,7 @@
 #include "vmm/platform/boot.h"
 #include "vmm/platform/boot_guest.h"
 #include "vmm/platform/guest_vspace.h"
+#include "vmm/vchan_component.h"
 
 #include "vmm/vmm_manager.h"
 #include "vm.h"
@@ -755,8 +756,9 @@ void *main_continued(void *arg) {
 
     /* Initialize any extra init devices */
     for (i = 0; i < init_cons_num_connections(); i++) {
-        void (*proc)(vmm_t*) = (void (*)(vmm_t*))init_cons_init_function(i);
-        proc(&vmm);
+        camkes_vchan_con_t (*proc)(vmm_t*) = (camkes_vchan_con_t (*)(vmm_t*))init_cons_init_function(i);
+        camkes_vchan_con_t con = proc(&vmm);
+        vchan_init_camkes(con);
     }
 
     /* Add any IO ports */

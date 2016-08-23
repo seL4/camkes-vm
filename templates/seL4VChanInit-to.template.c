@@ -12,4 +12,4 @@
  * so vchan components can be seen to expose an "init" interface that a VMM
  * can connect to in order to perform some initialisation. In reality, all
  * the logic for initialising a vchan connection is in the from side of this
- * connection.
+ * connection. */

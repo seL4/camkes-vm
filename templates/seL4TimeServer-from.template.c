@@ -11,12 +11,12 @@
 /*- include 'seL4RPCCall-from.template.c' -*/
 
 /*- set is_reader = True -*/
-/*- set instance = me.from_instance.name -*/
-/*- set interface = me.from_interface.name -*/
+/*- set instance = me.instance.name -*/
+/*- set interface = me.interface.name -*/
 /*- include 'global-endpoint.template.c' -*/
 /*- set aep = pop('notification') -*/
 
-seL4_CPtr /*? me.from_interface.name ?*/_aep(void) {
+seL4_CPtr /*? me.interface.name ?*/_aep(void) {
     return /*? aep ?*/;
 }
 

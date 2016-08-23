@@ -48,88 +48,88 @@ import <FileServer/FileServer.camkes>;
 import <Echo/Echo.camkes>;
 
 connector seL4GlobalAsynch {
-    from Event notifier template "seL4GlobalAsynch-from.template.c";
-    to Event server template "seL4GlobalAsynch-to.template.c";
+    from Event template "seL4GlobalAsynch-from.template.c";
+    to Event template "seL4GlobalAsynch-to.template.c";
 }
 
 connector seL4UDPSend {
-    from Procedure client template "seL4UDPSend-from.template.c";
-    to Procedure server template "seL4UDPSend-to.template.c";
+    from Procedure template "seL4UDPSend-from.template.c";
+    to Procedure template "seL4UDPSend-to.template.c";
 }
 
 connector seL4UDPRecv {
-    from Procedure client template "seL4UDPRecv-from.template.c";
-    to Procedure server template "seL4UDPRecv-to.template.c";
+    from Procedure template "seL4UDPRecv-from.template.c";
+    to Procedure template "seL4UDPRecv-to.template.c";
 }
 
 connector seL4VMNet {
-    from Dataport client1 template "seL4VMNet-from.template.c";
-    to Dataport client2 template "seL4VMNet-to.template.c";
+    from Dataport template "seL4VMNet-from.template.c";
+    to Dataport template "seL4VMNet-to.template.c";
 }
 
 connector seL4TimeServer {
-    from Procedure client template "seL4TimeServer-from.template.c";
-    to Procedure server template "seL4TimeServer-to.template.c";
+    from Procedures template "seL4TimeServer-from.template.c" with 0 threads;
+    to Procedure template "seL4TimeServer-to.template.c";
 }
 
 connector seL4ExtraRAM {
-    from Procedure client template "seL4ExtraRAM.template.c";
-    to Interface server_extra_ram;
+    from Procedure template "seL4ExtraRAM.template.c";
+    to hardware Procedure;
 }
 
 connector seL4InitConnection {
-    from Procedure client template "seL4InitConnection.template.c";
-    to Interface server_init_con;
+    from Procedure template "seL4InitConnection.template.c";
+    to hardware Procedure;
 }
 
 connector seL4VMIOPorts {
-    from Procedure client template "seL4VMIOPorts.template.c";
-    to Interface vm_io_ports;
+    from Procedure template "seL4VMIOPorts.template.c";
+    to hardware Procedure;
 }
 
 connector seL4GuestMaps {
-    from Procedure client template "seL4GuestMaps.template.c";
-    to Interface vm_guest_maps;
+    from Procedure template "seL4GuestMaps.template.c";
+    to hardware Procedure;
 }
 
 connector seL4VMIRQs {
-    from Procedure client template "seL4VMIRQs.template.c";
-    to Interface vm_irqs;
+    from Procedure template "seL4VMIRQs.template.c";
+    to hardware Procedure;
 }
 
 connector seL4VMPCIDevices {
-    from Procedure client template "seL4VMPCIDevices.template.c";
-    to Interface vm_pci_devices;
+    from Procedure template "seL4VMPCIDevices.template.c";
+    to hardware Procedure;
 }
 
 connector seL4RPCDataport {
-    from Procedure client template "seL4RPCDataport-from.template.c";
-    to Procedure server template "seL4RPCDataport-to.template.c";
+    from Procedure template "seL4RPCDataport-from.template.c";
+    to Procedure template "seL4RPCDataport-to.template.c";
 }
 
 connector seL4Ethdriver {
-    from Procedure client template "seL4Ethdriver-from.template.c";
-    to Procedure server template "seL4Ethdriver-to.template.c";
+    from Procedures template "seL4Ethdriver-from.template.c";
+    to Procedure template "seL4Ethdriver-to.template.c";
 }
 
 connector seL4SerialServer {
-    from Procedure client template "seL4SerialServer-from.template.c";
-    to Procedure client template "seL4SerialServer-to.template.c";
+    from Procedures template "seL4SerialServer-from.template.c";
+    to Procedure template "seL4SerialServer-to.template.c";
 }
 
 connector seL4GlobalAsynchCallback {
-    from Event notifier template "seL4GlobalAsynchCallback-from.template.c";
-    to Event server template "seL4GlobalAsynchCallback-to.template.c";
+    from Event template "seL4GlobalAsynchCallback-from.template.c";
+    to Event template "seL4GlobalAsynchCallback-to.template.c";
 }
 
 connector seL4MultiSharedData {
-    from Dataport client template "seL4MultiSharedData-from.template.c";
-    to Dataport server template "seL4MultiSharedData-to.template.c";
+    from Dataport template "seL4MultiSharedData-from.template.c";
+    to Dataport template "seL4MultiSharedData-to.template.c";
 }
 
 connector seL4VChanConnection {
-    from Procedure client template "seL4VChanConnection-from.template.c";
-    to Procedure client template "seL4VChanConnection-to.template.c";
+    from Procedure template "seL4VChanConnection-from.template.c";
+    to Procedure template "seL4VChanConnection-to.template.c";
 }
 
 component PieceOfHardware {
@@ -141,7 +141,7 @@ component PieceOfHardware {
 component HWEthDriver {
     hardware;
     emits IRQ irq;
-    dataport EthDriverMMIO mmio;
+    dataport EthDriverMMIO_t mmio;
 };
 
 component VMConfig {

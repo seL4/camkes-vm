@@ -60,15 +60,47 @@
 #define IIR_LSR (BIT(2) | BIT(1))
 #define IIR_PENDING BIT(0)
 
-#define COLOUR_R "\033[;1;31m"
-#define COLOUR_G "\033[;1;32m"
-#define COLOUR_Y "\033[;1;33m"
-#define COLOUR_B "\033[;1;34m"
-#define COLOUR_M "\033[;1;35m"
-#define COLOUR_C "\033[;1;36m"
+/* No background */
+
+// Standard colours
+#define COLOUR_R "\033[31m"
+#define COLOUR_G "\033[32m"
+#define COLOUR_Y "\033[33m"
+#define COLOUR_B "\033[34m"
+#define COLOUR_M "\033[35m"
+#define COLOUR_C "\033[36m"
+
+// Bright colours
+#define COLOUR_BR "\033[31;1m"
+#define COLOUR_BG "\033[32;1m"
+#define COLOUR_BY "\033[33;1m"
+#define COLOUR_BB "\033[34;1m"
+#define COLOUR_BM "\033[35;1m"
+#define COLOUR_BC "\033[36;1m"
+
+
+/* Grey background */
+
+// Standard colours
+#define COLOUR_BG_R "\033[31;40m"
+#define COLOUR_BG_G "\033[32;40m"
+#define COLOUR_BG_Y "\033[33;40m"
+#define COLOUR_BG_B "\033[34;40m"
+#define COLOUR_BG_M "\033[35;40m"
+#define COLOUR_BG_C "\033[36;40m"
+
+// Bright colours
+#define COLOUR_BG_BR "\033[31;1;40m"
+#define COLOUR_BG_BG "\033[32;1;40m"
+#define COLOUR_BG_BY "\033[33;1;40m"
+#define COLOUR_BG_BB "\033[34;1;40m"
+#define COLOUR_BG_BM "\033[35;1;40m"
+#define COLOUR_BG_BC "\033[36;1;40m"
+
+
 #define COLOUR_RESET "\033[0m"
 
-#define MAX_GUESTS 3
+#define MAX_GUESTS 12
 #define GUEST_OUTPUT_BUFFER_SIZE 256
 
 typedef struct getchar_buffer {
@@ -90,8 +122,8 @@ static int last_out = -1;
 static int fifo_depth = 1;
 static int fifo_used = 0;
 
-static uint8_t output_buffers[VM_NUM_GUESTS * 2][GUEST_OUTPUT_BUFFER_SIZE];
-static int output_buffers_used[VM_NUM_GUESTS * 2] = { 0 };
+static uint8_t output_buffers[MAX_GUESTS * 2][GUEST_OUTPUT_BUFFER_SIZE];
+static int output_buffers_used[MAX_GUESTS * 2] = { 0 };
 
 static int done_output = 0;
 
@@ -100,18 +132,35 @@ static int has_data = 0;
 static int num_getchar_clients = 0;
 static getchar_client_t *getchar_clients = NULL;
 
-const char *output_colours[VM_NUM_GUESTS * 2];
-
-/* We predefine output colours for 3 guests */
+/* We predefine output colours for clients */
 const char *all_output_colours[MAX_GUESTS * 2] = {
     /* VMMs */
     COLOUR_R,
     COLOUR_G,
     COLOUR_B,
-    /* Guests */
     COLOUR_M,
     COLOUR_Y,
-    COLOUR_C
+    COLOUR_C,
+    COLOUR_BR,
+    COLOUR_BG,
+    COLOUR_BB,
+    COLOUR_BM,
+    COLOUR_BY,
+    COLOUR_BC,
+
+    /* Guests */
+    COLOUR_BG_R,
+    COLOUR_BG_G,
+    COLOUR_BG_B,
+    COLOUR_BG_M,
+    COLOUR_BG_Y,
+    COLOUR_BG_C,
+    COLOUR_BG_BR,
+    COLOUR_BG_BG,
+    COLOUR_BG_BB,
+    COLOUR_BG_BM,
+    COLOUR_BG_BY,
+    COLOUR_BG_BC,
 };
 
 static inline void write_ier(uint8_t val) {
@@ -172,7 +221,7 @@ static void serial_putchar(int c) {
 }
 
 static void flush_buffer(int b) {
-    const char *col = output_colours[b];
+    const char *col = all_output_colours[b];
     int i;
     if (output_buffers_used[b] == 0) {
         return;
@@ -375,19 +424,11 @@ static void timer_callback(void *data) {
     } else if (has_data) {
         /* flush everything if no writes since last callback */
         int i;
-        for (i = 0; i < VM_NUM_GUESTS * 2; i++) {
+        for (i = 0; i < MAX_GUESTS * 2; i++) {
             flush_buffer(i);
         }
     }
     serial_unlock();
-}
-
-static void init_colours() {
-    int i;
-    for (i = 0; i < VM_NUM_GUESTS; i++) {
-        output_colours[i] = all_output_colours[i];
-        output_colours[i + VM_NUM_GUESTS] = all_output_colours[i + MAX_GUESTS];
-    }
 }
 
 seL4_CPtr timeout_aep(void);
@@ -416,7 +457,6 @@ void pre_init(void) {
     enable_interrupt();
     clear_iir();
     // all done
-    init_colours();
     /* query what getchar clients exist */
     num_getchar_clients = getchar_num_badges();
     getchar_clients = calloc(num_getchar_clients, sizeof(getchar_client_t));
@@ -448,7 +488,7 @@ seL4_Word guest_putchar_get_sender_id(void);
 
 void guest_putchar_putchar(int c) {
     seL4_Word n = guest_putchar_get_sender_id();
-    internal_putchar((int)n + VM_NUM_GUESTS, c);
+    internal_putchar((int)n + MAX_GUESTS, c);
 }
 
 /* We had to define at least one function in the getchar RPC procedure

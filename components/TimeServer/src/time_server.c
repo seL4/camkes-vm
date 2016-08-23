@@ -266,7 +266,6 @@ static int pit_port_out(void *cookie, uint32_t port, int io_size, uint32_t val) 
 
 void post_init() {
     time_server_lock();
-//    set_putchar(putchar_putchar);
     client_state = malloc(sizeof(client_state_t) * the_timer_largest_badge());
     assert(client_state);
     for (int i = 0; i < the_timer_largest_badge(); i++) {
@@ -289,4 +288,5 @@ void post_init() {
     timer_start(timer);
     timer_periodic(timer, NS_IN_S / TIMER_FREQUENCY);
     time_server_unlock();
+    set_putchar(putchar_putchar);
 }

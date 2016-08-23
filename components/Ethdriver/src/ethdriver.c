@@ -11,6 +11,8 @@
 #include <autoconf.h>
 
 #include <camkes.h>
+#include <camkes/dma.h>
+
 #include <platsupport/io.h>
 #include <vka/vka.h>
 #include <simple/simple.h>
@@ -323,6 +325,29 @@ static void eth_interrupt(void *cookie) {
     ethdriver_unlock();
 }
 
+/* Returns the cap to the frame mapped to vaddr, assuming
+ * vaddr points inside our dma pool. */
+static seL4_CPtr get_dma_frame_cap(vspace_t *vspace, void *vaddr) {
+    return camkes_dma_get_cptr(vaddr);
+}
+
+/* Allocate a dma buffer backed by the component's dma pool */
+static void* camkes_iommu_dma_alloc(ps_dma_man_t *dma, size_t size,
+        int align, int cached, ps_mem_flags_t flags) {
+
+    // allocate buffer from the dma pool
+    void* vaddr = camkes_dma_alloc(size, align);
+    if (vaddr == NULL) {
+        return NULL;
+    }
+    int error = sel4utils_iommu_dma_alloc_iospace(dma, vaddr, size);
+    if (error) {
+        camkes_dma_free(vaddr, size);
+        return NULL;
+    }
+    return vaddr;
+}
+
 void post_init(void) {
     int error;
     int pci_bdf_int;
@@ -340,13 +365,23 @@ void post_init(void) {
     /* get this from the configuration */
     error = simple_get_iospace(&camkes_simple, iospace_id, pci_bdf_int, &iospace);
     assert(!error);
+
+    /* The iommu driver needs the caps to frames backing the dma buffer.
+     * It will invoke the get_cap method of its vspace to get these caps.
+     * Since the vspace we give to the iommu driver wasn't used to allocate
+     * the dma buffer, it doesn't know the caps to the frames backing the
+     * buffer. CAmkES allocated the buffer statically, and so the caps are
+     * known to it. Here, we override the get_cap method of our vspace to
+     * return dma buffer frame caps provided by CAmkES. */
+    vspace.get_cap = get_dma_frame_cap;
+
     error = sel4utils_make_iommu_dma_alloc(&vka, &vspace, &ioops.dma_manager, 1, &iospace.capPtr);
     assert(!error);
     error = sel4platsupport_get_io_port_ops(&ioops.io_port_ops, &camkes_simple);
     assert(!error);
     /* preallocate buffers */
     for (int i = 0; i < RX_BUFS; i++) {
-        void *buf = ps_dma_alloc(&ioops.dma_manager, BUF_SIZE, 4, 1, PS_MEM_NORMAL);
+        void *buf = camkes_iommu_dma_alloc(&ioops.dma_manager, BUF_SIZE, 4, 1, PS_MEM_NORMAL);
         assert(buf);
         uintptr_t phys = ps_dma_pin(&ioops.dma_manager, buf, BUF_SIZE);
         assert(phys == (uintptr_t)buf);
@@ -361,7 +396,7 @@ void post_init(void) {
         clients[client].dataport = client_buf(clients[client].client_id);
         client_get_mac(clients[client].client_id, clients[client].mac);
         for (int i = 0; i < CLIENT_TX_BUFS; i++) {
-            void *buf = ps_dma_alloc(&ioops.dma_manager, BUF_SIZE, 4, 1, PS_MEM_NORMAL);
+            void *buf = camkes_iommu_dma_alloc(&ioops.dma_manager, BUF_SIZE, 4, 1, PS_MEM_NORMAL);
             assert(buf);
             uintptr_t phys = ps_dma_pin(&ioops.dma_manager, buf, BUF_SIZE);
             assert(phys == (uintptr_t)buf);

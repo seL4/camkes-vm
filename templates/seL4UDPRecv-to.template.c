@@ -17,27 +17,27 @@
 /*- set ep = alloc('ep', seL4_EndpointObject, read=True, write=True) -*/
 
 /* Assume a function exists to get a dataport */
-void */*? me.to_interface.name?*/_buf_buf(unsigned int id);
+void * /*? me.interface.name?*/_buf_buf(unsigned int id);
 
 void lwip_lock();
 void lwip_unlock();
 
-/*- set bufs = configuration[me.to_instance.name].get('num_client_recv_bufs') -*/
+/*- set bufs = configuration[me.instance.name].get('num_client_recv_bufs') -*/
 /*- set clients = [] -*/
-/*- for id, c in enumerate(composition.connections) -*/
-    /*- if c.to_instance.name == me.to_instance.name and c.to_interface.name == me.to_interface.name -*/
-        /*- if c.type.name == me.type.name -*/
-            /*- set port = configuration[c.from_instance.name].get('%s_port' % c.from_interface.name) -*/
-            /*- set client = configuration[c.from_instance.name].get('%s_attributes' % c.from_interface.name) -*/
-            /*- set client = client.strip('"') -*/
-            /*- set is_reader = False -*/
-            /*- set instance = c.from_instance.name -*/
-            /*- set interface = c.from_interface.name -*/
-            /*- include 'global-endpoint.template.c' -*/
-            /*- set aep = pop('notification') -*/
-            /*- do clients.append( (client, port, aep) ) -*/
-        /*- endif -*/
-    /*- endif -*/
+
+/*- for c in me.parent.from_ends -*/
+
+    /*- set port = configuration[c.instance.name].get('%s_port' % c.interface.name) -*/
+    /*- set client = configuration[c.instance.name].get('%s_attributes' % c.interface.name) -*/
+    /*- set client = client.strip('"') -*/
+
+    /*- set is_reader = False -*/
+    /*- set instance = c.instance.name -*/
+    /*- set interface = c.interface.name -*/
+    /*- include 'global-endpoint.template.c' -*/
+    /*- set aep = pop('notification') -*/
+
+    /*- do clients.append( (client, port, aep) ) -*/
 /*- endfor -*/
 
 typedef struct udp_message {
@@ -92,7 +92,7 @@ static void udprecv(void *arg, struct udp_pcb *pcb, struct pbuf *p, ip_addr_t *a
     }
 }
 
-void /*? me.to_interface.name ?*/__run(void) {
+void /*? me.interface.name ?*/__run(void) {
     while (1) {
         /*- set cnode = alloc_cap('cnode', my_cnode, write=True) -*/
         /*- set reply_cap_slot = alloc_cap('reply_cap_slot', None) -*/
@@ -117,7 +117,7 @@ void /*? me.to_interface.name ?*/__run(void) {
             client->need_signal = 1;
         } else {
             unsigned int packet_len = 0;
-            void *p = /*? me.to_interface.name ?*/_buf_buf(badge);
+            void *p = /*? me.interface.name ?*/_buf_buf(badge);
             udp_message_t *m = client->used_head;
             client->used_head = client->used_head->next;
             if (!client->used_head) {
@@ -143,7 +143,7 @@ void /*? me.to_interface.name ?*/__run(void) {
     }
 }
 
-void /*? me.to_interface.name ?*/__init(void) {
+void /*? me.interface.name ?*/__init(void) {
     int err;
     int i, j;
     lwip_lock();

@@ -15,13 +15,13 @@
 
 /*- set ep = alloc('ep', seL4_EndpointObject, write=True, grant=True) -*/
 
-/*- set badge = configuration[me.from_instance.name].get('%s_attributes' % me.from_interface.name) -*/
+/*- set badge = configuration[me.instance.name].get('%s_attributes' % me.interface.name) -*/
 /*- if badge is not none -*/
     /*- set badge = badge.strip('"') -*/
     /*- do cap_space.cnode[ep].set_badge(int(badge, 0)) -*/
 /*- endif -*/
 
-int /*? me.from_interface.name ?*/_poll(unsigned int *len, uint16_t *port, ip_addr_t *addr) {
+int /*? me.interface.name ?*/_poll(unsigned int *len, uint16_t *port, ip_addr_t *addr) {
     int status;
     seL4_MessageInfo_t UNUSED info;
     info = seL4_Call(/*? ep ?*/, seL4_MessageInfo_new(0, 0, 0, 0));
@@ -37,11 +37,11 @@ int /*? me.from_interface.name ?*/_poll(unsigned int *len, uint16_t *port, ip_ad
 }
 
 /*- set is_reader = True -*/
-/*- set instance = me.from_instance.name -*/
-/*- set interface = me.from_interface.name -*/
+/*- set instance = me.instance.name -*/
+/*- set interface = me.interface.name -*/
 /*- include 'global-endpoint.template.c' -*/
 /*- set aep = pop('notification') -*/
 
-seL4_CPtr /*? me.from_interface.name ?*/_aep(void) {
+seL4_CPtr /*? me.interface.name ?*/_aep(void) {
     return /*? aep ?*/;
 }

@@ -227,7 +227,7 @@ static void flush_buffer(int b) {
         return;
     }
     if (b != last_out) {
-        printf("%s", col);
+        printf("%s%s", COLOUR_RESET, col);
         last_out = b;
     }
     for (i = 0; i < output_buffers_used[b]; i++) {

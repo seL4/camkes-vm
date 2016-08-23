@@ -28,6 +28,7 @@ import <VMPCIDevices.idl4>;
 import <FileServerInterface.idl4>;
 import <InitConnection.idl4>;
 import <GuestMaps.idl4>;
+import <VchanInitInterface.idl4>;
 
 import "PIC.camkes";
 import "PIT.camkes";
@@ -127,9 +128,9 @@ connector seL4MultiSharedData {
     to Dataport template "seL4MultiSharedData-to.template.c";
 }
 
-connector seL4VChanConnection {
-    from Procedure template "seL4VChanConnection-from.template.c";
-    to Procedure template "seL4VChanConnection-to.template.c";
+connector seL4VChanInit {
+    from Procedure template "seL4VChanInit-from.template.c";
+    to Procedure template "seL4VChanInit-to.template.c";
 }
 
 component PieceOfHardware {

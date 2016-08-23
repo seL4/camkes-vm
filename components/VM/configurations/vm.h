@@ -10,6 +10,8 @@
 
 #include <autoconf.h>
 
+#define DEFAULT_HEAP_SIZE 0x10000
+
 #define _VAR_STRINGIZE(...) #__VA_ARGS__
 #define VAR_STRINGIZE(...) _VAR_STRINGIZE(__VA_ARGS__)
 
@@ -186,20 +188,20 @@
     pit.command_attributes = "0x43:0x43"; \
     pit.channel0_attributes = "0x40:0x40"; \
     pit.irq_attributes = "2,0,0"; \
-    pit.heap_size = 0; \
+    pit.heap_size = DEFAULT_HEAP_SIZE; \
     /* Serial port definitions */ \
     hw_serial.serial_attributes="0x3f8:0x3ff"; \
     hw_serial.serial_irq_attributes = "4,0,0"; \
     pci_config.putchar_attributes = "0"; \
-    pci_config.heap_size = 0; \
+    pci_config.heap_size = DEFAULT_HEAP_SIZE; \
     rtc.putchar_attributes = "0"; \
-    rtc.heap_size = 0; \
+    rtc.heap_size = DEFAULT_HEAP_SIZE; \
     /* PCI config space definitions */ \
     poh.pci_config_address_attributes = "0xcf8:0xcfb"; \
     poh.pci_config_data_attributes = "0xcfc:0xcff"; \
     cmos.cmos_address_attributes = "0x70:0x70"; \
     cmos.cmos_data_attributes = "0x71:0x71"; \
-    cmos.heap_size = 0; \
+    cmos.heap_size = DEFAULT_HEAP_SIZE; \
     /* Put the entire time server at the highest priority */ \
     time_server.priority = 255; \
     /* Put the serial interrupt at 200  \

@@ -14,13 +14,13 @@
 #include <stdint.h>
 #include <sel4/sel4.h>
 
-/*? macros.show_includes(me.from_instance.type.includes) ?*/
+/*? macros.show_includes(me.instance.type.includes) ?*/
 
-/*- set vm_name = me.to_instance.name[0:me.to_instance.name.rfind('_config')] -*/
+/*- set vm_name = me.parent.to_instance.name[0:me.parent.to_instance.name.rfind('_config')] -*/
 /*- set iospace_domain = configuration[vm_name].get('iospace_domain') -*/
 
-/*- set config_pci = configuration[me.to_instance.name].get(me.to_interface.name) -*/
-/*- set has_iospace = configuration[me.to_instance.name].get("%s_iospace" % me.to_interface.name) -*/
+/*- set config_pci = configuration[me.parent.to_instance.name].get(me.parent.to_interface.name) -*/
+/*- set has_iospace = configuration[me.parent.to_instance.name].get("%s_iospace" % me.parent.to_interface.name) -*/
 /*- set devices = [] -*/
 /*- set device_mem = [] -*/
 
@@ -48,15 +48,15 @@
             /*- endfor -*/
             /*- do mem_ranges.append( (mem['paddr'], mem['size'], mem['page_bits']) ) -*/
         /*- endfor -*/
-        /*- do devices.append( (device['name'], bus, dev, fun, iospace_cap, device['irq'], mem_ranges) ) -*/
+        /*- do devices.append( (device['name'].strip('"'), bus, dev, fun, iospace_cap, device['irq'].strip('"'), mem_ranges) ) -*/
     /*- endfor -*/
 /*- endif -*/
 
-int /*? me.from_interface.name ?*/_num_devices() {
+int /*? me.interface.name ?*/_num_devices() {
     return /*? len(devices) ?*/;
 }
 
-const char */*? me.from_interface.name ?*/_get_device(int pci_dev, uint8_t *bus, uint8_t *dev, uint8_t *fun, seL4_CPtr *iospace_cap) {
+const char */*? me.interface.name ?*/_get_device(int pci_dev, uint8_t *bus, uint8_t *dev, uint8_t *fun, seL4_CPtr *iospace_cap) {
     /*- if len(devices) == 0 -*/
         return NULL;
     /*- else -*/
@@ -79,7 +79,7 @@ const char */*? me.from_interface.name ?*/_get_device(int pci_dev, uint8_t *bus,
     /*- endif -*/
 }
 
-int /*? me.from_interface.name ?*/_num_device_mem(int pci_dev) {
+int /*? me.interface.name ?*/_num_device_mem(int pci_dev) {
     /*- if len(devices) == 0 -*/
         return -1;
     /*- else -*/
@@ -94,7 +94,7 @@ int /*? me.from_interface.name ?*/_num_device_mem(int pci_dev) {
     /*- endif -*/
 }
 
-const char */*? me.from_interface.name ?*/_get_device_irq(int pci_dev) {
+const char */*? me.interface.name ?*/_get_device_irq(int pci_dev) {
     /*- if len(devices) == 0 -*/
         return NULL;
     /*- else -*/
@@ -109,7 +109,7 @@ const char */*? me.from_interface.name ?*/_get_device_irq(int pci_dev) {
     /*- endif -*/
 }
 
-int /*? me.from_interface.name ?*/_get_device_mem(int pci_dev, int mem, uintptr_t *paddr, size_t *size, int *page_bits) {
+int /*? me.interface.name ?*/_get_device_mem(int pci_dev, int mem, uintptr_t *paddr, size_t *size, int *page_bits) {
     /*- if len(devices) == 0 -*/
         return -1;
     /*- else -*/
@@ -138,7 +138,7 @@ int /*? me.from_interface.name ?*/_get_device_mem(int pci_dev, int mem, uintptr_
     /*- endif -*/
 }
 
-seL4_CPtr /*? me.from_interface.name ?*/_get_device_mem_frame(uintptr_t paddr) {
+seL4_CPtr /*? me.interface.name ?*/_get_device_mem_frame(uintptr_t paddr) {
     /*- if len(device_mem) == 0 -*/
         return 0;
     /*- else -*/

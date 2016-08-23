@@ -14,9 +14,9 @@
 #include <stdint.h>
 #include <sel4/sel4.h>
 
-/*? macros.show_includes(me.from_instance.type.includes) ?*/
+/*? macros.show_includes(me.instance.type.includes) ?*/
 
-/*- set config_uts = configuration[me.to_instance.name].get(me.to_interface.name) -*/
+/*- set config_uts = configuration[me.parent.to_instance.name].get(me.parent.to_interface.name) -*/
 /*- set uts = [] -*/
 /*- if config_uts is not none -*/
     /*- for paddr, size_bits in config_uts -*/
@@ -25,11 +25,11 @@
     /*- endfor -*/
 /*- endif -*/
 
-int /*? me.from_interface.name ?*/_num_untypeds() {
+int /*? me.interface.name ?*/_num_untypeds() {
     return /*? len(uts) ?*/;
 }
 
-int /*? me.from_interface.name ?*/_get_untyped(int ut, uintptr_t *paddr, int *size_bits, seL4_CPtr *cap) {
+int /*? me.interface.name ?*/_get_untyped(int ut, uintptr_t *paddr, int *size_bits, seL4_CPtr *cap) {
     /*- if len(uts) == 0 -*/
         return -1;
     /*- else -*/

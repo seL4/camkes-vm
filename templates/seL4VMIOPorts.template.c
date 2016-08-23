@@ -14,9 +14,9 @@
 #include <stdint.h>
 #include <sel4/sel4.h>
 
-/*? macros.show_includes(me.from_instance.type.includes) ?*/
+/*? macros.show_includes(me.instance.type.includes) ?*/
 
-/*- set config_ioports = configuration[me.to_instance.name].get(me.to_interface.name) -*/
+/*- set config_ioports = configuration[me.parent.to_instance.name].get(me.parent.to_interface.name) -*/
 /*- set pci_ioports = [] -*/
 /*- set nonpci_ioports = [] -*/
 /*- if config_ioports is not none -*/
@@ -24,22 +24,22 @@
         /*- set cap = alloc('iport_%d_%d' % (ioport['start'], ioport['end']), seL4_IA32_IOPort) -*/
         /*- do cap_space.cnode[cap].set_ports(range(ioport['start'], ioport['end'] + 1)) -*/
         /*- if ioport['pci_device'] -*/
-            /*- do pci_ioports.append( (cap, ioport['start'], ioport['end'], ioport['name']) ) -*/
+            /*- do pci_ioports.append( (cap, ioport['start'], ioport['end'], ioport['name'].strip('"')) ) -*/
         /*- else -*/
-            /*- do nonpci_ioports.append( (cap, ioport['start'], ioport['end'], ioport['name']) ) -*/
+            /*- do nonpci_ioports.append( (cap, ioport['start'], ioport['end'], ioport['name'].strip('"')) ) -*/
         /*- endif -*/
     /*- endfor -*/
 /*- endif -*/
 
-int /*? me.from_interface.name ?*/_num_pci_ioports() {
+int /*? me.interface.name ?*/_num_pci_ioports() {
     return /*? len(pci_ioports) ?*/;
 }
 
-int /*? me.from_interface.name ?*/_num_nonpci_ioports() {
+int /*? me.interface.name ?*/_num_nonpci_ioports() {
     return /*? len(nonpci_ioports) ?*/;
 }
 
-const char */*? me.from_interface.name ?*/_get_pci_ioport(int num, seL4_CPtr *cap, uint16_t *start, uint16_t *end) {
+const char */*? me.interface.name ?*/_get_pci_ioport(int num, seL4_CPtr *cap, uint16_t *start, uint16_t *end) {
     /*- if len(pci_ioports) == 0 -*/
         return NULL;
     /*- else -*/
@@ -57,7 +57,7 @@ const char */*? me.from_interface.name ?*/_get_pci_ioport(int num, seL4_CPtr *ca
     /*- endif -*/
 }
 
-const char */*? me.from_interface.name ?*/_get_nonpci_ioport(int num, seL4_CPtr *cap, uint16_t *start, uint16_t *end) {
+const char */*? me.interface.name ?*/_get_nonpci_ioport(int num, seL4_CPtr *cap, uint16_t *start, uint16_t *end) {
     /*- if len(nonpci_ioports) == 0 -*/
         return NULL;
     /*- else -*/
@@ -75,7 +75,7 @@ const char */*? me.from_interface.name ?*/_get_nonpci_ioport(int num, seL4_CPtr 
     /*- endif -*/
 }
 
-seL4_CPtr /*? me.from_interface.name ?*/_get_ioport(uint16_t start, uint16_t end) {
+seL4_CPtr /*? me.interface.name ?*/_get_ioport(uint16_t start, uint16_t end) {
     /*- set all_ports = pci_ioports + nonpci_ioports -*/
     /*- if len(all_ports) == 0 -*/
         return 0;

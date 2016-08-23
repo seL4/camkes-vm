@@ -14,31 +14,32 @@
 #include <stdint.h>
 #include <sel4/sel4.h>
 #include <vmm/vmm.h>
+#include <vmm/vchan_component.h>
 
-/*? macros.show_includes(me.from_instance.type.includes) ?*/
+/*? macros.show_includes(me.instance.type.includes) ?*/
 
-/*- set cons = configuration[me.to_instance.name].get(me.to_interface.name) -*/
+/*- set cons = configuration[me.parent.to_instance.name].get(me.parent.to_interface.name) -*/
 /*- set cons = lambda('x: [] if x is None else x')(cons) -*/
 
 /*- for con in cons -*/
-    void /*? con['init'] ?*/(vmm_t *vmm);
+    camkes_vchan_con_t /*? con['init'].strip('"') ?*/(vmm_t *vmm);
     /*- if con['irq'] is not none -*/
-        void /*? con['irq'] ?*/(vmm_t *vmm);
+        void /*? con['irq'].strip('"') ?*/(vmm_t *vmm);
     /*- endif -*/
 /*- endfor -*/
 
-int /*? me.from_interface.name ?*/_num_connections() {
+int /*? me.interface.name ?*/_num_connections() {
     return /*? len(cons) ?*/;
 }
 
-unsigned int /*? me.from_interface.name ?*/_init_function(int con) {
+unsigned int /*? me.interface.name ?*/_init_function(int con) {
     /*- if len(cons) == 0 -*/
         return -1;
     /*- else -*/
         switch(con) {
         /*- for con in cons -*/
             case /*? loop.index0 ?*/:
-                return (unsigned int)/*? con['init'] ?*/;
+                return (unsigned int)/*? con['init'].strip('"') ?*/;
         /*- endfor -*/
             default:
                 return -1;
@@ -46,7 +47,7 @@ unsigned int /*? me.from_interface.name ?*/_init_function(int con) {
     /*- endif -*/
 }
 
-int /*? me.from_interface.name ?*/_has_interrupt(int con, unsigned int *badge, unsigned int *fun) {
+int /*? me.interface.name ?*/_has_interrupt(int con, unsigned int *badge, unsigned int *fun) {
     /*- if len(cons) == 0 -*/
         return -1;
     /*- else -*/
@@ -57,7 +58,7 @@ int /*? me.from_interface.name ?*/_has_interrupt(int con, unsigned int *badge, u
                     return 0;
                 /*- else -*/
                     *badge = /*? con['badge'] ?*/;
-                    *fun = (unsigned int)/*? con['irq'] ?*/;
+                    *fun = (unsigned int)/*? con['irq'].strip('"') ?*/;
                     return 1;
                 /*- endif -*/
             /*- endfor -*/

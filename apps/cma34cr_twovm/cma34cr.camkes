@@ -88,7 +88,7 @@ component VM {
         VM_PER_VM_CONFIG_DEF(0, 2)
         VM_PER_VM_CONFIG_DEF(1, 3)
         vm0.simple_untyped24_pool = 6;
-        vm0.heap_size = DEFAULT_HEAP_SIZE;
+        vm0.heap_size = 0x10000;
         vm0.guest_ram_mb = 128;
         vm0.kernel_cmdline = VM_GUEST_CMDLINE;
         vm0.kernel_image = C162_KERNEL_IMAGE;
@@ -98,7 +98,7 @@ component VM {
         vm0_config.ram = [ [ 0x20800000, 23 ], [ 0x21000000, 24 ], [ 0x22000000, 25 ], [ 0x24000000, 26]];
         vm0_config.pci_devices_iospace = 1;
         vm1.simple_untyped24_pool = 6;
-        vm1.heap_size = DEFAULT_HEAP_SIZE;
+        vm1.heap_size = 0x10000;
         vm1.guest_ram_mb = 128;
         vm1.kernel_cmdline = VM_GUEST_CMDLINE;
         vm1.kernel_image = C162_KERNEL_IMAGE;
@@ -129,7 +129,7 @@ component VM {
         ethdriver.pci_bdf = "5:0.0";
         ethdriver.simple_untyped20_pool = 2;
         ethdriver.device_model = "82574";
-        ethdriver.heap_size = DEFAULT_HEAP_SIZE;
+        ethdriver.heap_size = 0x1000;
         ethdriver.dma_pool = 0x100000;
 
         HWEthdriver.mmio_paddr = 0xc0500000;

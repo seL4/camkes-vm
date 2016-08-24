@@ -24,7 +24,9 @@ int /*? prefix ?*/_status(vchan_ctrl_t);
 int /*? prefix ?*/_alert_status(vchan_ctrl_t);
 void /*? prefix ?*/_ping(void);
 
-camkes_vchan_con_t /*? me.interface.name ?*/_init(vmm_t *vmm) {
+void vchan_init_camkes(camkes_vchan_con_t vchan);
+
+void /*? me.interface.name ?*/_init(vmm_t *vmm) {
     camkes_vchan_con_t vchan_camkes_component = {
         .connect = /*? prefix ?*/_new_connection,
         .disconnect = /*? prefix ?*/_rem_connection,
@@ -35,5 +37,5 @@ camkes_vchan_con_t /*? me.interface.name ?*/_init(vmm_t *vmm) {
         .component_dom_num = /*? domain ?*/
     };
     vchan_camkes_component.data_buf = /*? shared_mem ?*/;
-    return vchan_camkes_component;
+    vchan_init_camkes(vchan_camkes_component);
 }

@@ -46,6 +46,7 @@ static vka_t vka;
 static vspace_t vspace;
 static sel4utils_alloc_data_t vspace_data;
 static struct eth_driver eth_driver;
+static seL4_CPtr (*original_vspace_get_cap)(vspace_t*, void*);
 
 void camkes_make_simple(simple_t *simple);
 
@@ -328,7 +329,11 @@ static void eth_interrupt(void *cookie) {
 /* Returns the cap to the frame mapped to vaddr, assuming
  * vaddr points inside our dma pool. */
 static seL4_CPtr get_dma_frame_cap(vspace_t *vspace, void *vaddr) {
-    return camkes_dma_get_cptr(vaddr);
+    seL4_CPtr cap = camkes_dma_get_cptr(vaddr);
+    if (cap == seL4_CapNull) {
+        return original_vspace_get_cap(vspace, vaddr);
+    }
+    return cap;
 }
 
 /* Allocate a dma buffer backed by the component's dma pool */
@@ -365,6 +370,9 @@ void post_init(void) {
     /* get this from the configuration */
     error = simple_get_iospace(&camkes_simple, iospace_id, pci_bdf_int, &iospace);
     assert(!error);
+
+    /* Save a pointer to the original get_cap function for our vspace */
+    original_vspace_get_cap = vspace.get_cap;
 
     /* The iommu driver needs the caps to frames backing the dma buffer.
      * It will invoke the get_cap method of its vspace to get these caps.

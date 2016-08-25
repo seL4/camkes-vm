@@ -50,7 +50,7 @@ ${STAGE_DIR}/${ROOTFS_FILENAME}: ${SOURCE_DIR}/linux/${ROOTFS_FILENAME}
 	@echo "[CP] $@"
 	@cp $< $@
 
-${BUILD_DIR}/src/vm_fserv/static/archive.o: ${ARCHIVE_DEPS}
+${BUILD_DIR}/src/vm.fserv/static/archive.o: ${ARCHIVE_DEPS}
 	$(Q)mkdir -p $(dir $@)
 	@echo "[CPIO] $@"
 	$(Q)${COMMON_PATH}/files_to_obj.sh $@ _cpio_archive $^

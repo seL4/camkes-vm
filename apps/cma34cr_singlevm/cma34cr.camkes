@@ -39,13 +39,14 @@ component VM {
         /* Connect vm0 ethernet to the ethdriver */
         connection seL4Ethdriver ethdriver_con(from vm0.ethdriver, to ethdriver.client);
         /* Export the shared ethdrover */
-        connection ExportRPC export_ethdriver(from ethdriver_interface, to ethdriver.client);
+        export ethdriver.client -> ethdriver_interface;
 
         /* Export the time server interface up */
-        connection ExportRPC export_timer(from time_server_timer, to time_server.the_timer);
-        connection ExportAsynch export_timer_notify(from time_server.timer_notification, to time_server_complete);
+        export time_server.the_timer -> time_server_timer;
+        export time_server.timer_notification -> time_server_complete;
+
         /* Export the RTC up */
-        connection ExportRPC export_rpc(from rtc_interface, to rtc.rtc);
+        export rtc.rtc -> rtc_interface;
     }
 
     configuration {
@@ -53,7 +54,7 @@ component VM {
         VM_PER_VM_CONFIG_DEF(0, 2)
 
         vm0.simple_untyped24_pool = 12;
-        vm0.heap_size = 0;
+        vm0.heap_size = 0x10000;
         vm0.guest_ram_mb = 512;
         vm0.kernel_cmdline = VM_GUEST_CMDLINE;
         vm0.kernel_image = C162_KERNEL_IMAGE;
@@ -71,9 +72,11 @@ component VM {
         ethdriver.pci_bdf = "5:0.0";
         ethdriver.simple_untyped20_pool = 2;
         ethdriver.device_model = "82574";
-        ethdriver.heap_size = 0;
+        ethdriver.heap_size = 0x10000;
+        ethdriver.dma_pool = 0x100000;
 
-        HWEthdriver.mmio_attributes = "0xc0500000:0x20000";
+        HWEthdriver.mmio_paddr = 0xc0500000;
+        HWEthdriver.mmio_size = 0x20000;
         HWEthdriver.irq_attributes = "17,1,1";
 
         vm0.ethdriver_attributes = "1";

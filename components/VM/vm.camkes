@@ -50,7 +50,7 @@ import <Echo/Echo.camkes>;
 
 connector seL4GlobalAsynch {
     from Event template "seL4GlobalAsynch-from.template.c";
-    to Event template "seL4GlobalAsynch-to.template.c";
+    to Events template "seL4GlobalAsynch-to.template.c";
 }
 
 connector seL4UDPSend {
@@ -129,7 +129,7 @@ connector seL4MultiSharedData {
 }
 
 connector seL4VChanInit {
-    from Procedure template "seL4VChanInit-from.template.c";
+    from Procedures template "seL4VChanInit-from.template.c";
     to Procedure template "seL4VChanInit-to.template.c";
 }
 

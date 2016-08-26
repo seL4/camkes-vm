@@ -756,7 +756,7 @@ void *main_continued(void *arg) {
 
     /* Initialize any extra init devices */
     for (i = 0; i < init_cons_num_connections(); i++) {
-        void (*proc)(vmm_t*) = (camkes_vchan_con_t (*)(vmm_t*))init_cons_init_function(i);
+        void (*proc)(vmm_t*) = (void (*)(vmm_t*))init_cons_init_function(i);
         proc(&vmm);
     }
 

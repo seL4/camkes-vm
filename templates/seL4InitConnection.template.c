@@ -14,7 +14,6 @@
 #include <stdint.h>
 #include <sel4/sel4.h>
 #include <vmm/vmm.h>
-#include <vmm/vchan_component.h>
 
 /*? macros.show_includes(me.instance.type.includes) ?*/
 
@@ -22,7 +21,7 @@
 /*- set cons = lambda('x: [] if x is None else x')(cons) -*/
 
 /*- for con in cons -*/
-    camkes_vchan_con_t /*? con['init'].strip('"') ?*/(vmm_t *vmm);
+    void /*? con['init'].strip('"') ?*/(vmm_t *vmm);
     /*- if con['irq'] is not none -*/
         void /*? con['irq'].strip('"') ?*/(vmm_t *vmm);
     /*- endif -*/

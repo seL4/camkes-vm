@@ -244,7 +244,7 @@ void pre_init(void) {
         NULL
     };
     camkes_make_simple(&camkes_simple);
-    camkes_simple.IOPort_cap = simple_ioport_wrapper;
+    camkes_simple.arch_simple.IOPort_cap = simple_ioport_wrapper;
     camkes_simple.frame_cap = simple_frame_cap_wrapper;
 
     /* Initialize allocator */

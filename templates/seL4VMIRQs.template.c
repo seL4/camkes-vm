@@ -22,7 +22,7 @@
 /*- set irqaep_object_cap = alloc_cap('irq_aep_obj', irqaep_object, read=True) -*/
 /*- if config_irqs is not none -*/
     /*- for irq in config_irqs -*/
-        /*- set cap = alloc('irq_%d' % irq['source'], seL4_IRQControl, number=irq['source'], notification=my_cnode[irqaep_object_cap]) -*/
+        /*- set cap = alloc('irq_%d' % irq['source'], seL4_IRQControl, vector=irq['dest'], ioapic = 0, ioapic_pin = irq['source'], level = irq['level_trig'], polarity = irq['active_low'], notification=my_cnode[irqaep_object_cap]) -*/
         /*- do irqs.append( (irq['name'].strip('"'), irq['source'], irq['level_trig'], irq['active_low'], irq['dest'], cap) ) -*/
     /*- endfor -*/
 /*- endif -*/

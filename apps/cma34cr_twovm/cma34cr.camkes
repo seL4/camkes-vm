@@ -69,7 +69,7 @@ component VM {
 
         /* Hardware resources for the ethernet driver */
         connection seL4HardwareMMIO ethdrivermmio(from ethdriver.EthDriver, to HWEthdriver.mmio);
-        connection seL4IOAPICHardwareInterrupt hwethirq(from HWEthdriver.irq, to ethdriver.irq);
+        connection seL4HardwareInterrupt hwethirq(from HWEthdriver.irq, to ethdriver.irq);
         /* Connect vm0 ethernet to the ethdriver */
         connection seL4Ethdriver ethdriver_con(from vm0.ethdriver, to ethdriver.client);
         /* Export the shared ethdrover */
@@ -134,7 +134,10 @@ component VM {
 
         HWEthdriver.mmio_paddr = 0xc0500000;
         HWEthdriver.mmio_size = 0x20000;
-        HWEthdriver.irq_attributes = "17,1,1";
+        HWEthdriver.irq_irq_type = "pci";
+        HWEthdriver.irq_irq_ioapic = 0;
+        HWEthdriver.irq_irq_ioapic_pin = 17;
+        HWEthdriver.irq_irq_vector = 17;
 
         vm0.ethdriver_attributes = "1";
         vm0.ethdriver_global_endpoint = "vm0";

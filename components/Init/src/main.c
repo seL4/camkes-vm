@@ -223,7 +223,7 @@ static seL4_Error simple_frame_cap_wrapper(void *data, void *paddr, int size_bit
     /* Check whether it is a guest mapped region. */
     cap = guest_mappings_get_mapping_mem_frame((uintptr_t)paddr);
     if (cap != 0) {
-        printf("Guest map found at 0x%x\n", paddr);
+        printf("Guest map found at %p\n", paddr);
         vka_cspace_make_path(&vka, cap, path);
         return 0;
     }
@@ -577,8 +577,6 @@ static void init_irqs() {
         error = vka_cspace_alloc_path(&vka, &badge_path);
         assert(!error);
         error = vka_cnode_mint(&badge_path, &async_path, seL4_AllRights, seL4_CapData_Badge_new(irq_badges[dest]));
-        assert(!error);
-        error = seL4_IRQHandler_SetMode(irq_handler, level_trig, active_low);
         assert(!error);
         error = seL4_IRQHandler_SetNotification(irq_handler, badge_path.capPtr);
         assert(!error);

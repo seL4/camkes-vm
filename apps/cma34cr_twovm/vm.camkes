@@ -34,7 +34,7 @@ assembly {
 
         /* Hardware resources for ethernet driver */
         connection seL4HardwareMMIO ethdrivermmio1(from ethdriver.EthDriver, to HWEthDriver.mmio);
-        connection seL4IOAPICHardwareInterrupt hwethirq(from HWEthDriver.irq, to ethdriver.irq);
+        connection seL4HardwareInterrupt hwethirq(from HWEthDriver.irq, to ethdriver.irq);
 
         /* UDP connections for echo server */
         connection seL4UDPRecv udp_echo_recv(from echo.echo_recv, to udpserver0.client_recv);
@@ -128,7 +128,10 @@ assembly {
 
         HWEthDriver.mmio_paddr = 0xc0400000;
         HWEthDriver.mmio_size = 0x20000;
-        HWEthDriver.irq_attributes = "18,1,1";
+        HWEthDriver.irq_irq_type = "pci";
+        HWEthDriver.irq_irq_ioapic = 0;
+        HWEthDriver.irq_irq_ioapic_pin = 18;
+        HWEthDriver.irq_irq_vector = 18;
 
         ethdriver.simple = true;
         ethdriver.cnode_size_bits = 12;

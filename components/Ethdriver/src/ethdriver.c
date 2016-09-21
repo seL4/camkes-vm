@@ -319,10 +319,10 @@ void client_mac(uint8_t *b1, uint8_t *b2, uint8_t *b3, uint8_t *b4, uint8_t *b5,
     ethdriver_unlock();
 }
 
-static void eth_interrupt(void *cookie) {
+void irq_handle() {
     ethdriver_lock();
     eth_driver.i_fn.raw_handleIRQ(&eth_driver, 0);
-    irq_reg_callback(eth_interrupt, NULL);
+    irq_acknowledge();
     ethdriver_unlock();
 }
 
@@ -432,6 +432,6 @@ void post_init(void) {
 
     assert(!error);
     done_init = 1;
-    irq_reg_callback(eth_interrupt, NULL);
+    irq_acknowledge();
     ethdriver_unlock();
 }

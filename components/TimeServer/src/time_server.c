@@ -116,11 +116,11 @@ static void signal_clients(uint64_t current_time) {
     }
 }
 
-static void timer_interrupt(void *cookie) {
+void irq_handle() {
     time_server_lock();
     signal_clients(current_time_ns());
     timer_handle_irq(timer, 0);
-    irq_reg_callback(timer_interrupt, cookie);
+    irq_acknowledge();
     time_server_unlock();
 }
 
@@ -283,7 +283,7 @@ void post_init() {
     assert(timer);
     tsc_frequency = tsc_calculate_frequency(timer);
     assert(tsc_frequency);
-    irq_reg_callback(timer_interrupt, NULL);
+    irq_acknowledge();
     /* start timer */
     timer_start(timer);
     timer_periodic(timer, NS_IN_S / TIMER_FREQUENCY);

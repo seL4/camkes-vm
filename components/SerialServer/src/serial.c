@@ -410,10 +410,10 @@ static void enable_interrupt() {
     write_ier(1);
 }
 
-static void serial_irq(void *cookie) {
+void serial_irq_handle() {
     serial_lock();
     clear_iir();
-    serial_irq_reg_callback(serial_irq, cookie);
+    serial_irq_acknowledge();
     serial_unlock();
 }
 
@@ -468,7 +468,7 @@ void pre_init(void) {
         getchar_clients[badge].last_head = -1;
     }
     set_putchar(serial_putchar);
-    serial_irq_reg_callback(serial_irq, 0);
+    serial_irq_acknowledge();
     /* Start regular heartbeat of 500ms */
     timeout_periodic(0, 500000000);
     serial_unlock();

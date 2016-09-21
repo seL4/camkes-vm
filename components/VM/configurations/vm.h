@@ -132,6 +132,7 @@
     vm##num.serial_getchar_shmem_size = 0x1000; \
     vm##num.cnode_size_bits = 21; \
     vm##num.simple = true; \
+    vm##num.asid_pool = true; \
     VM_MAYBE_ZONE_DMA(num) \
     /**/
 
@@ -164,10 +165,10 @@
     /* Connect the hardware pit to the timer driver */ \
     connection seL4HardwareIOPort pit_command(from time_server.pit_command, to pit.command); \
     connection seL4HardwareIOPort pit_channel0(from time_server.pit_channel0, to pit.channel0); \
-    connection seL4IOAPICHardwareInterrupt pit_irq(from pit.irq, to time_server.irq); \
+    connection seL4HardwareInterrupt pit_irq(from pit.irq, to time_server.irq); \
     /* Connect the hardware serial to the serial server */ \
     connection seL4HardwareIOPort serial_ioport(from serial.serial_port, to hw_serial.serial); \
-    connection seL4IOAPICHardwareInterrupt serial_irq(from hw_serial.serial_irq, to serial.serial_irq); \
+    connection seL4HardwareInterrupt serial_irq(from hw_serial.serial_irq, to serial.serial_irq); \
     /**/
 
 #define VM_PER_VM_COMP_DEF(num) \
@@ -186,11 +187,17 @@
     time_server.heap_size = 8192; \
     pit.command_attributes = "0x43:0x43"; \
     pit.channel0_attributes = "0x40:0x40"; \
-    pit.irq_attributes = "2,0,0"; \
+    pit.irq_irq_type = "isa"; \
+    pit.irq_irq_ioapic = 0; \
+    pit.irq_irq_ioapic_pin = 2; \
+    pit.irq_irq_vector = 2; \
     pit.heap_size = 0; \
     /* Serial port definitions */ \
     hw_serial.serial_attributes="0x3f8:0x3ff"; \
-    hw_serial.serial_irq_attributes = "4,0,0"; \
+    hw_serial.serial_irq_irq_type = "isa"; \
+    hw_serial.serial_irq_irq_ioapic = 0; \
+    hw_serial.serial_irq_irq_ioapic_pin = 4; \
+    hw_serial.serial_irq_irq_vector = 4; \
     pci_config.putchar_attributes = "0"; \
     pci_config.heap_size = 0; \
     rtc.putchar_attributes = "0"; \

@@ -17,6 +17,7 @@
 #include <sel4platsupport/arch/io.h>
 #include <sel4utils/vspace.h>
 #include <sel4utils/stack.h>
+#include <allocman/utspace/split.h>
 #include <allocman/bootstrap.h>
 #include <allocman/vka.h>
 #include <simple/simple_helpers.h>
@@ -41,6 +42,7 @@
 #include "vchan_init.h"
 
 #define BRK_VIRTUAL_SIZE 400000000
+#define ALLOCMAN_VIRTUAL_SIZE 400000000
 
 reservation_t muslc_brk_reservation;
 void *muslc_brk_reservation_start;
@@ -65,7 +67,7 @@ void platsupport_serial_setup_simple(vspace_t *vspace, simple_t *simple, vka_t *
 void camkes_make_simple(simple_t *simple);
 
 static allocman_t *allocman;
-static char allocator_mempool[8388608];
+static char allocator_mempool[888608];
 static simple_t camkes_simple;
 static vka_t vka;
 static vspace_t vspace;
@@ -73,141 +75,6 @@ static sel4utils_alloc_data_t vspace_data;
 static vmm_t vmm;
 
 int cross_vm_dataports_init(vmm_t *vmm) WEAK;
-
-/* custom allocator interface for attempting to allocate frames
- * from special frame only memory */
-typedef struct proxy_vka {
-    int have_mem;
-    allocman_t *allocman;
-    vka_t regular_vka;
-    vspace_t vspace;
-    utspace_trickle_t ram_ut_manager;
-    int recurse;
-    void *temp_map_address;
-    reservation_t temp_map_reservation;
-} proxy_vka_t;
-
-static proxy_vka_t proxy_vka;
-
-typedef struct ut_node {
-    int frame;
-    uint32_t cookie;
-} ut_node_t;
-
-int proxy_vka_cspace_alloc(void *data, seL4_CPtr *res) {
-    proxy_vka_t *vka = (proxy_vka_t*)data;
-    return vka_cspace_alloc(&vka->regular_vka, res);
-}
-
-void proxy_vka_cspace_make_path(void *data, seL4_CPtr slot, cspacepath_t *res) {
-    proxy_vka_t *vka = (proxy_vka_t*)data;
-    vka_cspace_make_path(&vka->regular_vka, slot, res);
-}
-
-void proxy_vka_cspace_free(void *data, seL4_CPtr slot) {
-    proxy_vka_t *vka = (proxy_vka_t*)data;
-    vka_cspace_free(&vka->regular_vka, slot);
-}
-
-int proxy_vka_utspace_alloc(void *data, const cspacepath_t *dest, seL4_Word type, seL4_Word size_bits, uint32_t *res) {
-    proxy_vka_t *vka = (proxy_vka_t*)data;
-    int error;
-    uint32_t cookie;
-    ut_node_t *node = allocman_mspace_alloc(vka->allocman, sizeof(*node), &error);
-    if (!node) {
-        return -1;
-    }
-    if (type == seL4_IA32_4K && vka->have_mem && vka->vspace.map_pages_at_vaddr && !vka->recurse) {
-        cookie = _utspace_trickle_alloc(vka->allocman, &vka->ram_ut_manager, seL4_PageBits, seL4_IA32_4K, dest, &error);
-        if (error != 0) {
-            vka->have_mem = 0;
-        } else {
-            node->frame = 1;
-            node->cookie = cookie;
-            /* briefly map this frame in so we can zero it. Avoid recursively allocating
-             * for book keeping */
-            assert(!vka->recurse);
-            vka->recurse = 1;
-            error = vspace_map_pages_at_vaddr(&vka->vspace, (seL4_CPtr*)&dest->capPtr, NULL, vka->temp_map_address, 1, PAGE_BITS_4K, vka->temp_map_reservation);
-            assert(!error);
-            memset(vka->temp_map_address, 0, PAGE_SIZE_4K);
-            vspace_unmap_pages(&vka->vspace, vka->temp_map_address, 1, PAGE_BITS_4K, VSPACE_PRESERVE);
-            vka->recurse = 0;
-            return 0;
-        }
-    }
-    error = vka_utspace_alloc(&vka->regular_vka, dest, type, size_bits, &cookie);
-    if (!error) {
-        node->frame = 0;
-        node->cookie = cookie;
-        *res = (uint32_t)node;
-        return  0;
-    }
-    allocman_mspace_free(vka->allocman, node, sizeof(*node));
-    return error;
-}
-
-void proxy_vka_utspace_free(void *data, seL4_Word type, seL4_Word size_bits, uint32_t target) {
-    proxy_vka_t *vka = (proxy_vka_t*)data;
-    ut_node_t *node = (ut_node_t*)target;
-    if (!node->frame) {
-        vka_utspace_free(&vka->regular_vka, type, size_bits, node->cookie);
-    } else {
-        _utspace_trickle_free(vka->allocman, &vka->ram_ut_manager, node->cookie, size_bits);
-    }
-    allocman_mspace_free(vka->allocman, node, sizeof(*node));
-}
-
-uintptr_t proxy_vka_utspace_paddr(void *data, uint32_t target, seL4_Word type, seL4_Word size_bits) {
-    proxy_vka_t *vka = (proxy_vka_t*)data;
-    ut_node_t *node = (ut_node_t*)target;
-    if (node->frame) {
-        return _utspace_trickle_paddr(&vka->ram_ut_manager, node->cookie, size_bits);
-    } else {
-        return vka_utspace_paddr(&vka->regular_vka, node->cookie, type, size_bits);
-    }
-}
-
-static void proxy_give_vspace(vka_t *vka, vspace_t *vspace, void *vaddr, reservation_t res) {
-    proxy_vka_t *proxy = (proxy_vka_t*)vka->data;
-    proxy->vspace = *vspace;
-    proxy->temp_map_address = vaddr;
-    proxy->temp_map_reservation = res;
-}
-
-static void make_proxy_vka(vka_t *vka, allocman_t *allocman) {
-    int num = ram_num_untypeds();
-    int error UNUSED;
-
-    proxy_vka_t *proxy = &proxy_vka;
-    memset(proxy, 0, sizeof(*proxy));
-    proxy->allocman = allocman;
-    allocman_make_vka(&proxy->regular_vka, allocman);
-
-    utspace_trickle_create(&proxy->ram_ut_manager);
-    for (int i = 0; i < num; i++) {
-        cspacepath_t path;
-        seL4_CPtr cap;
-        uintptr_t paddr;
-        int size_bits;
-        ram_get_untyped(i, &paddr, &size_bits, &cap);
-        vka_cspace_make_path(&proxy->regular_vka, cap, &path);
-        error = _utspace_trickle_add_uts(allocman, &proxy->ram_ut_manager, 1, &path, (uint32_t*)&size_bits, &paddr);
-        assert(!error);
-    }
-    if (num > 0) {
-        proxy->have_mem = 1;
-    }
-    *vka = (vka_t) {
-        proxy,
-        proxy_vka_cspace_alloc,
-        proxy_vka_cspace_make_path,
-        proxy_vka_utspace_alloc,
-        proxy_vka_cspace_free,
-        proxy_vka_utspace_free,
-        proxy_vka_utspace_paddr
-    };
-}
 
 static seL4_CPtr simple_ioport_wrapper(void *data, uint16_t start_port, uint16_t end_port) {
     return ioports_get_ioport(start_port, end_port);
@@ -259,26 +126,42 @@ void pre_init(void) {
     );
     assert(allocman);
     error = allocman_add_simple_untypeds(allocman, &camkes_simple);
-    make_proxy_vka(&vka, allocman);
+    allocman_make_vka(&vka, allocman);
 
     /* Initialize the vspace */
     error = sel4utils_bootstrap_vspace(&vspace, &vspace_data,
             simple_get_init_cap(&camkes_simple, seL4_CapInitThreadPD), &vka, NULL, NULL, existing_frames);
     assert(!error);
 
-    /* Create temporary mapping reservation, and map in a frame to
-     * create any book keeping */
-    reservation_t reservation;
-    reservation.res = allocman_mspace_alloc(allocman, sizeof(sel4utils_res_t), &error);
-    assert(reservation.res);
-    void *reservation_vaddr;
-    error = sel4utils_reserve_range_no_alloc(&vspace, reservation.res, PAGE_SIZE_4K, seL4_AllRights, 1, &reservation_vaddr);
-    assert(!error);
-    error = vspace_new_pages_at_vaddr(&vspace, reservation_vaddr, 1, seL4_PageBits, reservation);
-    assert(!error);
-    vspace_unmap_pages(&vspace, reservation_vaddr, 1, seL4_PageBits, VSPACE_FREE);
+    /* Create virtual pool */
+    reservation_t pool_reservation;
+    void *vaddr;
+    pool_reservation.res = allocman_mspace_alloc(allocman, sizeof(sel4utils_res_t), &error);
+    if (!pool_reservation.res) {
+        ZF_LOGF("Failed to allocate reservation");
+    }
+    error = sel4utils_reserve_range_no_alloc(&vspace, pool_reservation.res,
+                                             ALLOCMAN_VIRTUAL_SIZE, seL4_AllRights, 1, &vaddr);
+    if (error) {
+        ZF_LOGF("Failed to provide virtual memory allocator");
+    }
+    bootstrap_configure_virtual_pool(allocman, vaddr, ALLOCMAN_VIRTUAL_SIZE, simple_get_init_cap(&camkes_simple, seL4_CapInitThreadPD));
 
-    proxy_give_vspace(&vka, &vspace, reservation_vaddr, reservation);
+    /* Add additional untypeds that make up extra RAM */
+    int num = ram_num_untypeds();
+
+    for (int i = 0; i < num; i++) {
+        cspacepath_t path;
+        seL4_CPtr cap;
+        uintptr_t paddr;
+        int size_bits;
+        size_t sz_size_bits;
+        ram_get_untyped(i, &paddr, &size_bits, &cap);
+        sz_size_bits = size_bits;
+        vka_cspace_make_path(&vka, cap, &path);
+        error = allocman_utspace_add_uts(allocman, 1, &path, &sz_size_bits, &paddr, ALLOCMAN_UT_DEV_MEM);
+        assert(!error);
+    }
 
     sel4utils_reserve_range_no_alloc(&vspace, &muslc_brk_reservation_memory, BRK_VIRTUAL_SIZE, seL4_AllRights, 1, &muslc_brk_reservation_start);
     muslc_this_vspace = &vspace;
@@ -634,7 +517,7 @@ void *main_continued(void *arg) {
         .filelength = fsclient_filelength,
         .close = fsclient_close,
     };
-    error = vmm_init(&vmm, camkes_simple, vka, vspace, callbacks);
+    error = vmm_init(&vmm, allocman, camkes_simple, vka, vspace, callbacks);
     assert(!error);
 
     /* First we initialize any host information */

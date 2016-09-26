@@ -1,6 +1,0 @@
-/usr/lib/qubes
-/etc/qubes-rpc
-/etc/qubes-rpc/policy
-usr/bin/
-bin/
-lib/modules/3.15.0/kernel/drivers/vmm

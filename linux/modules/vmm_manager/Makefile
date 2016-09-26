@@ -10,7 +10,6 @@
 
 obj-m += driver.o
 driver-objs += sel4_vmm_manager_driver.o event_thread.o
-KHEAD=linux-3.15
 
 all: vmm_module
 	mv driver.ko vmm_manager.ko

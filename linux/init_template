@@ -1,4 +1,21 @@
 #!/bin/sh
+
+#
+# Copyright 2016, Data61, CSIRO
+#
+# This software may be distributed and modified according to the terms of
+# the GNU General Public License version 2. Note that NO WARRANTY is provided.
+# See "LICENSE_GPLv2.txt" for details.
+#
+# @TAG(NICTA_GPL)
+#
+
+# Template for custom init script for guest linux
+# that loads some additional kernel modules.
+#
+# __LINUX_VERSION__ is used as a placeholder for the linux version
+# number triple (e.g. "4.7.2").
+
 # devtmpfs does not get automounted for initramfs
 /bin/mount -t devtmpfs devtmpfs /dev
 exec 0</dev/console
@@ -6,7 +23,7 @@ exec 1>/dev/console
 exec 2>/dev/console
 
 # Initialising the Vchan driver
-insmod /lib/modules/3.15.0/kernel/drivers/vmm/vmm_manager.ko
+insmod /lib/modules/__LINUX_VERSION__/kernel/drivers/vmm/vmm_manager.ko
 if [ "$?" -lt "0" ]; then
 	echo "vmm driver initialisation FAILED with $?" > /dev/kmsg
 else

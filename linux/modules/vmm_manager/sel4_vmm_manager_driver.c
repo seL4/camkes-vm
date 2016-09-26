@@ -30,11 +30,12 @@
 #include <linux/kthread.h>  // for threads
 #include <linux/time.h>   // for using jiffies
 #include <linux/timer.h>
+#include <linux/io.h>
 
-#include "../libs/includes/vmm_manager.h"
-#include "../libs/includes/sel4libvchan.h"
-#include "../libs/includes/vmm_driver.h"
-#include "../libs/includes/vchan_copy.h"
+#include "../../libs/includes/vmm_manager.h"
+#include "../../libs/includes/sel4libvchan.h"
+#include "../../libs/includes/vmm_driver.h"
+#include "../../libs/includes/vchan_copy.h"
 
 #define DRIVER_NAME "vmm_manager"
 #define DRIVER_AUTH "<nicta.com.au>"

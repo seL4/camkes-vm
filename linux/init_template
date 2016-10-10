@@ -22,6 +22,8 @@ exec 0</dev/console
 exec 1>/dev/console
 exec 2>/dev/console
 
+insmod /lib/modules/__LINUX_VERSION__/kernel/drivers/vmm/dataport.ko
+
 # Initialising the Vchan driver
 insmod /lib/modules/__LINUX_VERSION__/kernel/drivers/vmm/vmm_manager.ko
 if [ "$?" -lt "0" ]; then

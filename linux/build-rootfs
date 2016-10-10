@@ -30,6 +30,7 @@ LINUX_URL="https://www.kernel.org/pub/linux/kernel/v$LINUX_MAJOR.x/$LINUX_ARCHIV
 
 OUT=out
 MODULES_DIR=modules
+PKG_DIR=pkg
 INIT_TEMPLATE=init_template
 CONFIG_DIR=config
 LINUX_CONFIG=linux_build_config
@@ -98,6 +99,18 @@ done
 
 echo -e "\e[1;96mAdding custom init script to root filesystem...\e[0m"
 cat $INIT_TEMPLATE | sed -re "s/__LINUX_VERSION__/$LINUX_VERSION/g" | tee $OUT/$ROOTFS_TMP/init
+
+echo -e "\e[1;96mAdding extra packages root filesystem...\e[0m"
+SBIN_PATH=`pwd`/$OUT/$ROOTFS_TMP/usr/sbin
+for pkg in $PKG_DIR/*; do
+    pushd $pkg
+
+    make
+    find -executable -exec cp -v {} $SBIN_PATH \;
+    make clean
+
+    popd
+done
 
 echo -e "\e[1;96mPacking final root filesystem in $ROOTFS_DEST...\e[0m"
 ROOTFS_DEST_ABS=`pwd`/$ROOTFS_DEST

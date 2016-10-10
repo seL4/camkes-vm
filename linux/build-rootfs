@@ -31,6 +31,7 @@ LINUX_URL="https://www.kernel.org/pub/linux/kernel/v$LINUX_MAJOR.x/$LINUX_ARCHIV
 OUT=out
 MODULES_DIR=modules
 PKG_DIR=pkg
+TEXT_DIR=text
 INIT_TEMPLATE=init_template
 CONFIG_DIR=config
 LINUX_CONFIG=linux_build_config
@@ -111,6 +112,9 @@ for pkg in $PKG_DIR/*; do
 
     popd
 done
+
+echo -e "\e[1;96mCopying text files to root filesystem...\e[0m"
+cp -rv $TEXT_DIR $OUT/$ROOTFS_TMP/opt
 
 echo -e "\e[1;96mPacking final root filesystem in $ROOTFS_DEST...\e[0m"
 ROOTFS_DEST_ABS=`pwd`/$ROOTFS_DEST

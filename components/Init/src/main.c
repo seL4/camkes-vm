@@ -666,7 +666,7 @@ void *main_continued(void *arg) {
         uint8_t fun;
         seL4_CPtr iospace_cap;
         pci_devices_get_device(i, &bus, &dev, &fun, &iospace_cap);
-        error = vmm_guest_vspace_add_iospace(&vmm.guest_mem.vspace, iospace_cap);
+        error = vmm_guest_vspace_add_iospace(&vmm.host_vspace, &vmm.guest_mem.vspace, iospace_cap);
         assert(!error);
     }
 #endif

@@ -121,6 +121,7 @@ static int __init vmm_manager_init(void) {
     vmm_mem_buf = kmalloc(sizeof(struct vmcall_args), 0);
     if (vmm_mem_buf == NULL) {
         printk ("k_vmm_manager: Failed to allocate buffer memory\n");
+        free_event_thread();
         return -ENOMEM;
     }
 
@@ -129,6 +130,7 @@ static int __init vmm_manager_init(void) {
     if (vargs->data == NULL) {
         printk ("k_vmm_manager: Failed to allocate buffer memory\n");
         kfree(vmm_mem_buf);
+        free_event_thread();
         return -ENOMEM;
     }
 
@@ -141,6 +143,7 @@ static int __init vmm_manager_init(void) {
         printk ("k_vmm_manager: failed on sel4 hypervisor connection |%d|\n", err);
         kfree(vargs->data);
         kfree(vmm_mem_buf);
+        free_event_thread();
         return -EINVAL;
     }
 
@@ -155,6 +158,7 @@ static int __init vmm_manager_init(void) {
         printk ("k_vmm_manager: failed to register character device %d\n", vmm_major);
         kfree(vargs->data);
         kfree(vmm_mem_buf);
+        free_event_thread();
         return -EINVAL;
     }
 

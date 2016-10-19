@@ -53,9 +53,11 @@ static struct vchan_event_control {
     struct work_struct *event_work_struct;
 } vchan_ctrl = {
     .num_instances = 0,
+    .event_work_struct = NULL,
 };
 
 static uint64_t plus_one = 1;
+static int have_irq = 0;
 
 static irqreturn_t event_irq_handler(int, void *);
 void event_thread_run(struct work_struct *work);
@@ -82,7 +84,9 @@ int reg_event_irq_handler() {
 }
 
 void free_event_irq_handler() {
+    BUG_ON(have_irq);
     free_irq(VCHAN_EVENT_IRQ, &vchan_ctrl);
+    have_irq = 0;
 }
 
 /*
@@ -94,6 +98,7 @@ int init_event_thread(void) {
     if(reg_event_irq_handler() < 0) {
         return -1;
     }
+    have_irq = 1;
 
     /* Set up workqueue */
     vchan_ctrl.event_work = create_workqueue("vmm_event");
@@ -102,9 +107,11 @@ int init_event_thread(void) {
         if(vchan_ctrl.event_work_struct) {
             INIT_WORK( vchan_ctrl.event_work_struct, event_thread_run );
         } else {
+            free_event_irq_handler();
             return -1;
         }
     } else {
+        free_event_irq_handler();
         return -1;
     }
 
@@ -112,6 +119,24 @@ int init_event_thread(void) {
     sema_init(&vchan_ctrl.inst_sem, 1);
 
     return 0;
+}
+
+/*
+    Release resources to shut down the instance event monitor
+*/
+void free_event_thread(void) {
+    /* Free some of our resources. This just cleans up things allocated
+     * in init_event_thread and probably isn't a complete or proper way
+     * to tear everything down, but should stop egregious kernel memory
+     * leaks etc
+     */
+    if (have_irq) {
+        free_event_irq_handler();
+    }
+    if (vchan_ctrl.event_work_struct) {
+        kfree(vchan_ctrl.event_work_struct);
+        vchan_ctrl.event_work_struct = NULL;
+    }
 }
 
 /*

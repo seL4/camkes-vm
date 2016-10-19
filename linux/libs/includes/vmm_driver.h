@@ -49,6 +49,7 @@ void free_event_irq_handler(void);
 int call_into_hypervisor(int cmd, void *data, size_t sz, vmcall_args_t *vmcall);
 
 int init_event_thread(void);
+void free_event_thread(void);
 
 int new_event_instance(int domain, int port, int eventfd, vchan_alert_t *event_mon, int self);
 void rem_event_instance(int domain, int port);

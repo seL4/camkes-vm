@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <utils/util.h>
 #include <sel4/sel4.h>
-#include <cross_vm_dataport.h>
+#include <dataport_caps.h>
 
 /*? macros.show_includes(me.instance.type.includes) ?*/
 
@@ -95,7 +95,7 @@ static size_t /*? me.interface.name ?*/_get_size(void) {
     return /*? dataport_size ?*/;
 }
 
-cross_vm_dataport_handle_t /*? me.interface.name ?*/_handle = {
+dataport_caps_handle_t /*? me.interface.name ?*/_handle = {
     .get_nth_frame_cap = /*? me.interface.name ?*/_get_nth_frame_cap,
     .get_id = /*? me.interface.name ?*/_get_id,
     .get_num_frame_caps = /*? me.interface.name ?*/_get_num_frame_caps,

@@ -10,28 +10,28 @@
  * @TAG(D61_BSD)
  */
 
-#include <cross_vm_dataport.h>
+#include <dataport_caps.h>
 #include <vmm/vmm.h>
 
 // XXX these must match the token and commands in the dataport linux kernel module
 #define DATAPORT_VMCALL_HANDLER_TOKEN 1
 #define DATAPORT_CMD_SHARE      1
 
-static cross_vm_dataport_handle_t **dataports;
+static dataport_caps_handle_t **dataports;
 static unsigned int num_dataports;
 
-static int dataport_map_guest(cross_vm_dataport_handle_t *dataport, void *guest_paddr, size_t size,
+static int dataport_map_guest(dataport_caps_handle_t *dataport, void *guest_paddr, size_t size,
                               guest_memory_t *guest_memory) {
 
-    size_t host_size = cross_vm_dataport_get_size(dataport);
+    size_t host_size = dataport_get_size(dataport);
     if (size != host_size) {
         ZF_LOGE("Dataport guest size and host size are different (%x and %x)", size, host_size);
         return -1;
     }
 
     vspace_t *guest_vspace = &guest_memory->vspace;
-    unsigned int num_frames = cross_vm_dataport_get_num_frame_caps(dataport);
-    seL4_CPtr *frames = cross_vm_dataport_get_frame_caps(dataport);
+    unsigned int num_frames = dataport_get_num_frame_caps(dataport);
+    seL4_CPtr *frames = dataport_get_frame_caps(dataport);
 
     ZF_LOGI("Mapping %x bytes to guest paddr %p", size, guest_paddr);
 
@@ -66,7 +66,7 @@ static int dataport_vmcall_handler(vmm_vcpu_t *vcpu) {
         return -1;
     }
 
-    cross_vm_dataport_handle_t *dataport = dataports[dataport_id];
+    dataport_caps_handle_t *dataport = dataports[dataport_id];
 
     switch (cmd) {
     case DATAPORT_CMD_SHARE: {
@@ -88,7 +88,7 @@ static int dataport_vmcall_handler(vmm_vcpu_t *vcpu) {
     return 0;
 }
 
-int cross_vm_dataports_init_common(vmm_t *vmm, cross_vm_dataport_handle_t **d, int n) {
+int cross_vm_dataports_init_common(vmm_t *vmm, dataport_caps_handle_t **d, int n) {
     dataports = d;
     num_dataports = n;
     int error = reg_new_handler(vmm, &dataport_vmcall_handler, DATAPORT_VMCALL_HANDLER_TOKEN);

@@ -14,15 +14,15 @@
 #include <vmm/vmm.h>
 
 // these are defined in the dataport's glue code
-extern cross_vm_dataport_handle_t dp1_handle;
-extern cross_vm_dataport_handle_t dp2_handle;
+extern dataport_caps_handle_t dp1_handle;
+extern dataport_caps_handle_t dp2_handle;
 
-static cross_vm_dataport_handle_t *dataports[] = {
+static dataport_caps_handle_t *dataports[] = {
     NULL, // entry 0 is NULL so ids correspond with indices
     &dp1_handle,
     &dp2_handle,
 };
 
-void cross_vm_dataports_init(vmm_t *vmm) {
-    cross_vm_dataports_init_common(vmm, dataports, sizeof(dataports)/sizeof(dataports[0]));
+int cross_vm_dataports_init(vmm_t *vmm) {
+    return cross_vm_dataports_init_common(vmm, dataports, sizeof(dataports)/sizeof(dataports[0]));
 }

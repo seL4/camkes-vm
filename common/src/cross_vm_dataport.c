@@ -89,6 +89,5 @@ static int dataport_vmcall_handler(vmm_vcpu_t *vcpu) {
 int cross_vm_dataports_init_common(vmm_t *vmm, dataport_caps_handle_t **d, int n) {
     dataports = d;
     num_dataports = n;
-    int error = reg_new_handler(vmm, &dataport_vmcall_handler, DATAPORT_VMCALL_HANDLER_TOKEN);
-    assert(!error);
+    return reg_new_handler(vmm, &dataport_vmcall_handler, DATAPORT_VMCALL_HANDLER_TOKEN);
 }

@@ -72,7 +72,7 @@ static vspace_t vspace;
 static sel4utils_alloc_data_t vspace_data;
 static vmm_t vmm;
 
-void cross_vm_dataports_init(vmm_t *vmm) WEAK;
+int cross_vm_dataports_init(vmm_t *vmm) WEAK;
 
 /* custom allocator interface for attempting to allocate frames
  * from special frame only memory */
@@ -805,7 +805,8 @@ void *main_continued(void *arg) {
     assert(!error);
 
     if (cross_vm_dataports_init) {
-        cross_vm_dataports_init(&vmm);
+        error = cross_vm_dataports_init(&vmm);
+        assert(!error);
     }
 
     /* Final VMM setup now that everything is defined and loaded */

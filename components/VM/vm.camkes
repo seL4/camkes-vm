@@ -128,9 +128,9 @@ connector seL4MultiSharedData {
     to Dataport template "seL4MultiSharedData-to.template.c";
 }
 
-connector seL4CrossVMSharedData {
-    from Dataport template "seL4CrossVMSharedData-from.template.c";
-    to Dataport template "seL4CrossVMSharedData-to.template.c";
+connector seL4SharedDataWithCaps {
+    from Dataport template "seL4SharedDataWithCaps-from.template.c";
+    to Dataport template "seL4SharedDataWithCaps-to.template.c";
 }
 
 connector seL4VChanInit {

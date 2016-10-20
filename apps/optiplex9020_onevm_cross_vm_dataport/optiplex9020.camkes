@@ -27,11 +27,11 @@ component VM {
         VM_PER_VM_COMP_DEF(0)
 
         component CrossVMTest cross_vm_test;
-        connection seL4CrossVMSharedData cross_vm_conn(from cross_vm_test.dp1,
-                                                       to vm0.dp1);
+        connection seL4SharedDataWithCaps cross_vm_conn(from cross_vm_test.dp1,
+                                                        to vm0.dp1);
 
-        connection seL4CrossVMSharedData cross_vm_large_conn(from cross_vm_test.dp2,
-                                                             to vm0.dp2);
+        connection seL4SharedDataWithCaps cross_vm_large_conn(from cross_vm_test.dp2,
+                                                              to vm0.dp2);
 
         connection seL4RPCCall cross_vm_putchar(from cross_vm_test.putchar,
                                                 to serial.vm_putchar);

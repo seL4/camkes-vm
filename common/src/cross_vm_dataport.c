@@ -35,7 +35,7 @@ static int dataport_map_guest(dataport_caps_handle_t *dataport, void *guest_padd
     vspace_unmap_pages(guest_vspace, guest_paddr, num_frames, PAGE_BITS_4K, VSPACE_PRESERVE);
 
     reservation_t res = vspace_reserve_range_at(guest_vspace, guest_paddr, size, seL4_AllRights,
-                                                0 /* cacheable */);
+                                                1 /* cacheable */);
 
     int error = vspace_map_pages_at_vaddr(guest_vspace, frames, NULL /* cookies */, guest_paddr, num_frames,
                               PAGE_BITS_4K, res);

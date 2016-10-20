@@ -30,15 +30,12 @@
 #include <asm/kvm_para.h>
 
 #include <dataport/commands.h>
+#include <cross_vm_shared/cross_vm_shared_dataport.h>
 
 #define DEVICE_NAME "dataport"
 #define MAX_NUM_DATAPORTS 256
 #define BUF_SIZE 64
 #define IOCTL_CMD_SIZE 64
-
-// XXX these must match the token and commands in the vmm
-#define DATAPORT_VMCALL_HANDLER_TOKEN 1
-#define DATAPORT_CMD_SHARE      1
 
 typedef struct dataport {
     unsigned long id;

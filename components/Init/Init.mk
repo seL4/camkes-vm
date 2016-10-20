@@ -5,7 +5,8 @@ Init_CFILES := $(wildcard $(CURRENT_DIR)/src/*.c) \
 			   $(wildcard $(SOURCE_DIR)/common/src/*.c)
 Init_HFILES := $(wildcard $(CURRENT_DIR)/../../apps/vm/configurations/*.h)
 Init_HFILES += $(wildcard $(CURRENT_DIR)/src/*.h) \
-			   $(wildcard $(SOURCE_DIR)/common/include/*.h)
+			   $(wildcard $(SOURCE_DIR)/common/include/*.h) \
+			   $(wildcard $(SOURCE_DIR)/common/shared_include/cross_vm_shared/*.h)
 Init_LIBS := sel4camkes sel4vmm sel4utils cpio elf sel4vka sel4allocman sel4vspace pci sel4simple sel4simple-stable sel4platsupport ethdrivers platsupport
 
 VM_LIST := $(shell seq 0 `expr ${VM_NUM_VM} - 1`)

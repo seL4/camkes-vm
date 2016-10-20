@@ -10,12 +10,9 @@
  * @TAG(D61_BSD)
  */
 
+#include <cross_vm_shared_dataport.h>
 #include <dataport_caps.h>
 #include <vmm/vmm.h>
-
-// XXX these must match the token and commands in the dataport linux kernel module
-#define DATAPORT_VMCALL_HANDLER_TOKEN 1
-#define DATAPORT_CMD_SHARE      1
 
 static dataport_caps_handle_t **dataports;
 static unsigned int num_dataports;

@@ -11,7 +11,7 @@
 #
 
 obj-m += dataport.o
-CFLAGS_dataport.o = -I../../include
+CFLAGS_dataport.o = -I../../include -I../../../common/shared_include
 
 all:
 	make -C $(KHEAD) M=$(PWD) modules

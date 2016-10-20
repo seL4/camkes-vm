@@ -10,8 +10,8 @@
  * @TAG(D61_BSD)
  */
 
-#ifndef __DATAPORTFS_COMMANDS
-#define __DATAPORTFS_COMMANDS
+#ifndef __DATAPORT_COMMANDS_H
+#define __DATAPORT_COMMANDS_H
 
 #define DATAPORT_MAGIC 'D'
 

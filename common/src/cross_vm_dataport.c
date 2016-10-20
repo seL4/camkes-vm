@@ -39,11 +39,12 @@ static int dataport_map_guest(dataport_caps_handle_t *dataport, void *guest_padd
 
     int error = vspace_map_pages_at_vaddr(guest_vspace, frames, NULL /* cookies */, guest_paddr, num_frames,
                               PAGE_BITS_4K, res);
+
+    vspace_free_reservation(guest_vspace, res);
+
     if (error) {
         return error;
     }
-
-    vspace_free_reservation(guest_vspace, res);
 
     return 0;
 }

@@ -18,6 +18,10 @@
 #define DP2_SIZE (4096 * 16)
 
 int run(void) {
+
+    char buf1[DP1_SIZE];
+    char buf2[DP2_SIZE];
+
     set_putchar(putchar_putchar);
 
     volatile char *dp1_data = (volatile char*)dp1;
@@ -32,14 +36,19 @@ int run(void) {
          */
         if (dp2_data[4096]) {
 
+            /* Copy the buffer contents to avoid a race */
+            memcpy(buf1, dp1_data, DP1_SIZE);
+            memcpy(buf2, dp2_data, DP2_SIZE);
+
             /* Null terminate the ends of the buffers */
-            dp1_data[DP1_SIZE - 1] = '\0';
-            dp2_data[DP2_SIZE - 1] = '\0';
+            buf1[DP1_SIZE - 1] = '\0';
+            buf2[DP2_SIZE - 1] = '\0';
 
             printf("################ dp1 ###############\n"
                    "%s\n"
                    "################ dp2 ###############\n"
-                   "%s\n\n", dp1_data, dp2_data);
+                   "%s\n\n", buf1, buf2);
+
             break;
         }
     }

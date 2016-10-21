@@ -84,7 +84,7 @@ int reg_event_irq_handler() {
 }
 
 void free_event_irq_handler() {
-    BUG_ON(have_irq);
+    BUG_ON(!have_irq);
     free_irq(VCHAN_EVENT_IRQ, &vchan_ctrl);
     have_irq = 0;
 }

@@ -17,10 +17,16 @@
 #define DP1_SIZE 4096
 #define DP2_SIZE (4096 * 16)
 
-int run(void) {
+static void copy_buffer(char *dest, volatile char *src, size_t n) {
+    for (int i = 0; i < n; i++) {
+        dest[i] = src[i];
+    }
+}
 
-    char buf1[DP1_SIZE];
-    char buf2[DP2_SIZE];
+char buf1[DP1_SIZE];
+char buf2[DP2_SIZE];
+
+int run(void) {
 
     set_putchar(putchar_putchar);
 
@@ -36,9 +42,11 @@ int run(void) {
          */
         if (dp2_data[4096]) {
 
-            /* Copy the buffer contents to avoid a race */
-            memcpy(buf1, dp1_data, DP1_SIZE);
-            memcpy(buf2, dp2_data, DP2_SIZE);
+            /* Copy the buffer to avoid a data race.
+             * We can't use memcpy here as the dataports are volatile.
+             */
+            copy_buffer(buf1, dp1_data, DP1_SIZE);
+            copy_buffer(buf2, dp2_data, DP2_SIZE);
 
             /* Null terminate the ends of the buffers */
             buf1[DP1_SIZE - 1] = '\0';

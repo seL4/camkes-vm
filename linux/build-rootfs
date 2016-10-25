@@ -37,6 +37,13 @@ CONFIG_DIR=config
 LINUX_CONFIG=linux_build_config
 LINUX_SYMVERS=Module.symvers
 
+# Script containing application-specific camkes init commands
+CAMKES_INIT=camkes_init
+# 2 digit number from 00 to 99 determining how late during
+# system initialisation the camkes init script will run.
+# Higher is later.
+CAMKES_INIT_NUM=90
+
 ROOTFS_SRC=rootfs-bare.cpio
 ROOTFS_DEST=rootfs.cpio
 ROOTFS_TMP=rootfs
@@ -100,6 +107,9 @@ done
 
 echo -e "\e[1;96mAdding custom init script to root filesystem...\e[0m"
 cat $INIT_TEMPLATE | sed -re "s/__LINUX_VERSION__/$LINUX_VERSION/g" | tee $OUT/$ROOTFS_TMP/init
+
+echo -e "\e[1;96mAdding CAmkES init script to root filesystem...\e[0m"
+cp -v $CAMKES_INIT $OUT/$ROOTFS_TMP/etc/init.d/S$CAMKES_INIT_NUM$CAMKES_INIT
 
 echo -e "\e[1;96mAdding extra packages root filesystem...\e[0m"
 SBIN_PATH=`pwd`/$OUT/$ROOTFS_TMP/usr/sbin

@@ -1,0 +1,22 @@
+#!/bin/sh
+
+#
+# Copyright 2016, Data61, CSIRO
+#
+# This software may be distributed and modified according to the terms of
+# the GNU General Public License version 2. Note that NO WARRANTY is provided.
+# See "LICENSE_GPLv2.txt" for details.
+#
+# @TAG(NICTA_GPL)
+#
+
+# Initialises linux-side of cross vm connections.
+
+# Dataport sizes must match those in the camkes spec.
+# For each argument to dataport_init, the nth pair
+# corresponds to the dataport with id n.
+dataport_init /dev/dp1 0x1000 /dev/dp2 0x10000
+
+# The nth argument to event_init corresponds to the
+# event with id n according to the camkes vmm.
+event_init /dev/ev1 /dev/ev2

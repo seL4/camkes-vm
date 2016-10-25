@@ -13,12 +13,9 @@
 
 # Script for testing cross vm dataport support
 
-INIT=dataport_init
 READ=dataport_read
 WRITE=dataport_write
 
-DP1_SIZE=0x1000
-DP2_SIZE=0x10000
 DP1_NAME=/dev/dp1
 DP2_NAME=/dev/dp2
 
@@ -26,8 +23,6 @@ MESSAGE1="Hello, World!"
 MESSAGE2="abcdefghijklmnopqrstuvwxyz"
 
 LARGE_FILE=/opt/text/lipsum
-
-$INIT $DP1_NAME $DP1_SIZE $DP2_NAME $DP2_SIZE
 
 echo "Writing to $DP1_NAME: '$MESSAGE1'"
 echo $MESSAGE1 | $WRITE $DP1_NAME

@@ -17,11 +17,10 @@ INIT=dataport_init
 READ=dataport_read
 WRITE=dataport_write
 
-DP1_NAME=dp1
 DP1_SIZE=0x1000
-
-DP2_NAME=dp2
 DP2_SIZE=0x10000
+DP1_NAME=/dev/dp1
+DP2_NAME=/dev/dp2
 
 MESSAGE1="Hello, World!"
 MESSAGE2="abcdefghijklmnopqrstuvwxyz"
@@ -31,12 +30,12 @@ LARGE_FILE=/opt/text/lipsum
 $INIT $DP1_NAME $DP1_SIZE $DP2_NAME $DP2_SIZE
 
 echo "Writing to $DP1_NAME: '$MESSAGE1'"
-echo $MESSAGE1 | $WRITE /dev/$DP1_NAME
-echo "Reading from $DP1_NAME: '`$READ /dev/$DP1_NAME`'"
+echo $MESSAGE1 | $WRITE $DP1_NAME
+echo "Reading from $DP1_NAME: '`$READ $DP1_NAME`'"
 
 echo "Writing to $DP2_NAME: '$MESSAGE2'"
-echo $MESSAGE2 | $WRITE /dev/$DP2_NAME
-echo "Reading from dataport: '`$READ /dev/$DP2_NAME`'"
+echo $MESSAGE2 | $WRITE $DP2_NAME
+echo "Reading from dataport: '`$READ $DP2_NAME`'"
 
 echo "Filling $DP2_NAME..."
-cat $LARGE_FILE | $WRITE /dev/$DP2_NAME
+cat $LARGE_FILE | $WRITE $DP2_NAME

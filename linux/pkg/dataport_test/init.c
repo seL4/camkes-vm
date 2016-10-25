@@ -31,7 +31,6 @@
 #define MAX_NUM_DATAPORTS 256
 
 typedef struct dataport {
-    char *name;
     char *file;
     size_t size;
     unsigned int minor;
@@ -52,11 +51,11 @@ int process_dataport_args(int argc, char *argv[],
     int count = 0;
 
     while (count < num_dataports && count < max_num_dataports) {
-        char *name = argv[count * 2];
+        char *filename = argv[count * 2];
         char *size_str = argv[count * 2 + 1];
         unsigned int size = strtoul(size_str, NULL, 0);
 
-        dataports[count].name = name;
+        dataports[count].file = filename;
         dataports[count].size = size;
 
         count++;
@@ -66,17 +65,12 @@ int process_dataport_args(int argc, char *argv[],
 }
 
 int make_node(dataport_t *dataport, unsigned int major, unsigned int minor) {
-    char buf[BUF_SIZE];
-    snprintf(buf, BUF_SIZE, "/dev/%s", dataport->name);
-    dataport->file = strdup(buf);
-
     dev_t device = makedev(major, minor);
     dataport->device = device;
 
     dataport->minor = minor;
 
-    printf(" - %s\n\tfile: %s\n\tdevice: { maj: %d, min: %d }\n",
-           dataport->name, dataport->file, major, minor);
+    printf("Creating dataport node %s\n", dataport->file);
 
     return mknod(dataport->file, S_IFCHR, dataport->device);
 }
@@ -109,9 +103,6 @@ void init_node(dataport_t *dataport) {
     assert(dataport->paddr >= 0);
 
     fclose(f);
-
-    printf(" - %s\n\tsize: 0x%x\n\tpaddr: 0x%llx\n",
-           dataport->name, dataport->size, dataport->paddr);
 }
 
 void init_nodes(dataport_t *dataports, int num_dataports) {

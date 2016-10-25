@@ -77,7 +77,6 @@ int make_node(dataport_t *dataport, unsigned int major, unsigned int minor) {
 
 void make_nodes(dataport_t *dataports, int num_dataports, unsigned int major) {
     unsigned int minor = 1;
-    printf("Making nodes:\n");
     for (int i = 0; i < num_dataports; i++) {
 
         int error = make_node(&dataports[i], major, minor);
@@ -85,7 +84,6 @@ void make_nodes(dataport_t *dataports, int num_dataports, unsigned int major) {
 
         minor++;
     }
-    printf("\n");
 }
 
 void init_node(dataport_t *dataport) {
@@ -95,6 +93,8 @@ void init_node(dataport_t *dataport) {
 
     int fd = fileno(f);
     assert(fd >= 0);
+
+    printf("Allocating %d bytes for %s\n", dataport->size, dataport->file);
 
     int error = dataport_allocate(fd, dataport->size);
     assert(error == 0);
@@ -106,11 +106,9 @@ void init_node(dataport_t *dataport) {
 }
 
 void init_nodes(dataport_t *dataports, int num_dataports) {
-    printf("Initialising nodes:\n");
     for (int i = 0; i < num_dataports; i++) {
         init_node(&dataports[i]);
     }
-    printf("\n");
 }
 
 int main(int argc, char *argv[]) {

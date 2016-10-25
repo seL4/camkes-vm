@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <sys/sysmacros.h>
 
+#include "device.h"
 #include "dataport.h"
 
 #define DEVICE_NAME "dataport"
@@ -38,38 +39,7 @@ typedef struct dataport {
     long long unsigned int paddr;
 } dataport_t;
 
-/* No device can have 0 as its major number */
-#define NO_MAJOR 0
 #define BUF_SIZE 256
-
-unsigned int device_get_major(char *device) {
-
-    char buf[BUF_SIZE];
-    FILE *devices = fopen("/proc/devices", "r");
-
-    while (fgets(buf, BUF_SIZE, devices)) {
-
-        buf[strlen(buf) - 1] = '\0';
-
-        int number = atoi(buf);
-        if (number == NO_MAJOR) {
-            // this line did not contain a major number
-            continue;
-        }
-
-        strtok(buf, " ");
-        char *current_device = strtok(NULL, " ");
-
-        if (strcmp(current_device, device) == 0) {
-            fclose(devices);
-            return number;
-        }
-    }
-
-    fclose(devices);
-
-    return NO_MAJOR;
-}
 
 /* Parses an array of strings {name0, size0, name1, size1, ...}
  * into an array of dataport_t */

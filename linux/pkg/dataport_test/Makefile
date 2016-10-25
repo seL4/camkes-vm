@@ -11,7 +11,7 @@
 #
 
 CC = gcc
-CFLAGS = -O2 -Wall -m32 -I../../include
+CFLAGS = -g -O2 -Wall -m32 -I../../include
 LDFLAGS = -static -static-libgcc
 
 .PHONY: all clean

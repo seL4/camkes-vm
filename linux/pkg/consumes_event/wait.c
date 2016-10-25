@@ -22,6 +22,8 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
+#include "consumes_event.h"
+
 #define TIMEOUT_MS 20000
 
 int main(int argc, char *argv[]) {
@@ -35,14 +37,14 @@ int main(int argc, char *argv[]) {
 
     int fd = open(filename, O_RDWR);
 
-    struct pollfd fds[] = {{ .fd = fd, .events = POLLIN }};
-
-    int result = poll(fds, 1, TIMEOUT_MS);
+    int result = consumes_event_wait(fd);
 
     if (result < 0) {
         printf("Error: %s\n", strerror(errno));
+        return -1;
     } else if (result == 0) {
         printf("Timed out after %dms\n", TIMEOUT_MS);
+        return -1;
     } else {
         printf("Back from waiting\n");
     }

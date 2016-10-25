@@ -17,10 +17,10 @@ LDFLAGS = -static -static-libgcc
 COMMON_SRC = ../../src
 
 .PHONY: all clean
-all: event_init event_wait
+all: consumes_event_init consumes_event_wait
 
 clean:
-	rm -rf *.o event_init event_wait
+	rm -rf *.o consumes_event_init consumes_event_wait
 
 %.o: $(COMMON_SRC)/%.c
 	$(CC) $(CFLAGS) $(LDFLAGS) -c $< -o $@
@@ -28,8 +28,8 @@ clean:
 %.o : %.c
 	$(CC) $(CFLAGS) $(LDFLAGS) -c $< -o $@
 
-event_init: init.o device.o
+consumes_event_init: init.o device.o consumes_event.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
 
-event_wait: wait.o device.o
+consumes_event_wait: wait.o device.o consumes_event.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@

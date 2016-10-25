@@ -25,13 +25,13 @@
 
 #include "device.h"
 
-#define DEVICE_NAME "event_in"
+#define DEVICE_NAME "consumes_event"
 
 int make_node(char *name, unsigned int major, unsigned int minor) {
 
     dev_t device = makedev(major, minor);
 
-    printf("Creating event node %s\n", name);
+    printf("Creating consuming event node %s\n", name);
 
     return mknod(name, S_IFCHR, device);
 }

@@ -1,11 +1,11 @@
-Demonstration of Cross VM Dataports
-===================================
+Demonstration of Cross VM Connections
+=====================================
 
 This application demonstrates a vm with a linux guest whose processes can
-connect to a dataport, which is also connected to a regular camkes component.
-The linux filesystem contains some programs for interacting with dataports:
+connect to interfaces of camkes components.
+The linux filesystem contains some programs for interacting with camkes interfaces:
 
- - `dataprot_init` creates device files associated with dataports. Call this
+ - `dataport_init` creates device files associated with dataports. Call this
    once per boot.
  - `dataport_write` writes its standard input to a dataport
  - `dataport_read` reads a dataport to its standard output

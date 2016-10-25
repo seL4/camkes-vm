@@ -13,11 +13,18 @@
 #include <autoconf.h>
 #include <camkes.h>
 #include <stdio.h>
+#include <string.h>
 
 #define DP1_SIZE 4096
 #define DP2_SIZE (4096 * 16)
 
-static void copy_buffer(char *dest, volatile char *src, size_t n) {
+static void copy_from_dataport(char *dest, volatile char *src, size_t n) {
+    for (int i = 0; i < n; i++) {
+        dest[i] = src[i];
+    }
+}
+
+static void copy_to_dataport(volatile char *dest, char *src, size_t n) {
     for (int i = 0; i < n; i++) {
         dest[i] = src[i];
     }
@@ -25,6 +32,8 @@ static void copy_buffer(char *dest, volatile char *src, size_t n) {
 
 char buf1[DP1_SIZE];
 char buf2[DP2_SIZE];
+
+char* message = "This was sent from a CAmkES component!";
 
 int run(void) {
 
@@ -45,8 +54,8 @@ int run(void) {
             /* Copy the buffer to avoid a data race.
              * We can't use memcpy here as the dataports are volatile.
              */
-            copy_buffer(buf1, dp1_data, DP1_SIZE);
-            copy_buffer(buf2, dp2_data, DP2_SIZE);
+            copy_from_dataport(buf1, dp1_data, DP1_SIZE);
+            copy_from_dataport(buf2, dp2_data, DP2_SIZE);
 
             /* Null terminate the ends of the buffers */
             buf1[DP1_SIZE - 1] = '\0';
@@ -56,6 +65,10 @@ int run(void) {
                    "%s\n"
                    "################ dp2 ###############\n"
                    "%s\n\n", buf1, buf2);
+
+            /* Send a message to the guest */
+            copy_to_dataport(dp1_data, message, strlen(message) + 1);
+            ev_emit();
 
             break;
         }

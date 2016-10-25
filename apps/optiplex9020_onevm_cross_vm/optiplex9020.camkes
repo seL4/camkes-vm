@@ -16,10 +16,17 @@
 component Init0 {
     dataport Buf(4096) dp1;
     dataport Buf(4096 * 16) dp2;
+
+    consumes Ev ev1;
+    consumes Periodic ev2;
+
+    has mutex cross_vm_event_mutex;
+
     VM_INIT_DEF()
 }
 
 import <CrossVMTest/CrossVMTest.camkes>;
+import <PeriodicEvent/PeriodicEvent.camkes>;
 
 component VM {
     composition {
@@ -27,11 +34,19 @@ component VM {
         VM_PER_VM_COMP_DEF(0)
 
         component CrossVMTest cross_vm_test;
+        component PeriodicEvent periodic_event;
+
         connection seL4SharedDataWithCaps cross_vm_conn(from cross_vm_test.dp1,
                                                         to vm0.dp1);
 
         connection seL4SharedDataWithCaps cross_vm_large_conn(from cross_vm_test.dp2,
                                                               to vm0.dp2);
+
+        connection seL4Notification ev1_conn(from cross_vm_test.ev,
+                                             to vm0.ev1);
+
+        connection seL4Notification ev2_conn(from periodic_event.periodic,
+                                             to vm0.ev2);
 
         connection seL4RPCCall cross_vm_putchar(from cross_vm_test.putchar,
                                                 to serial.vm_putchar);

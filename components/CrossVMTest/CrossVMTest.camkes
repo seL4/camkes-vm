@@ -14,5 +14,6 @@ component CrossVMTest {
     control;
     dataport Buf(4096) dp1;
     dataport Buf(4096 * 16) dp2;
+    emits Ev ev;
     maybe uses PutChar putchar;
 }

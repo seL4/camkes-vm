@@ -75,6 +75,7 @@ static sel4utils_alloc_data_t vspace_data;
 static vmm_t vmm;
 
 int cross_vm_dataports_init(vmm_t *vmm) WEAK;
+int cross_vm_events_init(vmm_t *vmm, vspace_t *vspace) WEAK;
 
 static seL4_CPtr simple_ioport_wrapper(void *data, uint16_t start_port, uint16_t end_port) {
     return ioports_get_ioport(start_port, end_port);
@@ -687,6 +688,11 @@ void *main_continued(void *arg) {
 
     if (cross_vm_dataports_init) {
         error = cross_vm_dataports_init(&vmm);
+        assert(!error);
+    }
+
+    if (cross_vm_events_init) {
+        error = cross_vm_events_init(&vmm, &vspace);
         assert(!error);
     }
 

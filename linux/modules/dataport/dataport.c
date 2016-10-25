@@ -29,7 +29,7 @@
 #include <asm/uaccess.h>
 #include <asm/kvm_para.h>
 
-#include <dataport/commands.h>
+#include <dataport/ioctl_commands.h>
 #include <cross_vm_shared/cross_vm_shared_dataport.h>
 
 #define DEVICE_NAME "dataport"

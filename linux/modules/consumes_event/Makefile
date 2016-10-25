@@ -10,8 +10,8 @@
 # @TAG(D61_BSD)
 #
 
-obj-m += event_in.o
-CFLAGS_event_in.o = -I../../include -I../../../common/shared_include
+obj-m += consumes_event.o
+CFLAGS_consumes_event.o = -I../../include -I../../../common/shared_include
 
 all:
 	make -C $(KHEAD) M=$(PWD) modules

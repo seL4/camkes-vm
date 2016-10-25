@@ -28,9 +28,9 @@
 #include <asm/irq.h>
 #include <asm/io.h>
 
-#include <cross_vm_shared/cross_vm_shared_event.h>
+#include <cross_vm_shared/cross_vm_shared_vmm_to_guest_event.h>
 
-#define DEVICE_NAME "event_in"
+#define DEVICE_NAME "consumes_event"
 
 typedef struct event_state {
     unsigned int id; // id of the event
@@ -67,7 +67,7 @@ static event_state_t *get_event_state(int id) {
     return NULL;
 }
 
-static unsigned int event_poll(struct file *file, poll_table *wait) {
+static unsigned int consumes_event_poll(struct file *file, poll_table *wait) {
     int minor;
     event_state_t *event_state;
 
@@ -96,7 +96,7 @@ static unsigned int event_poll(struct file *file, poll_table *wait) {
 }
 
 static struct file_operations fops = {
-    .poll = event_poll,
+    .poll = consumes_event_poll,
 };
 
 static irqreturn_t handle_interrupt(int irq, void *dev_id) {
@@ -124,7 +124,7 @@ static irqreturn_t handle_interrupt(int irq, void *dev_id) {
     return IRQ_RETVAL(IRQ_HANDLED);
 }
 
-static int __init event_init(void) {
+static int __init consumes_event_init(void) {
     int error, i;
     major_number = register_chrdev(0, DEVICE_NAME, &fops);
 
@@ -169,7 +169,7 @@ static int __init event_init(void) {
     return 0;
 }
 
-static void __exit event_exit(void) {
+static void __exit consumes_event_exit(void) {
     free_irq(EVENT_IRQ_NUM, NULL);
     unregister_chrdev(major_number, DEVICE_NAME);
     kfree((void*)event_context);
@@ -179,5 +179,5 @@ static void __exit event_exit(void) {
     printk(KERN_INFO "%s exit\n", DEVICE_NAME);
 }
 
-module_init(event_init);
-module_exit(event_exit);
+module_init(consumes_event_init);
+module_exit(consumes_event_exit);

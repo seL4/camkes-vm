@@ -10,6 +10,8 @@
  * @TAG(D61_BSD)
  */
 
+#include <camkes.h>
+#include <dataport_caps.h>
 #include <cross_vm_dataport.h>
 #include <vmm/vmm.h>
 

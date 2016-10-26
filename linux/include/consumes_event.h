@@ -10,15 +10,10 @@
  * @TAG(D61_BSD)
  */
 
-#ifndef __DATAPORT_H_
-#define __DATAPORT_H_
+#ifndef __CONSUMES_EVENT_H
+#define __CONSUMES_EVENT_H
 
-/* Interface to cross vm dataport library */
-
-#include <stdlib.h>
-
-long long unsigned int dataport_get_paddr(int fd);
-ssize_t dataport_get_size(int fd);
-void *dataport_mmap(int fd);
+int consumes_event_wait(int fd);
+int consumes_event_poll(int fd);
 
 #endif

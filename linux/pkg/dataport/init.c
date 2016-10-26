@@ -25,6 +25,7 @@
 
 #include "device.h"
 #include "dataport.h"
+#include "dataport_allocate.h"
 
 #define DEVICE_NAME "dataport"
 

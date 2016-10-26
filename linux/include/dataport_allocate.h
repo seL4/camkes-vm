@@ -10,15 +10,11 @@
  * @TAG(D61_BSD)
  */
 
-#ifndef __DATAPORT_H_
-#define __DATAPORT_H_
-
-/* Interface to cross vm dataport library */
+#ifndef __DATAPORT_ALLOCATE_H_
+#define __DATAPORT_ALLOCATE_H_
 
 #include <stdlib.h>
 
-long long unsigned int dataport_get_paddr(int fd);
-ssize_t dataport_get_size(int fd);
-void *dataport_mmap(int fd);
+int dataport_allocate(int fd, size_t size);
 
 #endif

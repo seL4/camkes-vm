@@ -19,7 +19,7 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 
-#include <dataport/commands.h>
+#include <dataport/ioctl_commands.h>
 #include "dataport.h"
 
 #define BUF_SIZE 256

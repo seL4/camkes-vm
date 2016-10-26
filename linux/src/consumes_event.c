@@ -10,15 +10,14 @@
  * @TAG(D61_BSD)
  */
 
-#ifndef __DATAPORT_H_
-#define __DATAPORT_H_
+#include <poll.h>
 
-/* Interface to cross vm dataport library */
+int consumes_event_wait(int fd) {
+    struct pollfd fds[] = {{ .fd = fd, .events = POLLIN }};
+    return poll(fds, 1, -1 /* block until event */);
+}
 
-#include <stdlib.h>
-
-long long unsigned int dataport_get_paddr(int fd);
-ssize_t dataport_get_size(int fd);
-void *dataport_mmap(int fd);
-
-#endif
+int consumes_event_poll(int fd) {
+    struct pollfd fds[] = {{ .fd = fd, .events = POLLIN }};
+    return poll(fds, 1, 0 /* don't block */);
+}

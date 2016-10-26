@@ -24,6 +24,7 @@ exec 2>/dev/console
 
 insmod /lib/modules/__LINUX_VERSION__/kernel/drivers/vmm/dataport.ko
 insmod /lib/modules/__LINUX_VERSION__/kernel/drivers/vmm/consumes_event.ko
+insmod /lib/modules/__LINUX_VERSION__/kernel/drivers/vmm/emits_event.ko
 
 # Initialising the Vchan driver
 insmod /lib/modules/__LINUX_VERSION__/kernel/drivers/vmm/vmm_manager.ko

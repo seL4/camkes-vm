@@ -50,13 +50,13 @@ static event_state_t event_states[MAX_NUM_EVENTS];
  */
 static void event_vmcall_init(void) {
     phys_addr_t context_paddr = virt_to_phys(event_context);
-    kvm_hypercall2(EVENT_VMCALL_HANDLER_TOKEN,
+    kvm_hypercall2(EVENT_VMCALL_VMM_TO_GUEST_HANDLER_TOKEN,
                    EVENT_CMD_INIT,
                    context_paddr);
 }
 
 static void event_vmcall_ack(void) {
-    kvm_hypercall1(EVENT_VMCALL_HANDLER_TOKEN,
+    kvm_hypercall1(EVENT_VMCALL_VMM_TO_GUEST_HANDLER_TOKEN,
                    EVENT_CMD_ACK);
 }
 

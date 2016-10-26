@@ -10,8 +10,8 @@
  * @TAG(D61_BSD)
  */
 
-#ifndef __CROSS_VM_EVENT_COMMON_H
-#define __CROSS_VM_EVENt_COMMON_H
+#ifndef __CROSS_VM_SHARED_VMM_TO_GUEST_EVENT_H
+#define __CROSS_VM_SHARED_VMM_TO_GUEST_EVENT_H
 
 /* Constants for cross vm events needed by
  * both the vmm and guest. */
@@ -20,7 +20,7 @@
 
 #define EVENT_IRQ_NUM 11
 
-#define EVENT_VMCALL_HANDLER_TOKEN 2
+#define EVENT_VMCALL_VMM_TO_GUEST_HANDLER_TOKEN 2
 
 #define EVENT_CMD_INIT 1
 #define EVENT_CMD_ACK 2

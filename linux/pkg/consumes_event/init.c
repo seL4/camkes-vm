@@ -41,11 +41,13 @@ int main(int argc, char *argv[]) {
     unsigned major = device_get_major(DEVICE_NAME);
 
     if (major < 0 || major == NO_MAJOR) {
+        fprintf(stderr, "Failed to locate device %s.\n", DEVICE_NAME);
         return 1;
     }
 
     for (int i = 1; i < argc; i++) {
         if (make_node(argv[i], major, i) != 0) {
+            fprintf(stderr, "Failed to create device node for %s.\n", DEVICE_NAME);
             return 1;
         }
     }

@@ -28,8 +28,7 @@ include Vchan/Vchan.mk
 include PCIConfigIO/PCIConfigIO.mk
 include FileServer/FileServer.mk
 include Init/Init.mk
-include CrossVMTest/CrossVMTest.mk
-include PeriodicEvent/PeriodicEvent.mk
+include StringReverse/StringReverse.mk
 
 # We want to run C99
 CFLAGS += -std=gnu99 "-DCAMKES_VM_CONFIG=${VM_CONFIG}" -I${SOURCE_DIR}/configurations -I${SOURCE_DIR}/../../components/VM/configurations

@@ -13,42 +13,43 @@
 #include <autoconf.h>
 #include <configurations/vm.h>
 
-component Init0 {
-    dataport Buf(4096) dp1;
-    dataport Buf(4096 * 16) dp2;
+#define DP1_SIZE 8192
+#define DP2_SIZE 8192
 
-    consumes Ev ev1;
-    consumes Periodic ev2;
+component Init0 {
+    dataport Buf(DP1_SIZE) dp1;
+    dataport Buf(DP2_SIZE) dp2;
+
+    emits Ready ready;
+    consumes Done done;
 
     has mutex cross_vm_event_mutex;
 
     VM_INIT_DEF()
 }
 
-import <CrossVMTest/CrossVMTest.camkes>;
-import <PeriodicEvent/PeriodicEvent.camkes>;
+import <StringReverse/StringReverse.camkes>;
 
 component VM {
     composition {
         VM_COMPOSITION_DEF()
         VM_PER_VM_COMP_DEF(0)
 
-        component CrossVMTest cross_vm_test;
-        component PeriodicEvent periodic_event;
+        component StringReverse string_reverse;
 
-        connection seL4SharedDataWithCaps cross_vm_conn(from cross_vm_test.dp1,
+        connection seL4SharedDataWithCaps cross_vm_conn(from string_reverse.src_dp,
                                                         to vm0.dp1);
 
-        connection seL4SharedDataWithCaps cross_vm_large_conn(from cross_vm_test.dp2,
+        connection seL4SharedDataWithCaps cross_vm_large_conn(from string_reverse.dest_dp,
                                                               to vm0.dp2);
 
-        connection seL4Notification ev1_conn(from cross_vm_test.ev,
-                                             to vm0.ev1);
+        connection seL4Notification ev2_conn(from vm0.ready,
+                                             to string_reverse.ready);
 
-        connection seL4Notification ev2_conn(from periodic_event.periodic,
-                                             to vm0.ev2);
+        connection seL4Notification ev1_conn(from string_reverse.done,
+                                             to vm0.done);
 
-        connection seL4RPCCall cross_vm_putchar(from cross_vm_test.putchar,
+        connection seL4RPCCall cross_vm_putchar(from string_reverse.putchar,
                                                 to serial.vm_putchar);
     }
     configuration {
@@ -66,9 +67,9 @@ component VM {
         vm0_config.pci_devices_iospace = 1;
 
         vm0.dp1_id = 1;
-        vm0.dp1_size = 4096;
+        vm0.dp1_size = DP1_SIZE;
 
         vm0.dp2_id = 2;
-        vm0.dp2_size = 4096 * 16;
+        vm0.dp2_size = DP2_SIZE;
     }
 }

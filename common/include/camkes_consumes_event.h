@@ -14,16 +14,16 @@
 
 typedef void (*camkes_event_callback_fn)(void *arg);
 
-typedef struct camkes_event {
+typedef struct camkes_consumes_event {
     unsigned int id;
     int (*reg_callback)(camkes_event_callback_fn, void *arg);
-} camkes_event_t;
+} camkes_consumes_event_t;
 
 /* Registers a provided callback function with the event,
  * passing the callback a pointer to the camkes_event_t.
  */
 static inline int
-camkes_event_reg_callback_self(camkes_event_t *event, camkes_event_callback_fn cb)
+camkes_event_reg_callback_self(camkes_consumes_event_t *event, camkes_event_callback_fn cb)
 {
     return event->reg_callback(cb, (void*)event);
 }

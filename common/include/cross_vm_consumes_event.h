@@ -12,10 +12,11 @@
 
 #pragma once
 
-#include <camkes_event.h>
+#include <camkes_consumes_event.h>
 #include <camkes_mutex.h>
 #include <vmm/vmm.h>
 #include <vspace/vspace.h>
 
-int cross_vm_events_init_common(vmm_t *vmm, vspace_t *vspace, camkes_mutex_t *mutex,
-                                camkes_event_t *events, int n);
+int cross_vm_consumes_events_init_common(vmm_t *vmm, vspace_t *vspace,
+                                         camkes_mutex_t *mutex,
+                                         camkes_consumes_event_t *events, int n);

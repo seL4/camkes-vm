@@ -11,13 +11,11 @@
  */
 
 #include <camkes.h>
-#include <camkes_event.h>
+#include <camkes_consumes_event.h>
 #include <camkes_mutex.h>
-#include <cross_vm_shared_event.h>
+#include <cross_vm_shared_vmm_to_guest_event.h>
 #include <vmm/vmm.h>
 #include <vspace/vspace.h>
-
-#include <stdio.h>
 
 #include "i8259.h"
 
@@ -27,7 +25,7 @@ static camkes_mutex_t *cross_vm_event_mutex;
 
 static void event_camkes_callback(void *arg) {
     int error UNUSED;
-    camkes_event_t *event = arg;
+    camkes_consumes_event_t *event = arg;
 
     if (event_context) {
 
@@ -90,8 +88,8 @@ static int event_vmcall_handler(vmm_vcpu_t *vcpu) {
     return 0;
 }
 
-int cross_vm_events_init_common(vmm_t *vmm, vspace_t *vspace, camkes_mutex_t *mutex,
-                                camkes_event_t *events, int n) {
+int cross_vm_consumes_events_init_common(vmm_t *vmm, vspace_t *vspace, camkes_mutex_t *mutex,
+                                camkes_consumes_event_t *events, int n) {
 
     vmm_vspace = vspace;
     cross_vm_event_mutex = mutex;
@@ -102,5 +100,5 @@ int cross_vm_events_init_common(vmm_t *vmm, vspace_t *vspace, camkes_mutex_t *mu
             return error;
         }
     }
-    return reg_new_handler(vmm, event_vmcall_handler, EVENT_VMCALL_HANDLER_TOKEN);
+    return reg_new_handler(vmm, event_vmcall_handler, EVENT_VMCALL_VMM_TO_GUEST_HANDLER_TOKEN);
 }

@@ -8,6 +8,17 @@
  * @TAG(D61_GPL)
  */
 
+/* CAmkES-side handler for events emitted from a CAmkES component to a
+ * guest user process.
+ *
+ * In order for a CAmkES component to emit events to a guest user process,
+ * it must have an "emits" event interfaces connected to the vmm component.
+ * When the vmm receives an event, it places some information identifying
+ * the event in memory visible to the guest, then injects an interrupt into
+ * the guest. The guest is expected to acknowledge the interrupt by making
+ * a hypercall after it's finished reading from the shared state.
+ */
+
 #include <camkes.h>
 #include <camkes_consumes_event.h>
 #include <camkes_mutex.h>
@@ -27,6 +38,17 @@ static void event_camkes_callback(void *arg) {
 
     if (event_context) {
 
+        /* The event context is shared between the guest and the vmm.
+         * It is used to communicate the identifier of the event
+         * that is currently being emitted to the guest.
+         * We take a mutex before updating the event context, and
+         * the mutex is released by a hypercall made by the guest
+         * after it's finished reading the event context.
+         *
+         * A mutex is required, as between updating the event context
+         * in response to one event, and the guest processing the
+         * injected interrupt, a second event may arrive.
+         */
         error = camkes_mutex_lock(cross_vm_event_mutex);
         assert(!error);
 
@@ -39,6 +61,9 @@ static void event_camkes_callback(void *arg) {
 }
 
 static void event_interrupt_ack(void) {
+    /* The guest will make a hypercall when it is finished reading
+     * from the shared context.
+     */
     int error UNUSED = camkes_mutex_unlock(cross_vm_event_mutex);
     assert(!error);
 }

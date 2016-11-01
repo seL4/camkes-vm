@@ -27,7 +27,7 @@ static void event_camkes_callback(void *arg) {
 
     if (event_context) {
 
-        error = camkes_mutex_unlock(cross_vm_event_mutex);
+        error = camkes_mutex_lock(cross_vm_event_mutex);
         assert(!error);
 
         event_context->id = event->id;

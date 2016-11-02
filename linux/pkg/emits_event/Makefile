@@ -8,26 +8,13 @@
 # @TAG(D61_GPL)
 #
 
-CC = gcc
-CFLAGS = -g -O2 -Wall -m32 -I../../include
-LDFLAGS = -static -static-libgcc
+TARGET = emits_event_init emits_event_emit
 
-COMMON_SRC = ../../src
+include ../../common.mk
+include ../../common_app.mk
 
-.PHONY: all clean
-all: emits_event_init emits_event_emit
+emits_event_init: init.o
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ -ldevice -o $@
 
-clean:
-	rm -rf *.o emits_event_init emits_event_emit
-
-%.o: $(COMMON_SRC)/%.c
-	$(CC) $(CFLAGS) $(LDFLAGS) -c $< -o $@
-
-%.o : %.c
-	$(CC) $(CFLAGS) $(LDFLAGS) -c $< -o $@
-
-emits_event_init: init.o device.o emits_event.o
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
-
-emits_event_emit: emit.o device.o emits_event.o
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
+emits_event_emit: emit.o
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ -ldevice -lcamkes -o $@

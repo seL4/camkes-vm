@@ -8,13 +8,9 @@
 # @TAG(D61_GPL)
 #
 
-TARGET = consumes_event_init consumes_event_wait
-
+TARGET = libdevice.a
 include ../../common.mk
-include ../../common_app.mk
 
-consumes_event_init: init.o
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -ldevice -o $@
+OBJS = device.o
 
-consumes_event_wait: wait.o
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -lcamkes -o $@
+include ../../common_lib.mk

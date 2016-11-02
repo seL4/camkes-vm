@@ -8,10 +8,5 @@
 # @TAG(D61_GPL)
 #
 
-TARGET = string_reverse
-
-include ../../common.mk
-include ../../common_app.mk
-
-string_reverse: string_reverse.o
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -lcamkes -o $@
+CURRENT_DIR := $(dir $(abspath $(lastword ${MAKEFILE_LIST})))
+LDFLAGS += -L$(CURRENT_DIR)out/static_lib

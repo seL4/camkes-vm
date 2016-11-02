@@ -1,17 +1,17 @@
 #
-# Copyright 2016, Data 61
+# Copyright 2014, NICTA
 #
 # This software may be distributed and modified according to the terms of
 # the GNU General Public License version 2. Note that NO WARRANTY is provided.
 # See "LICENSE_GPLv2.txt" for details.
 #
-# @TAG(D61_GPL)
+# @TAG(NICTA_GPL)
 #
 
-TARGET = string_reverse
-
+TARGET = libsel4vchan.a
 include ../../common.mk
-include ../../common_app.mk
 
-string_reverse: string_reverse.o
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -lcamkes -o $@
+CFLAGS += -I$(TOP_LEVEL)include/vchan
+OBJS = $(patsubst %.c,%.o,$(wildcard *.c))
+
+include ../../common_lib.mk

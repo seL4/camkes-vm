@@ -48,6 +48,9 @@ ROOTFS_SRC=rootfs-bare.cpio
 ROOTFS_DEST=rootfs.cpio
 ROOTFS_TMP=rootfs
 
+STATIC_LIBRARY_OUT=static_lib
+STATIC_LIBRARY_SRC=lib_src
+
 if test ! -d $OUT; then
     rm -rf $OUT
     mkdir -p $OUT
@@ -110,6 +113,18 @@ cat $INIT_TEMPLATE | sed -re "s/__LINUX_VERSION__/$LINUX_VERSION/g" | tee $OUT/$
 
 echo -e "\e[1;96mAdding CAmkES init script to root filesystem...\e[0m"
 cp -v $CAMKES_INIT $OUT/$ROOTFS_TMP/etc/init.d/S$CAMKES_INIT_NUM$CAMKES_INIT
+
+echo -e "\e[1;96mBuilding static libraries...\e[0m"
+STATIC_LIBRARY_PATH=`pwd`/$OUT/$STATIC_LIBRARY_OUT
+mkdir -p $STATIC_LIBRARY_PATH
+for lib in $STATIC_LIBRARY_SRC/*; do
+    pushd $lib
+
+    make
+    make OUTPUT_DIR=$STATIC_LIBRARY_PATH install
+
+    popd
+done
 
 echo -e "\e[1;96mAdding extra packages root filesystem...\e[0m"
 SBIN_PATH=`pwd`/$OUT/$ROOTFS_TMP/usr/sbin

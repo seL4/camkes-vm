@@ -32,10 +32,10 @@
 #include <linux/timer.h>
 #include <linux/io.h>
 
-#include "../../libs/vchan/includes/vmm_manager.h"
-#include "../../libs/vchan/includes/sel4libvchan.h"
-#include "../../libs/vchan/includes/vmm_driver.h"
-#include "../../libs/vchan/includes/vchan_copy.h"
+#include "../../lib_src/vchan/includes/vmm_manager.h"
+#include "../../lib_src/vchan/includes/sel4libvchan.h"
+#include "../../lib_src/vchan/includes/vmm_driver.h"
+#include "../../lib_src/vchan/includes/vchan_copy.h"
 
 #define DRIVER_NAME "vmm_manager"
 #define DRIVER_AUTH "<nicta.com.au>"

@@ -8,10 +8,10 @@
 # @TAG(D61_GPL)
 #
 
-TARGET = string_reverse
+$(TARGET): $(OBJS)
+	ar crv $@ $^
+	ranlib $@
 
-include ../../common.mk
-include ../../common_app.mk
-
-string_reverse: string_reverse.o
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -lcamkes -o $@
+.PHONY: install
+install:
+	cp -v $(TARGET) $(OUTPUT_DIR)

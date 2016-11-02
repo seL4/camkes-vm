@@ -8,29 +8,16 @@
 # @TAG(D61_GPL)
 #
 
-CC = gcc
-CFLAGS = -g -O2 -Wall -m32 -I../../include
-LDFLAGS = -static -static-libgcc
+TARGET = dataport_init dataport_read dataport_write
 
-COMMON_SRC = ../../src
+include ../../common.mk
+include ../../common_app.mk
 
-.PHONY: all clean
-all: dataport_init dataport_read dataport_write
+dataport_init: init.o
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ -ldevice -lcamkes -o $@
 
-clean:
-	rm -rf *.o dataport_init dataport_read dataport_write
+dataport_read: read.o
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ -lcamkes -o $@
 
-%.o: $(COMMON_SRC)/%.c
-	$(CC) $(CFLAGS) $(LDFLAGS) -c $< -o $@
-
-%.o : %.c
-	$(CC) $(CFLAGS) $(LDFLAGS) -c $< -o $@
-
-dataport_init: init.o dataport.o device.o
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
-
-dataport_read: read.o dataport.o device.o
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
-
-dataport_write: write.o dataport.o device.o
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
+dataport_write: write.o
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ -lcamkes -o $@

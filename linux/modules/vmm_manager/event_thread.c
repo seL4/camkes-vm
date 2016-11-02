@@ -13,9 +13,9 @@
 #include <asm/irq_vectors.h>
 #include <linux/list.h>
 
-#include "../../libs/includes/vmm_manager.h"
-#include "../../libs/includes/sel4libvchan.h"
-#include "../../libs/includes/vmm_driver.h"
+#include "../../libs/vchan/includes/vmm_manager.h"
+#include "../../libs/vchan/includes/sel4libvchan.h"
+#include "../../libs/vchan/includes/vmm_driver.h"
 
 /*
     Represents an active vchan connection

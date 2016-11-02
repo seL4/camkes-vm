@@ -8,28 +8,20 @@
  * @TAG(D61_GPL)
  */
 
+#include <string.h>
+
 #include <camkes.h>
 #include <string_reverse.h>
 
-static void reverse_dataport_string(volatile void *src, volatile void *dest, size_t n) {
+static void reverse_dataport_string(volatile char *src, volatile char *dest, size_t n) {
 
-    volatile char *src_str = (volatile char*)src;
-    volatile char *dest_str = (volatile char*)dest;
-
-    int len = 0;
-    while(len < n && src_str[len] != '\0') {
-        len++;
-    }
+    int len = strnlen((char*)src, n - 1);
 
     for (int i = 0; i < len; i++) {
-        dest_str[i] = src_str[len - i - 1];
+        dest[i] = src[len - i - 1];
     }
 
-    if (len < n) {
-        dest_str[len] = '\0';
-    } else {
-        dest_str[n - 1] = '\0';
-    }
+    dest[len] = '\0';
 }
 
 int run(void) {

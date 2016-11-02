@@ -64,10 +64,7 @@ int main(int argc, char *argv[]) {
         assert(error > 0);
 
         // read the result out of dest_data
-        for (i = 0; dest_data[i]; i++) {
-            buf[i] = dest_data[i];
-        }
-        buf[i] = '\0';
+        strncpy(buf, (char*)dest_data, BUFSIZE);
 
         printf("%s\n", buf);
     }

@@ -15,13 +15,13 @@
 
 #include "device.h"
 
-#define BUF_SIZE 256
+#define BUFSIZE 256
 
 #define DEVICE_LIST_FILE "/proc/devices"
 
 unsigned int device_get_major(char *device) {
 
-    char buf[BUF_SIZE];
+    char buf[BUFSIZE];
     FILE *devices = fopen(DEVICE_LIST_FILE, "r");
 
     if (devices == NULL) {
@@ -29,9 +29,9 @@ unsigned int device_get_major(char *device) {
         return -1;
     }
 
-    while (fgets(buf, BUF_SIZE, devices)) {
+    while (fgets(buf, BUFSIZE, devices)) {
 
-        int last_idx = strnlen(buf, BUF_SIZE - 1) - 1;
+        int last_idx = strnlen(buf, BUFSIZE - 1) - 1;
         if (buf[last_idx] == '\n') {
             buf[last_idx] = '\0';
         }

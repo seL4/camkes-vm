@@ -11,5 +11,8 @@
 CURRENT_DIR := $(dir $(abspath $(lastword ${MAKEFILE_LIST})))
 
 StringReverse_CFILES := $(wildcard $(CURRENT_DIR)/src/*.c)
+StringReverse_HFILES := $(wildcard $(CURRENT_DIR)/include/*.h)
+
+CAMKES_FLAGS += --cpp-flag=-I$(CURRENT_DIR)/include
 
 StringReverse_LIBS := sel4vspace

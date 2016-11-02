@@ -10,13 +10,11 @@
 
 #include <autoconf.h>
 #include <configurations/vm.h>
-
-#define DP1_SIZE 8192
-#define DP2_SIZE 8192
+#include <string_reverse.h>
 
 component Init0 {
-    dataport Buf(DP1_SIZE) dp1;
-    dataport Buf(DP2_SIZE) dp2;
+    dataport Buf(STRING_REVERSE_BUFSIZE) dp1;
+    dataport Buf(STRING_REVERSE_BUFSIZE) dp2;
 
     emits Ready ready;
     consumes Done done;
@@ -65,9 +63,9 @@ component VM {
         vm0_config.pci_devices_iospace = 1;
 
         vm0.dp1_id = 1;
-        vm0.dp1_size = DP1_SIZE;
+        vm0.dp1_size = STRING_REVERSE_BUFSIZE;
 
         vm0.dp2_id = 2;
-        vm0.dp2_size = DP2_SIZE;
+        vm0.dp2_size = STRING_REVERSE_BUFSIZE;
     }
 }

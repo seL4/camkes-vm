@@ -9,8 +9,7 @@
  */
 
 #include <camkes.h>
-
-#define BUFSIZE 8192
+#include <string_reverse.h>
 
 static void reverse_dataport_string(volatile void *src, volatile void *dest, size_t n) {
 
@@ -40,7 +39,7 @@ int run(void) {
     while (1) {
         ready_wait();
 
-        reverse_dataport_string(src_dp, dest_dp, BUFSIZE);
+        reverse_dataport_string(src_dp, dest_dp, STRING_REVERSE_BUFSIZE);
 
         done_emit();
     }

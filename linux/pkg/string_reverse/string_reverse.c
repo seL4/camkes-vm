@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
     assert(dest_data != MAP_FAILED);
 
     while (fgets(buf, BUFSIZE, stdin)) {
-        int last_idx = strlen(buf) - 1;
+        int last_idx = strnlen(buf, BUFSIZE - 1) - 1;
         if (buf[last_idx] == '\n') {
             buf[last_idx] = '\0';
         }

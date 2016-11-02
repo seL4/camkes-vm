@@ -31,7 +31,10 @@ unsigned int device_get_major(char *device) {
 
     while (fgets(buf, BUF_SIZE, devices)) {
 
-        buf[strlen(buf) - 1] = '\0';
+        int last_idx = strnlen(buf, BUF_SIZE - 1) - 1;
+        if (buf[last_idx] == '\n') {
+            buf[last_idx] = '\0';
+        }
 
         int number = atoi(buf);
         if (number == NO_MAJOR) {

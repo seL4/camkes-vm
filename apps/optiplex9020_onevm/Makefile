@@ -1,11 +1,13 @@
 #
-# Copyright 2014, NICTA
+# Copyright 2016, Data61, CSIRO
+# Commonwealth Scientific and Industrial Research Organisation (CSIRO)
+# ABN 41 687 119 230.
 #
 # This software may be distributed and modified according to the terms of
 # the GNU General Public License version 2. Note that NO WARRANTY is provided.
 # See "LICENSE_GPLv2.txt" for details.
 #
-# @TAG(NICTA_GPL)
+# @TAG(D61_GPL)
 #
 
 TARGETS := $(notdir ${SOURCE_DIR}).cdl
@@ -28,6 +30,7 @@ include Vchan/Vchan.mk
 include PCIConfigIO/PCIConfigIO.mk
 include FileServer/FileServer.mk
 include Init/Init.mk
+include StringReverse/StringReverse.mk
 
 # We want to run C99
 CFLAGS += -std=gnu99 "-DCAMKES_VM_CONFIG=${VM_CONFIG}" -I${SOURCE_DIR}/configurations -I${SOURCE_DIR}/../../components/VM/configurations

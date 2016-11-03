@@ -41,6 +41,8 @@
 #include "fsclient.h"
 #include "vchan_init.h"
 
+#include "cross_vm_shared_vmm_to_guest_event.h"
+
 #define BRK_VIRTUAL_SIZE 400000000
 #define ALLOCMAN_VIRTUAL_SIZE 400000000
 
@@ -75,7 +77,7 @@ static sel4utils_alloc_data_t vspace_data;
 static vmm_t vmm;
 
 int cross_vm_dataports_init(vmm_t *vmm) WEAK;
-int cross_vm_consumes_events_init(vmm_t *vmm, vspace_t *vspace) WEAK;
+int cross_vm_consumes_events_init(vmm_t *vmm, vspace_t *vspace, seL4_Word irq_badge) WEAK;
 int cross_vm_emits_events_init(vmm_t *vmm) WEAK;
 
 static seL4_CPtr simple_ioport_wrapper(void *data, uint16_t start_port, uint16_t end_port) {
@@ -449,7 +451,14 @@ static int handle_async_event(seL4_Word badge) {
 
 static void init_irqs() {
     int error UNUSED;
-    for (int i = 0; i < irqs_num_irqs(); i++) {
+
+    int num_irqs = irqs_num_irqs();
+
+    if (cross_vm_consumes_events_init && num_irqs > EVENT_IRQ_NUM) {
+        ZF_LOGE("Cross vm event irq number not available");
+    }
+
+    for (int i = 0; i < num_irqs; i++) {
         seL4_CPtr irq_handler;
         uint8_t source;
         int level_trig;
@@ -698,7 +707,7 @@ void *main_continued(void *arg) {
     }
 
     if (cross_vm_consumes_events_init) {
-        error = cross_vm_consumes_events_init(&vmm, &vspace);
+        error = cross_vm_consumes_events_init(&vmm, &vspace, irq_badges[EVENT_IRQ_NUM]);
         assert(!error);
     }
 

@@ -10,6 +10,7 @@
  * @TAG(D61_GPL)
  */
 
+#include <sel4/sel4.h>
 #include <camkes.h>
 #include <camkes_consumes_event.h>
 #include <camkes_emits_event.h>
@@ -36,9 +37,9 @@ static camkes_mutex_t cross_vm_event_mutex = (camkes_mutex_t) {
     .unlock = cross_vm_event_mutex_unlock,
 };
 
-int cross_vm_consumes_events_init(vmm_t *vmm, vspace_t *vspace) {
+int cross_vm_consumes_events_init(vmm_t *vmm, vspace_t *vspace, seL4_Word irq_badge) {
     return cross_vm_consumes_events_init_common(vmm, vspace, &cross_vm_event_mutex,
-            consumed_events, sizeof(consumed_events)/sizeof(consumed_events[0]));
+            consumed_events, sizeof(consumed_events)/sizeof(consumed_events[0]), irq_badge);
 }
 
 int cross_vm_emits_events_init(vmm_t *vmm) {

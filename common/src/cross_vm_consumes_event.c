@@ -21,6 +21,7 @@
  * a hypercall after it's finished reading from the shared state.
  */
 
+#include <sel4/sel4.h>
 #include <camkes.h>
 #include <camkes_consumes_event.h>
 #include <camkes_mutex.h>
@@ -33,6 +34,7 @@
 static event_context_t *event_context = NULL;
 static vspace_t *vmm_vspace;
 static camkes_mutex_t *cross_vm_event_mutex;
+static seL4_CPtr irq_notification;
 
 static void event_camkes_callback(void *arg) {
     int error UNUSED;
@@ -55,7 +57,7 @@ static void event_camkes_callback(void *arg) {
         assert(!error);
 
         event_context->id = event->id;
-        i8259_gen_irq(EVENT_IRQ_NUM);
+        seL4_Signal(irq_notification);
     }
 
     error = camkes_event_reg_callback_self(event, event_camkes_callback);
@@ -114,10 +116,16 @@ static int event_vmcall_handler(vmm_vcpu_t *vcpu) {
 }
 
 int cross_vm_consumes_events_init_common(vmm_t *vmm, vspace_t *vspace, camkes_mutex_t *mutex,
-                                camkes_consumes_event_t *events, int n) {
+                                camkes_consumes_event_t *events, int n, seL4_Word irq_badge) {
 
     vmm_vspace = vspace;
     cross_vm_event_mutex = mutex;
+    irq_notification = vmm_create_async_event_notification_cap(vmm, irq_badge);
+
+    if (irq_notification == seL4_CapNull) {
+        ZF_LOGE("Failed to create async event notification cap");
+        return -1;
+    }
 
     for (int i = 0; i < n; i++) {
         int error = camkes_event_reg_callback_self(&events[i], event_camkes_callback);

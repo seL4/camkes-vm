@@ -135,3 +135,7 @@ int cross_vm_consumes_events_init_common(vmm_t *vmm, vspace_t *vspace, camkes_mu
     }
     return reg_new_handler(vmm, event_vmcall_handler, EVENT_VMCALL_VMM_TO_GUEST_HANDLER_TOKEN);
 }
+
+int cross_vm_consumes_event_irq_num(void) {
+    return EVENT_IRQ_NUM;
+}

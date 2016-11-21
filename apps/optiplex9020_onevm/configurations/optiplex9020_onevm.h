@@ -10,7 +10,7 @@
  * @TAG(D61_GPL)
  */
 
-#define VM_NUM_GUESTS 1
+#define VM_NUM_GUESTS 2
 
 /* All our guests use the same kernel image, rootfs and cmdline */
 #define C162_KERNEL_IMAGE "bzimage"

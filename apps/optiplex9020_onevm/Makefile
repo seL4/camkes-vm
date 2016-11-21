@@ -32,6 +32,12 @@ include FileServer/FileServer.mk
 include Init/Init.mk
 include StringReverse/StringReverse.mk
 
+Init0_CFILES += $(wildcard $(SOURCE_DIR)/src/*.c) \
+                $(wildcard $(SOURCE_DIR)/common/src/*.c)
+
+Init0_HFILES += $(wildcard $(SOURCE_DIR)/common/include/*.h) \
+				$(wildcard $(SOURCE_DIR)/common/shared_include/cross_vm_shared/*.h)
+
 # We want to run C99
 CFLAGS += -std=gnu99 "-DCAMKES_VM_CONFIG=${VM_CONFIG}" -I${SOURCE_DIR}/configurations -I${SOURCE_DIR}/../../components/VM/configurations
 

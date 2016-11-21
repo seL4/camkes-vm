@@ -1,0 +1,9 @@
+linux/out
+linux/modules/**/*.cmd
+linux/modules/**/*.ko
+linux/modules/**/.*
+linux/modules/**/Module.symvers
+linux/modules/**/modules.order
+linux/modules/**/*.mod.c
+linux/**/*.o
+linux/**/*.a

@@ -141,6 +141,7 @@ static int __init consumes_event_init(void) {
 
     if (event_context == NULL) {
         printk(KERN_ERR "couldn't allocate context");
+        free_irq(EVENT_IRQ_NUM, NULL);
         return -1;
     }
 
@@ -153,6 +154,7 @@ static int __init consumes_event_init(void) {
                EVENT_CONTEXT_MAGIC, event_context->magic);
 
         kfree((void*)event_context);
+        free_irq(EVENT_IRQ_NUM, NULL);
         return -1;
     }
 

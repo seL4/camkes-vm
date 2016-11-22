@@ -84,5 +84,6 @@ component VM {
         vm1.initrd_image = C162_ROOTFS;
         vm1.iospace_domain = 0x10;
         vm1_config.pci_devices_iospace = 2;
+        vm1.affinity = 1;
     }
 }

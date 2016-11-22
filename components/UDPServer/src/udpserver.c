@@ -139,11 +139,11 @@ void pre_init(void) {
 }
 
 /* Provided by the Ethdriver template */
-seL4_CPtr ethdriver_aep(void);
+seL4_CPtr ethdriver_notification(void);
 
 int run() {
     while(1) {
-        seL4_Wait(ethdriver_aep(), NULL);
+        seL4_Wait(ethdriver_notification(), NULL);
         lwip_lock();
         ethif_lwip_handle_irq(&_lwip_driver, 0);
         lwip_unlock();

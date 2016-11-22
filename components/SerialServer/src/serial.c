@@ -431,12 +431,12 @@ static void timer_callback(void *data) {
     serial_unlock();
 }
 
-seL4_CPtr timeout_aep(void);
+seL4_CPtr timeout_notification(void);
 
 int run(void) {
-    seL4_CPtr aep = timeout_aep();
+    seL4_CPtr notification = timeout_notification();
     while(1) {
-        seL4_Wait(aep, NULL);
+        seL4_Wait(notification, NULL);
         timer_callback(NULL);
     }
     return 0;

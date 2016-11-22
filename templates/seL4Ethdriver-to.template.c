@@ -21,11 +21,11 @@
     /*- set instance = c.instance.name -*/
     /*- set interface = c.interface.name -*/
     /*- include 'global-endpoint.template.c' -*/
-    /*- set aep = pop('notification') -*/
+    /*- set notification = pop('notification') -*/
     /*- set badge = configuration[c.instance.name].get("%s_attributes" % c.interface.name).strip('"') -*/
     /*- set mac = configuration[c.instance.name].get("%s_mac" % c.interface.name) -*/
     void /*? me.interface.name ?*/_emit_/*? badge ?*/(void) {
-        seL4_Signal(/*? aep ?*/);
+        seL4_Signal(/*? notification ?*/);
     }
     /*- do badges.append(badge) -*/
     /*- do macs.append( (badge, mac) ) -*/

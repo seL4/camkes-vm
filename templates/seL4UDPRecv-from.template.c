@@ -40,8 +40,8 @@ int /*? me.interface.name ?*/_poll(unsigned int *len, uint16_t *port, ip_addr_t 
 /*- set instance = me.instance.name -*/
 /*- set interface = me.interface.name -*/
 /*- include 'global-endpoint.template.c' -*/
-/*- set aep = pop('notification') -*/
+/*- set notification = pop('notification') -*/
 
-seL4_CPtr /*? me.interface.name ?*/_aep(void) {
-    return /*? aep ?*/;
+seL4_CPtr /*? me.interface.name ?*/_notification(void) {
+    return /*? notification ?*/;
 }

@@ -55,7 +55,7 @@ seL4_CPtr intready_notification();
  * on having a async endpoint interface */
 volatile seL4_CPtr hw_irq_handlers[16] = {0};
 
-static seL4_CPtr get_async_event_aep() {
+static seL4_CPtr get_async_event_notification() {
     return intready_notification();
 }
 
@@ -520,7 +520,7 @@ void *main_continued(void *arg) {
         .get_interrupt = i8259_get_interrupt,
         .has_interrupt = i8259_has_interrupt,
         .do_async = handle_async_event,
-        .get_async_event_aep = get_async_event_aep,
+        .get_async_event_notification = get_async_event_notification,
 
         .open = fsclient_open,
         .read = fsclient_read,

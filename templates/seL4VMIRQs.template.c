@@ -18,11 +18,11 @@
 
 /*- set config_irqs = configuration[me.parent.to_instance.name].get(me.parent.to_interface.name) -*/
 /*- set irqs = [] -*/
-/*- set irqaep_object = alloc_obj('irq_aep_obj', seL4_NotificationObject) -*/
-/*- set irqaep_object_cap = alloc_cap('irq_aep_obj', irqaep_object, read=True) -*/
+/*- set irqnotification_object = alloc_obj('irq_notification_obj', seL4_NotificationObject) -*/
+/*- set irqnotification_object_cap = alloc_cap('irq_notification_obj', irqnotification_object, read=True) -*/
 /*- if config_irqs is not none -*/
     /*- for irq in config_irqs -*/
-        /*- set cap = alloc('irq_%d' % irq['source'], seL4_IRQControl, vector=irq['dest'], ioapic = 0, ioapic_pin = irq['source'], level = irq['level_trig'], polarity = irq['active_low'], notification=my_cnode[irqaep_object_cap]) -*/
+        /*- set cap = alloc('irq_%d' % irq['source'], seL4_IRQControl, vector=irq['dest'], ioapic = 0, ioapic_pin = irq['source'], level = irq['level_trig'], polarity = irq['active_low'], notification=my_cnode[irqnotification_object_cap]) -*/
         /*- do irqs.append( (irq['name'].strip('"'), irq['source'], irq['level_trig'], irq['active_low'], irq['dest'], cap) ) -*/
     /*- endfor -*/
 /*- endif -*/

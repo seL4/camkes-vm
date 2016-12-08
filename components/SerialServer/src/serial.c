@@ -249,7 +249,8 @@ static int is_newline(const uint8_t *c) {
 }
 
 static void internal_putchar(int b, int c) {
-    serial_lock();
+    int UNUSED error;
+    error = serial_lock();
     /* Add to buffer */
     int index = output_buffers_used[b];
     uint8_t *buffer = output_buffers[b];
@@ -259,7 +260,7 @@ static void internal_putchar(int b, int c) {
         flush_buffer(b);
     }
     has_data = 1;
-    serial_unlock();
+    error = serial_unlock();
 }
 
 static void internal_guest_putchar(int guest, int c) {
@@ -417,14 +418,16 @@ static void enable_interrupt() {
 }
 
 void serial_irq_handle() {
-    serial_lock();
+    int UNUSED error;
+    error = serial_lock();
     clear_iir();
-    serial_irq_acknowledge();
-    serial_unlock();
+    error = serial_irq_acknowledge();
+    error = serial_unlock();
 }
 
 static void timer_callback(void *data) {
-    serial_lock();
+    int UNUSED error;
+    error = serial_lock();
     if (done_output) {
         done_output = 0;
     } else if (has_data) {
@@ -434,7 +437,7 @@ static void timer_callback(void *data) {
             flush_buffer(i);
         }
     }
-    serial_unlock();
+    error = serial_unlock();
 }
 
 seL4_CPtr timeout_notification(void);
@@ -449,7 +452,8 @@ int run(void) {
 }
 
 void pre_init(void) {
-    serial_lock();
+    int UNUSED error;
+    error = serial_lock();
     // Initialize the serial port
     set_dlab(0); // we always assume the dlab is 0 unless we explicitly change it
     disable_interrupt();
@@ -474,10 +478,10 @@ void pre_init(void) {
         getchar_clients[badge].last_head = -1;
     }
     set_putchar(serial_putchar);
-    serial_irq_acknowledge();
+    error = serial_irq_acknowledge();
     /* Start regular heartbeat of 500ms */
     timeout_periodic(0, 500000000);
-    serial_unlock();
+    error = serial_unlock();
 }
 
 seL4_Word vm_putchar_get_sender_id(void);

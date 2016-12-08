@@ -117,18 +117,20 @@ static void signal_clients(uint64_t current_time) {
 }
 
 void irq_handle() {
-    time_server_lock();
+    int UNUSED error;
+    error = time_server_lock();
     signal_clients(current_time_ns());
     timer_handle_irq(timer, 0);
-    irq_acknowledge();
-    time_server_unlock();
+    error = irq_acknowledge();
+    error = time_server_unlock();
 }
 
 static int _oneshot_relative(int cid, int tid, uint64_t ns) {
+    int UNUSED error;
     if (tid >= timers_per_client || tid < 0) {
         return -1;
     }
-    time_server_lock();
+    error = time_server_lock();
     client_timer_t *t = &client_state[cid].timers[tid];
     if (t->timer_type != TIMER_TYPE_OFF) {
         remove_timer(t);
@@ -136,15 +138,16 @@ static int _oneshot_relative(int cid, int tid, uint64_t ns) {
     t->timer_type = TIMER_TYPE_RELATIVE;
     t->timeout_time = current_time_ns() + ns;
     insert_timer(t);
-    time_server_unlock();
+    error = time_server_unlock();
     return 0;
 }
 
 static int _oneshot_absolute(int cid, int tid, uint64_t ns) {
+    int UNUSED error;
     if (tid >= timers_per_client || tid < 0) {
         return -1;
     }
-    time_server_lock();
+    error = time_server_lock();
     client_timer_t *t = &client_state[cid].timers[tid];
     if (t->timer_type != TIMER_TYPE_OFF) {
         remove_timer(t);
@@ -152,15 +155,16 @@ static int _oneshot_absolute(int cid, int tid, uint64_t ns) {
     t->timer_type = TIMER_TYPE_ABSOLUTE;
     t->timeout_time = ns;
     insert_timer(t);
-    time_server_unlock();
+    error = time_server_unlock();
     return 0;
 }
 
 static int _periodic(int cid, int tid, uint64_t ns) {
+    int UNUSED error;
     if (tid >= timers_per_client || tid < 0) {
         return -1;
     }
-    time_server_lock();
+    error = time_server_lock();
     client_timer_t *t = &client_state[cid].timers[tid];
     if (t->timer_type != TIMER_TYPE_OFF) {
         remove_timer(t);
@@ -169,30 +173,32 @@ static int _periodic(int cid, int tid, uint64_t ns) {
     t->periodic_ns = ns;
     t->timeout_time = current_time_ns() + ns;
     insert_timer(t);
-    time_server_unlock();
+    error = time_server_unlock();
     return 0;
 }
 
 static int _stop(int cid, int tid) {
+    int UNUSED error;
     if (tid >= timers_per_client || tid < 0) {
         return -1;
     }
-    time_server_lock();
+    error = time_server_lock();
     client_timer_t *t = &client_state[cid].timers[tid];
     if (t->timer_type != TIMER_TYPE_OFF) {
         remove_timer(t);
         t->timer_type = TIMER_TYPE_OFF;
     }
-    time_server_unlock();
+    error = time_server_unlock();
     return 0;
 }
 
 static unsigned int _completed(int cid) {
+    int UNUSED error;
     unsigned int ret;
-    time_server_lock();
+    error = time_server_lock();
     ret = client_state[cid].completed;
     client_state[cid].completed = 0;
-    time_server_unlock();
+    error = time_server_unlock();
     return ret;
 }
 
@@ -265,7 +271,8 @@ static int pit_port_out(void *cookie, uint32_t port, int io_size, uint32_t val) 
 }
 
 void post_init() {
-    time_server_lock();
+    int UNUSED error;
+    error = time_server_lock();
     client_state = malloc(sizeof(client_state_t) * the_timer_largest_badge());
     assert(client_state);
     for (int i = 0; i < the_timer_largest_badge(); i++) {
@@ -283,10 +290,10 @@ void post_init() {
     assert(timer);
     tsc_frequency = tsc_calculate_frequency(timer);
     assert(tsc_frequency);
-    irq_acknowledge();
+    error = irq_acknowledge();
     /* start timer */
     timer_start(timer);
     timer_periodic(timer, NS_IN_S / TIMER_FREQUENCY);
-    time_server_unlock();
+    error = time_server_unlock();
     set_putchar(putchar_putchar);
 }

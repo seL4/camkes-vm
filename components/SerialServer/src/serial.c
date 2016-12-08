@@ -103,6 +103,12 @@
 #define MAX_GUESTS 12
 #define GUEST_OUTPUT_BUFFER_SIZE 256
 
+/* TODO: have the MultiSharedData template generate a header with these */
+void getchar_emit(unsigned int id);
+seL4_Word getchar_enumerate_badge(unsigned int id);
+unsigned int getchar_num_badges();
+void *getchar_buf(unsigned int id);
+
 typedef struct getchar_buffer {
     uint32_t head;
     uint32_t tail;

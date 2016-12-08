@@ -68,7 +68,7 @@ static int dataport_vmcall_handler(vmm_vcpu_t *vcpu) {
 
     switch (cmd) {
     case DATAPORT_CMD_SHARE: {
-        void *guest_paddr = (void*)vmm_read_user_context(&vcpu->guest_state, USER_CONTEXT_EDX);
+        void *guest_paddr = (void*)(uintptr_t)vmm_read_user_context(&vcpu->guest_state, USER_CONTEXT_EDX);
         size_t size = (size_t)vmm_read_user_context(&vcpu->guest_state, USER_CONTEXT_ESI);
         error = dataport_map_guest(dataport, guest_paddr, size, &vcpu->vmm->guest_mem);
         if (error) {

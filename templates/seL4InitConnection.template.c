@@ -31,14 +31,14 @@ int /*? me.interface.name ?*/_num_connections() {
     return /*? len(cons) ?*/;
 }
 
-unsigned int /*? me.interface.name ?*/_init_function(int con) {
+uintptr_t /*? me.interface.name ?*/_init_function(int con) {
     /*- if len(cons) == 0 -*/
         return -1;
     /*- else -*/
         switch(con) {
         /*- for con in cons -*/
             case /*? loop.index0 ?*/:
-                return (unsigned int)/*? con['init'].strip('"') ?*/;
+                return (uintptr_t)/*? con['init'].strip('"') ?*/;
         /*- endfor -*/
             default:
                 return -1;
@@ -46,7 +46,7 @@ unsigned int /*? me.interface.name ?*/_init_function(int con) {
     /*- endif -*/
 }
 
-int /*? me.interface.name ?*/_has_interrupt(int con, unsigned int *badge, unsigned int *fun) {
+int /*? me.interface.name ?*/_has_interrupt(int con, uintptr_t *badge, uintptr_t *fun) {
     /*- if len(cons) == 0 -*/
         return -1;
     /*- else -*/
@@ -57,7 +57,7 @@ int /*? me.interface.name ?*/_has_interrupt(int con, unsigned int *badge, unsign
                     return 0;
                 /*- else -*/
                     *badge = /*? con['badge'] ?*/;
-                    *fun = (unsigned int)/*? con['irq'].strip('"') ?*/;
+                    *fun = (uintptr_t)/*? con['irq'].strip('"') ?*/;
                     return 1;
                 /*- endif -*/
             /*- endfor -*/

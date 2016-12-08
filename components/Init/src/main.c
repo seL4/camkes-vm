@@ -486,8 +486,8 @@ int fake_vchan_handler(vmm_vcpu_t *vcpu) {
 void init_con_irq_init(void) {
     int i;
     int irqs = 0;
-    unsigned int badge;
-    unsigned int fun;
+    uintptr_t badge;
+    uintptr_t fun;
     for (i = 0; i < init_cons_num_connections(); i++) {
         if (init_cons_has_interrupt(i, &badge, &fun)) {
             irqs++;

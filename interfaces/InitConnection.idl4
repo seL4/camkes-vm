@@ -10,6 +10,6 @@
 
 procedure InitConnection {
     int num_connections();
-    unsigned int init_function(in int con);
-    int has_interrupt(in int con, out unsigned int badge, out unsigned int fun);
+    uintptr_t init_function(in int con);
+    int has_interrupt(in int con, out uintptr_t badge, out uintptr_t fun);
 };

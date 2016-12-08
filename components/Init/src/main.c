@@ -678,7 +678,7 @@ void *main_continued(void *arg) {
 
     /* Load in an elf file. Hard code alignment to 4M */
     /* TODO: use proper libc file handles with the CPIO file system */
-    error = vmm_load_guest_elf(&vmm, kernel_image, BIT(seL4_4MBits));
+    error = vmm_load_guest_elf(&vmm, kernel_image, BIT(PAGE_BITS_4M));
     assert(!error);
 
     /* Relocate the elf */

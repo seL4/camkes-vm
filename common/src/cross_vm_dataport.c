@@ -22,7 +22,7 @@ static int dataport_map_guest(dataport_caps_handle_t *dataport, void *guest_padd
 
     size_t host_size = dataport_get_size(dataport);
     if (size != host_size) {
-        ZF_LOGE("Dataport guest size and host size are different (%x and %x)", size, host_size);
+        ZF_LOGE("Dataport guest size and host size are different (%zu and %zu)", size, host_size);
         return -1;
     }
 
@@ -30,7 +30,7 @@ static int dataport_map_guest(dataport_caps_handle_t *dataport, void *guest_padd
     unsigned int num_frames = dataport_get_num_frame_caps(dataport);
     seL4_CPtr *frames = dataport_get_frame_caps(dataport);
 
-    ZF_LOGI("Mapping %x bytes to guest paddr %p", size, guest_paddr);
+    ZF_LOGI("Mapping %zu bytes to guest paddr %p", size, guest_paddr);
 
     vspace_unmap_pages(guest_vspace, guest_paddr, num_frames, PAGE_BITS_4K, VSPACE_PRESERVE);
 

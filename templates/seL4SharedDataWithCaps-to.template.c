@@ -46,7 +46,7 @@ struct {
 
 static seL4_CPtr frame_caps[] = {
     /*- for (i, frame) in enumerate(frames) -*/
-        /*? hex(alloc_cap("%s_%s_frame_%d" % (me.interface.name, me.instance.name, i), frame)) ?*/,
+        /*? hex(alloc_cap("%s_%s_frame_%d" % (me.interface.name, me.instance.name, i), frame, read=True, write=True, grant=True)) ?*/,
     /*- endfor -*/
 };
 

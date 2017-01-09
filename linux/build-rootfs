@@ -53,6 +53,8 @@ ROOTFS_TMP=rootfs
 STATIC_LIBRARY_OUT=static_lib
 STATIC_LIBRARY_SRC=lib_src
 
+LINUX_BZIMAGE=bzimage
+
 if test ! -d $OUT; then
     rm -rf $OUT
     mkdir -p $OUT
@@ -74,6 +76,14 @@ fi
 echo -e "\e[1;96mCopying linux configs into linux source dir...\e[0m"
 cp -v $CONFIG_DIR/$LINUX_CONFIG $OUT/$LINUX_DIR/.config
 cp -v $CONFIG_DIR/$LINUX_SYMVERS $OUT/$LINUX_DIR
+
+if test "$1" == "-k"; then
+    echo -e "\e[1;96mCompiling linux...\e[0m"
+    pushd $OUT/$LINUX_DIR
+    make -j
+    popd
+    cp -v $OUT/$LINUX_DIR/arch/x86/boot/bzImage $LINUX_BZIMAGE
+fi
 
 echo -e "\e[1;96mPreparing linux source to build kernel modules...\e[0m"
 pushd $OUT/$LINUX_DIR

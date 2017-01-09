@@ -337,7 +337,7 @@ static seL4_CPtr get_dma_frame_cap(vspace_t *vspace, void *vaddr) {
 }
 
 /* Allocate a dma buffer backed by the component's dma pool */
-static void* camkes_iommu_dma_alloc(ps_dma_man_t *dma, size_t size,
+static void* camkes_iommu_dma_alloc(void *cookie, size_t size,
         int align, int cached, ps_mem_flags_t flags) {
 
     // allocate buffer from the dma pool
@@ -345,7 +345,7 @@ static void* camkes_iommu_dma_alloc(ps_dma_man_t *dma, size_t size,
     if (vaddr == NULL) {
         return NULL;
     }
-    int error = sel4utils_iommu_dma_alloc_iospace(dma, vaddr, size);
+    int error = sel4utils_iommu_dma_alloc_iospace(cookie, vaddr, size);
     if (error) {
         camkes_dma_free(vaddr, size);
         return NULL;
@@ -385,11 +385,13 @@ void post_init(void) {
 
     error = sel4utils_make_iommu_dma_alloc(&vka, &vspace, &ioops.dma_manager, 1, &iospace.capPtr);
     assert(!error);
+    ioops.dma_manager.dma_alloc_fn = camkes_iommu_dma_alloc;
+
     error = sel4platsupport_get_io_port_ops(&ioops.io_port_ops, &camkes_simple);
     assert(!error);
     /* preallocate buffers */
     for (int i = 0; i < RX_BUFS; i++) {
-        void *buf = camkes_iommu_dma_alloc(&ioops.dma_manager, BUF_SIZE, 4, 1, PS_MEM_NORMAL);
+        void *buf = ps_dma_alloc(&ioops.dma_manager, BUF_SIZE, 4, 1, PS_MEM_NORMAL);
         assert(buf);
         uintptr_t phys = ps_dma_pin(&ioops.dma_manager, buf, BUF_SIZE);
         assert(phys == (uintptr_t)buf);
@@ -404,7 +406,7 @@ void post_init(void) {
         clients[client].dataport = client_buf(clients[client].client_id);
         client_get_mac(clients[client].client_id, clients[client].mac);
         for (int i = 0; i < CLIENT_TX_BUFS; i++) {
-            void *buf = camkes_iommu_dma_alloc(&ioops.dma_manager, BUF_SIZE, 4, 1, PS_MEM_NORMAL);
+            void *buf = ps_dma_alloc(&ioops.dma_manager, BUF_SIZE, 4, 1, PS_MEM_NORMAL);
             assert(buf);
             uintptr_t phys = ps_dma_pin(&ioops.dma_manager, buf, BUF_SIZE);
             assert(phys == (uintptr_t)buf);

@@ -194,6 +194,7 @@
  * either server (grant offeror) to client or vice versa.
  */
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

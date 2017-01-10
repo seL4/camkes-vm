@@ -8,6 +8,8 @@
  * @TAG(NICTA_GPL)
  */
 
+#include <stdint.h>
+
 #include "includes/sel4libvchan.h"
 #include "includes/libvchan.h"
 #include "includes/vmm_manager.h"

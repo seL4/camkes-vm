@@ -17,6 +17,8 @@
  *
  */
 
+#include <stdint.h>
+
 #include <vmm_manager.h>
 #include <vchan_copy.h>
 #include <libvchan.h>

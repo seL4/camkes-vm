@@ -14,8 +14,6 @@
 #include <configurations/vm.h>
 #include <string_reverse.h>
 
-#define PASSTHROUGH_ETHERNET 0
-
 component Init0 {
     dataport Buf(STRING_REVERSE_BUFSIZE) dp1;
     dataport Buf(STRING_REVERSE_BUFSIZE) dp2;
@@ -203,13 +201,8 @@ component VM {
         udpserver1.ethdriver_mac = [06, 00, 00, 13, 14, 15];
         udpserver1.heap_size = 0;
 
-// enable the configuration below to turn on passthrough usb and ethernet
-#if 1
-
         vm0_config.ioports = [
-#if PASSTHROUGH_ETHERNET
             {"start":0x3000, "end":0x3020, "pci_device":0, "name":"Ethernet5"},
-#endif
             {"start":0x4088, "end":0x4088 + 8, "pci_device":0x1f, "name":"SATA"},
             {"start":0x4094, "end":0x4094 + 4, "pci_device":0x1f, "name":"SATA"},
             {"start":0x4080, "end":0x4080 + 8, "pci_device":0x1f, "name":"SATA"},
@@ -233,7 +226,6 @@ component VM {
                 {"paddr":0xc0714000, "size":0x400, "page_bits":12},
             ],
         },
-#if PASSTHROUGH_ETHERNET
         {
             "name":"Ethernet5",
             "bus":5, "dev":0, "fun":0,
@@ -243,7 +235,6 @@ component VM {
                 {"paddr":0xc0520000, "size":0x4000, "page_bits":12},
             ],
         },
-#endif
         {
             "name":"SATA",
             "bus":0, "dev":0x1f, "fun":2,
@@ -256,12 +247,8 @@ component VM {
         vm0_config.irqs = [
             {"name":"USB2", "source":0x10, "level_trig":1, "active_low":1, "dest":14},
             {"name":"USB3", "source":0x17, "level_trig":1, "active_low":1, "dest":15},
-#if PASSTHROUGH_ETHERNET
             {"name":"Ethernet5", "source":0x11, "level_trig":1, "active_low":1, "dest":10},
-#endif
             {"name":"SATA", "source":19, "level_trig":1, "active_low":1, "dest":11},
         ];
-
-#endif
     }
 }

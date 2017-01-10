@@ -234,23 +234,23 @@ component VM {
             ],
         },
 #if PASSTHROUGH_ETHERNET
-          {
-              "name":"Ethernet5",
-              "bus":5, "dev":0, "fun":0,
-              "irq":"Ethernet5",
-              "memory":[
-                  {"paddr":0xc0500000, "size":0x20000, "page_bits":12},
-                  {"paddr":0xc0520000, "size":0x4000, "page_bits":12},
-              ],
-          },
+        {
+            "name":"Ethernet5",
+            "bus":5, "dev":0, "fun":0,
+            "irq":"Ethernet5",
+            "memory":[
+                {"paddr":0xc0500000, "size":0x20000, "page_bits":12},
+                {"paddr":0xc0520000, "size":0x4000, "page_bits":12},
+            ],
+        },
 #endif
-          {
-              "name":"SATA",
-              "bus":0, "dev":0x1f, "fun":2,
-              "irq":"SATA",
-              "memory":[
-                  {"paddr":0xc0713000, "size":0x800, "page_bits":12},
-              ],
+        {
+            "name":"SATA",
+            "bus":0, "dev":0x1f, "fun":2,
+            "irq":"SATA",
+            "memory":[
+                {"paddr":0xc0713000, "size":0x800, "page_bits":12},
+            ],
           },
         ];
         vm0_config.irqs = [

@@ -8,6 +8,19 @@
  * @TAG(NICTA_GPL)
  */
 
+/*
+ * Usage: This component contains two echo servers that listen on a recv_port defined in
+ * the <application>.camkes file, and bound to the ip address of the UDPserver that it is
+ * connected to. Sending data over UDP will be rebounded to the client immediately.  
+ * 
+ * Note: The reply is sent via a udp port statically defined by send_ports in <application>.camkes 
+ * so the reply may not arrive on the same port as the sender. Multiple netcat clients could be used. 
+ * 
+ * Example usage from external client:
+ * $ netcat -u <UDP_SERVER_IP_ADDR> <ECHO_RECV_PORT> #Sender
+ * $ netcat -lup <ECHO_SEND_PORT> #Recieve the rebounded echo replies on this port. Echos data from sender. 
+ */
+
 import <Ethdriver.idl4>;
 import <PutChar.idl4>;
 import <UDPRecv.idl4>;

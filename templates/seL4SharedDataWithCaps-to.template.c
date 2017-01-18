@@ -95,10 +95,22 @@ static size_t /*? me.interface.name ?*/_get_size(void) {
     return /*? dataport_size ?*/;
 }
 
+static seL4_CapRights_t /*? me.interface.name ?*/_get_rights(void) {
+    /*- if perm is none -*/
+        return seL4_AllRights;
+    /*- else -*/
+        /*- set read = int("R" in perm) -*/
+        /*- set write = int("W" in perm) -*/
+        /*# cross vm dataports can't be mapped executable #*/
+        return seL4_CapRights_new(0, /*? read ?*/, /*? write ?*/);
+    /*- endif -*/
+}
+
 dataport_caps_handle_t /*? me.interface.name ?*/_handle = {
     .get_nth_frame_cap = /*? me.interface.name ?*/_get_nth_frame_cap,
     .get_id = /*? me.interface.name ?*/_get_id,
     .get_num_frame_caps = /*? me.interface.name ?*/_get_num_frame_caps,
     .get_frame_caps = /*? me.interface.name ?*/_get_frame_caps,
     .get_size = /*? me.interface.name ?*/_get_size,
+    .get_rights = /*? me.interface.name ?*/_get_rights,
 };

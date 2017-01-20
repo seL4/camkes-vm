@@ -16,8 +16,12 @@
 #define C162_KERNEL_IMAGE "bzimage"
 #define C162_ROOTFS "rootfs.cpio"
 
-// use  this for debian/ubuntu systems
-//#define VM_GUEST_CMDLINE "earlyprintk=ttyS0,115200 console=ttyS0,115200 i8042.nokbd=y i8042.nomux=y i8042.noaux=y io_delay=udelay noisapnp pci=nomsi rdinit=/sbin/init 1"
+#define PASSTHROUGH_SATA
 
-// use this for buildroot systems
-#define VM_GUEST_CMDLINE "earlyprintk=ttyS0,115200 console=ttyS0,115200 i8042.nokbd=y i8042.nomux=y i8042.noaux=y io_delay=udelay noisapnp pci=nomsi rdinit=/init 2 root=/dev/sda1"
+//#define SATA_AHCI // uncomment to use this with sata drives in ahci mode (as opposed to ide)
+
+#ifdef PASSTHROUGH_SATA
+#define VM_GUEST_CMDLINE "earlyprintk=ttyS0,115200 console=ttyS0,115200 i8042.nokbd=y i8042.nomux=y i8042.noaux=y io_delay=udelay noisapnp pci=nomsi rdinit=/init 2 root=/dev/sda1 debug"
+#else
+#define VM_GUEST_CMDLINE "earlyprintk=ttyS0,115200 console=ttyS0,115200 i8042.nokbd=y i8042.nomux=y i8042.noaux=y io_delay=udelay noisapnp pci=nomsi rdinit=/init 2 root=/dev/vda1 debug"
+#endif

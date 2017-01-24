@@ -109,12 +109,12 @@ connector seL4RPCDataport {
 }
 
 connector seL4Ethdriver {
-    from Procedures template "seL4Ethdriver-from.template.c";
+    from Procedures template "seL4Ethdriver-from.template.c" with 0 threads;
     to Procedure template "seL4Ethdriver-to.template.c";
 }
 
 connector seL4SerialServer {
-    from Procedures template "seL4SerialServer-from.template.c";
+    from Procedures template "seL4SerialServer-from.template.c" with 0 threads;
     to Procedure template "seL4SerialServer-to.template.c";
 }
 

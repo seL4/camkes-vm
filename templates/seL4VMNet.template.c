@@ -174,7 +174,7 @@ static struct raw_iface_funcs emul_driver_funcs = {
 static int emul_driver_init(struct eth_driver *driver, ps_io_ops_t io_ops, void *config) {
     vmnet_t *net = (vmnet_t*)config;
     driver->eth_data = config;
-    driver->dma_alignment = 4;
+    driver->dma_alignment = sizeof(uintptr_t);
     driver->i_fn = emul_driver_funcs;
     net->emul_driver = driver;
     return 0;

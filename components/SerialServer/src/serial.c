@@ -130,6 +130,7 @@ static int fifo_used = 0;
 
 static uint8_t output_buffers[MAX_GUESTS * 2][GUEST_OUTPUT_BUFFER_SIZE];
 static int output_buffers_used[MAX_GUESTS * 2] = { 0 };
+static uint16_t output_buffer_bitmask = 0;
 
 static int done_output = 0;
 
@@ -241,6 +242,7 @@ static void flush_buffer(int b) {
     }
     done_output = 1;
     output_buffers_used[b] = 0;
+    output_buffer_bitmask &= ~(1 << b);
     fflush(stdout);
 }
 
@@ -256,8 +258,12 @@ static void internal_putchar(int b, int c) {
     uint8_t *buffer = output_buffers[b];
     buffer[index] = (uint8_t)c;
     output_buffers_used[b]++;
-    if (index + 1 == GUEST_OUTPUT_BUFFER_SIZE || (index >= 1 && is_newline(buffer + index - 1)) || last_out == b) {
+    if (index + 1 == GUEST_OUTPUT_BUFFER_SIZE
+        || (index >= 1 && is_newline(buffer + index - 1))
+        || (last_out == b && output_buffer_bitmask == 0)) {
         flush_buffer(b);
+    } else {
+        output_buffer_bitmask |= (1 << b);
     }
     has_data = 1;
     error = serial_unlock();

@@ -80,7 +80,7 @@ cp -v $CONFIG_DIR/$LINUX_SYMVERS $OUT/$LINUX_DIR
 if test "$1" == "-k"; then
     echo -e "\e[1;96mCompiling linux...\e[0m"
     pushd $OUT/$LINUX_DIR
-    make -j
+    make -j$JOBS
     popd
     cp -v $OUT/$LINUX_DIR/arch/x86/boot/bzImage $LINUX_BZIMAGE
 fi

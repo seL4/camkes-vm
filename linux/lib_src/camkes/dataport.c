@@ -14,7 +14,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stropts.h>
 
 #include <sys/mman.h>
 #include <sys/ioctl.h>

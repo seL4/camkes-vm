@@ -31,6 +31,8 @@
 #include <linux/time.h>   // for using jiffies
 #include <linux/timer.h>
 #include <linux/io.h>
+#include <linux/device.h>
+#include <linux/cdev.h>
 
 #include "../../lib_src/vchan/includes/vmm_manager.h"
 #include "../../lib_src/vchan/includes/sel4libvchan.h"
@@ -94,6 +96,9 @@ static struct vmm_op_lookup_table {
 };
 
 int vmm_major = 1;
+dev_t vmm_cdev_num;
+struct class *vmm_cdev_class;
+struct cdev vmm_cdev;
 int vmm_run_num;
 
 /* Memory buffer for storing arguments passed to vmm */
@@ -153,9 +158,51 @@ static int __init vmm_manager_init(void) {
     printk(KERN_INFO "k_vmm_manager: vmm driver running on guest %d|%d\n", vmm_run_num,  *data);
 
     /* Register this device with the linux kernel */
-    vmm_major = register_chrdev(0, DRIVER_NAME, &vmm_fops);
-    if (vmm_major < 0) {
-        printk ("k_vmm_manager: failed to register character device %d\n", vmm_major);
+    /*
+       Approach based on the following:
+       http://stackoverflow.com/a/5973426
+       https://coherentmusings.wordpress.com/2012/12/22/device-node-creation-without-using-mknod/
+
+       This allows us to rely on udev.
+    */
+    if (alloc_chrdev_region(&vmm_cdev_num, 0, 1, DRIVER_NAME) != 0) {
+        printk("k_vmm_manager: failed to register character device region\n");
+        kfree(vargs->data);
+        kfree(vmm_mem_buf);
+        free_event_thread();
+        return -EINVAL;
+    }
+
+    vmm_major = MAJOR(vmm_cdev_num);
+    vmm_cdev_class = class_create(THIS_MODULE, DRIVER_NAME);
+
+    if (vmm_cdev_class == NULL) {
+        printk("k_vmm_manager: failed to register character device class\n");
+        unregister_chrdev_region(vmm_cdev_num, 1);
+        kfree(vargs->data);
+        kfree(vmm_mem_buf);
+        free_event_thread();
+        return -EINVAL;
+    }
+
+    if (device_create(vmm_cdev_class, NULL, vmm_cdev_num, NULL, DRIVER_NAME) == NULL) {
+        printk("k_vmm_manager: failed to register character device class\n");
+        class_destroy(vmm_cdev_class);
+        unregister_chrdev_region(vmm_cdev_num, 1);
+        kfree(vargs->data);
+        kfree(vmm_mem_buf);
+        free_event_thread();
+        return -EINVAL;
+    }
+
+    cdev_init(&vmm_cdev, &vmm_fops);
+    vmm_cdev.owner = THIS_MODULE;
+
+    if (cdev_add(&vmm_cdev, vmm_cdev_num, 1) != 0) {
+        printk("k_vmm_manager: failed to register character device\n");
+        device_destroy(vmm_cdev_class, vmm_cdev_num);
+        class_destroy(vmm_cdev_class);
+        unregister_chrdev_region(vmm_cdev_num, 1);
         kfree(vargs->data);
         kfree(vmm_mem_buf);
         free_event_thread();
@@ -174,14 +221,15 @@ static int __init vmm_manager_init(void) {
     // }
 
     printk(KERN_INFO "k_vmm_manager: Salut, Mundi, vmm_manager: assigned major: %d\n", vmm_major);
-    printk(KERN_INFO "k_vmm_manager: create node with mknod /dev/%s c %d 0\n", DRIVER_NAME, vmm_major);
 
     return 0;
 }
 
 /* Removal of the vmm_driver */
 static void __exit vmm_manager_exit(void) {
-    unregister_chrdev(vmm_major, DRIVER_NAME);
+    device_destroy(vmm_cdev_class, vmm_cdev_num);
+    class_destroy(vmm_cdev_class);
+    unregister_chrdev_region(vmm_cdev_num, 1);
 
     kfree(vargs->data);
     kfree(vmm_mem_buf);

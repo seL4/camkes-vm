@@ -33,8 +33,7 @@ insmod /lib/modules/__LINUX_VERSION__/kernel/drivers/vmm/emits_event.ko
 insmod /lib/modules/__LINUX_VERSION__/kernel/drivers/vmm/vmm_manager.ko
 if [ "$?" -lt "0" ]; then
 	echo "vmm driver initialisation FAILED with $?" > /dev/kmsg
-else
-	mknod /dev/vmm_manager c 248 0
+# else
 	# echo "Starting tests" 2>&1 > /dev/kmsg
 	# /bin/vmm_manager_tests > /dev/kmsg
 	# if [ "$?" -eq "0" ]; then

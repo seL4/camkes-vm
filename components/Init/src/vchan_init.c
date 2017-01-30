@@ -136,7 +136,7 @@ void vchan_interrupt(vmm_t *vmm) {
 int get_vm_num() {
     int res;
     char *name = (char *) get_instance_name();
-    int ret = sscanf(name, "vm_vm%d", &res);
+    int ret = sscanf(name, "vm.vm%d", &res);
     if(ret == 0) {
         printf("vchan_driver: failed to get run num\n");
         return -1;

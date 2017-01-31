@@ -12,3 +12,9 @@
 
 CURRENT_DIR := $(dir $(abspath $(lastword ${MAKEFILE_LIST})))
 LDFLAGS += -L$(CURRENT_DIR)out/static_lib
+
+# Provides a default install target to avoid breaking legacy
+# applications, now that such a target is required by build-rootfs
+install:
+	find -\( -name '.git' -prune -\) -or -type f -executable -exec cp -v {} ${SBIN_PATH} \;
+# Find all executable files which are not in a .git directory and copy them into $OUT/$ROOTFS_TMP/usr/sbin

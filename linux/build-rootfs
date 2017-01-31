@@ -144,7 +144,9 @@ for pkg in $PKG_DIR/*; do
     pushd $pkg
 
     make
-    find -executable -exec cp -v {} $SBIN_PATH \;
+    export SBIN_PATH
+    make install
+    export -n SBIN_PATH
     make clean
 
     popd

@@ -294,7 +294,13 @@ void client_tx(int len) {
         memcpy(tx_buf->buf, packet, len);
         memcpy(tx_buf->buf + 6, client->mac, 6);
         /* queue up transmit */
-        eth_driver.i_fn.raw_tx(&eth_driver, 1, (uintptr_t*)&(tx_buf->buf), (unsigned int*)&len, tx_buf);
+        int err = ETHIF_TX_FAILED;
+        while (err == ETHIF_TX_FAILED){
+            ethdriver_unlock(); /* Unlocking allows the interrupt handler to grab the lock to bring the ethdriver's link up */
+            ethdriver_lock();
+            err = eth_driver.i_fn.raw_tx(&eth_driver, 1, (uintptr_t*)&(tx_buf->buf), (unsigned int*)&len, tx_buf);
+            /* Retry if the eth driver did not send */
+        }
     }
     ethdriver_unlock();
 }

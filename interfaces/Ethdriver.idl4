@@ -9,7 +9,7 @@
  */
 
 procedure Ethdriver {
-    void tx(in int len);
+    int tx(in int len);
     int rx(out int len);
     void mac(out uint8_t b1, out uint8_t b2, out uint8_t b3, out uint8_t b4, out uint8_t b5, out uint8_t b6);
 };

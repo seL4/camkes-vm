@@ -42,7 +42,7 @@
 
 volatile Buf*__attribute__((weak)) ethdriver_buf;
 
-void __attribute__((weak)) ethdriver_tx(int len) {
+int __attribute__((weak)) ethdriver_tx(int len) {
     assert(!"should not be here");
 }
 

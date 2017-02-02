@@ -55,8 +55,8 @@ static int raw_tx(struct eth_driver *driver, unsigned int num, uintptr_t *phys, 
         memcpy(p + total_len, (void*)phys[i], len[i]);
         total_len += len[i];
     }
-    ethdriver_tx(total_len);
-    return ETHIF_TX_COMPLETE;
+
+    return ethdriver_tx(total_len);
 }
 
 static void handle_irq(struct eth_driver *driver, int irq) {

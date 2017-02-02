@@ -266,7 +266,7 @@ int client_rx(int *len) {
     return ret;
 }
 
-void client_tx(int len) {
+int client_tx(int len) {
     if (!done_init) {
         return;
     }
@@ -276,6 +276,7 @@ void client_tx(int len) {
     if (len < 12) {
         return;
     }
+    int err = ETHIF_TX_COMPLETE;
     int id = client_get_sender_id();
     client_t *client = NULL;
     for (int i = 0; i < num_clients; i++) {
@@ -294,15 +295,11 @@ void client_tx(int len) {
         memcpy(tx_buf->buf, packet, len);
         memcpy(tx_buf->buf + 6, client->mac, 6);
         /* queue up transmit */
-        int err = ETHIF_TX_FAILED;
-        while (err == ETHIF_TX_FAILED){
-            ethdriver_unlock(); /* Unlocking allows the interrupt handler to grab the lock to bring the ethdriver's link up */
-            ethdriver_lock();
-            err = eth_driver.i_fn.raw_tx(&eth_driver, 1, (uintptr_t*)&(tx_buf->buf), (unsigned int*)&len, tx_buf);
-            /* Retry if the eth driver did not send */
-        }
+        err = eth_driver.i_fn.raw_tx(&eth_driver, 1, (uintptr_t*)&(tx_buf->buf), (unsigned int*)&len, tx_buf);
     }
     ethdriver_unlock();
+
+    return err;
 }
 
 void client_mac(uint8_t *b1, uint8_t *b2, uint8_t *b3, uint8_t *b4, uint8_t *b5, uint8_t *b6) {

@@ -22,6 +22,7 @@
 #include <linux/poll.h>
 #include <linux/workqueue.h>
 #include <linux/mutex.h>
+#include <linux/sched.h>
 
 #include <asm/uaccess.h>
 #include <asm/kvm_para.h>

@@ -45,4 +45,8 @@
 
 #define ETHARP_SUPPORT_STATIC_ENTRIES   1
 
+/* Get lwip to queue any packets whilst waiting for ARP response. Otherwise lwip will
+ * only hold the latest packet until the ARP is resolved. */
+#define ARP_QUEUEING 1
+
 #endif /* __LWIPOPTS_H__ */

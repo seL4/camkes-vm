@@ -82,8 +82,31 @@ The hardware COM1 is multiplexed to each VM such that output for each guest
 and VM appears over COM1, and input can be directed at any of the guests. The
 output of each guest and VM is colour coded.
 
-By default input is sent to vm0, to switch input to a different VM use ~N where
-N is 0, 1 or 2. The escape character, tilde, is only recognized following a newline.
+By default input is sent to vm0, to switch input to a different VM use
+~N where N is 0-9 (for VMs 0 to 9) or :,; for VMs 10 and 11
+respectively. The escape character, tilde, is only recognized
+following a newline. To get a list of all supported escapes, use `~?`;
+if you're connected over SSH, you'll need to escape the `~` with
+another `~` (for this specific escape).
+
+It is also possible to send input to multiple VMs at the same time.
+This mode is experimental. To set up multi-guest input, use `~m`
+followed by one or more numbers or characters (as above), then press
+Return to apply.
+
+Multi-guest input mode also enables output coalescing, in order to
+allow convenient use of the shell and other interactive terminal
+applications (including text editors, if the editor state is exactly
+the same in all guests). Coalesced output is drawn in white. Please
+note that coalescing is experimental and best-effort; some
+circumstances will result in coalescing failure, which is shown as
+multiple colour-coded copies of the same output. In order to
+ameliorate this, it is recommended to use a terminal multiplexer such
+as `screen` inside the VMs, providing a redraw function.
+
+Some debug features are also built in (activated via the `~d` escape);
+see the online help (`~?`) and [the source code](/components/SerialServer/src/serial.c)
+for details.
 
 C++
 ---

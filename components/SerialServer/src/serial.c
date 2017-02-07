@@ -12,6 +12,7 @@
 #include <camkes.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <sel4/sel4.h>
 #include <camkes.h>
@@ -101,7 +102,7 @@
 #define COLOUR_RESET "\033[0m"
 
 #define MAX_GUESTS 12
-#define GUEST_OUTPUT_BUFFER_SIZE 256
+#define GUEST_OUTPUT_BUFFER_SIZE 4096
 
 /* TODO: have the MultiSharedData template generate a header with these */
 void getchar_emit(unsigned int id);
@@ -242,12 +243,129 @@ static void flush_buffer(int b) {
     }
     done_output = 1;
     output_buffers_used[b] = 0;
-    output_buffer_bitmask &= ~(1 << b);
+    output_buffer_bitmask &= ~BIT(b);
     fflush(stdout);
+}
+
+static int debug = 0;
+
+/* Try to flush up to the end of the line. */
+static bool flush_buffer_line(int b) {
+    if (output_buffers_used[b] == 0) {
+        return 0;
+    }
+    uint8_t* nlptr = memchr(output_buffers[b], '\r', output_buffers_used[b]);
+    if (nlptr == NULL) {
+        nlptr = memchr(output_buffers[b], '\n', output_buffers_used[b]);
+    }
+    if (nlptr == NULL) {
+        if (debug == 2) {
+            ZF_LOGD("newline not found!\r\n");
+        }
+        return 0;
+    }
+    size_t length = (nlptr - &output_buffers[b][0]) + 1;
+    if (length < output_buffers_used[b] && (output_buffers[b][length] == '\n' || output_buffers[b][length] == '\r')) {
+        length++;               /* Include \n after \r if present */
+    }
+    if (length == 0) {
+        if (debug == 2) {
+            ZF_LOGD("0-length!\r\n");
+        }
+        return 0;
+    }
+    if (b != last_out) {
+        printf("%s%s", COLOUR_RESET, all_output_colours[b]);
+        last_out = b;
+    }
+    int i;
+    for (i = 0; i < length; i++) {
+        printf("%c", output_buffers[b][i]);
+    }
+    for (i = length; i < output_buffers_used[b]; i++) {
+        output_buffers[b][i-length] = output_buffers[b][i];
+    }
+    output_buffers_used[b] -= length;
+    if (output_buffers_used[b] == 0) {
+        output_buffer_bitmask &= ~BIT(b);
+    }
+    return 1;
 }
 
 static int is_newline(const uint8_t *c) {
     return (c[0] == '\r' && c[1] == '\n') || (c[0] == '\n' && c[1] == '\r');
+}
+
+static int active_guest = 0;
+static int active_multiguests = 0;
+
+/* Try coalescing guest output. This is intended for use with
+ * multi-input mode to all guests. */
+
+/* (XXX) CAVEATS:
+ *
+ * - Has not been tested with more than 2 guests
+ *
+ * - Has not been tested with multi-input mode set not matching guest
+ *   set
+ *
+ * - Does not handle ANSI codes, UTF-8 or other multibytes specially;
+     may break them when coalescing starts/stops.
+ *
+ * - Still "fails" due to some timing/buffering issues, but these
+ *   failures are sufficiently rare that this is still useful. */
+static int try_coalesce_output() {
+    size_t length = 0;
+    size_t used[MAX_GUESTS * 2] = { 0 };
+    size_t n_used = 0;
+    for (size_t i = 0; i < MAX_GUESTS * 2; i++) {
+        if (output_buffers_used[i] > 0) {
+            used[n_used++] = i;
+            if (length == 0 || length > output_buffers_used[i]) {
+                length = output_buffers_used[i];
+            }
+            if (n_used > 1) {
+                if (memcmp(output_buffers[used[0]], output_buffers[i], length) != 0) {
+                    if (debug == 1) {
+                        ZF_LOGD("\r\nDifferent contents '");
+                        for (int j = 0; j < length; ++j) {
+                            printf("%0hhx", output_buffers[used[0]][j]);
+                        }
+                        printf("' vs '");
+                        for (int j = 0; j < length; ++j) {
+                            printf("%0hhx", output_buffers[i][j]);
+                        }
+                        printf("'\r\n");
+                    }
+                    return -1; /* different contents, don't special-case */
+                }
+            }
+        }
+    }
+    if (n_used > 1 && length > 0) {
+        if (last_out != -1) {
+            printf("%s", COLOUR_RESET);
+        }
+        for (int i = 0; i < length; i++) {
+            printf("%c", output_buffers[used[0]][i]);
+        }
+        last_out = -1;
+        fflush(stdout);
+        for (int i = 0; i < n_used; i++) {
+            output_buffers_used[used[i]] -= length;
+            for (int j = 0; j < output_buffers_used[used[i]]; ++j) {
+                output_buffers[used[i]][j] = output_buffers[used[i]][j+length];
+            }
+            if (output_buffers_used[used[i]] == 0) {
+                output_buffer_bitmask &= ~BIT(used[i]);
+            }
+        }
+        if (output_buffer_bitmask != 0) {
+            has_data = 1;
+        }
+        return 0;               /* coalesced */
+    }
+    return 1;                   /* buffering */
 }
 
 static void internal_putchar(int b, int c) {
@@ -258,12 +376,56 @@ static void internal_putchar(int b, int c) {
     uint8_t *buffer = output_buffers[b];
     buffer[index] = (uint8_t)c;
     output_buffers_used[b]++;
-    if (index + 1 == GUEST_OUTPUT_BUFFER_SIZE
-        || (index >= 1 && is_newline(buffer + index - 1))
-        || (last_out == b && output_buffer_bitmask == 0)) {
+    int coalesce_status = -1;
+
+    if (active_guest == -1) {
+        /* Test for special case: multiple guests outputting the EXACT SAME THING. */
+        coalesce_status = try_coalesce_output();
+    }
+    if (output_buffers_used[b] == GUEST_OUTPUT_BUFFER_SIZE) {
+        /* Since we're violating contract anyway (flushing in the
+         * middle of someone else's line), flush all buffers, so the
+         * fastpath can be used again. */
+        char is_done;
+        int i;
+        int prev_guest = last_out;
+        if (prev_guest != -1) {
+            flush_buffer_line(prev_guest);
+        }
+        while (!is_done) {
+            is_done = 1;
+            for (i = 0; i < MAX_GUESTS * 2; i++) {
+                if (flush_buffer_line(i)) {
+                    is_done = 0;
+                }
+            }
+        }
+        /* Flush the rest, if necessary. */
+        if (output_buffers_used[b] == GUEST_OUTPUT_BUFFER_SIZE) {
+            for (i = 0; i < MAX_GUESTS * 2; i++) {
+                if (i != b) {
+                    flush_buffer(i);
+                }
+            }
+        }
+        /* then set the colors back. If this VM's buffer overflowed,
+         * it's probably going to overflow again, so let's avoid
+         * that. */
+        if (last_out != b) {
+            printf("%s%s", COLOUR_RESET, all_output_colours[b]);
+            last_out = b;
+        }
+    } else if ((index >= 1 && is_newline(buffer + index - 1) && coalesce_status == -1)
+               || (last_out == b && output_buffer_bitmask == 0 && coalesce_status == -1)) {
+        /* Allow fast output (newline or same-as-last-VM) if
+         * multi-input is not enabled OR last coalescing attempt
+         * failed due to a mismatch. This is important as VM output
+         * may be delayed; coalescing failure due to empty buffer
+         * should lead to further buffering rather than early flush,
+         * in case we can coalesce later. */
         flush_buffer(b);
     } else {
-        output_buffer_bitmask |= (1 << b);
+        output_buffer_bitmask |= BIT(b);
     }
     has_data = 1;
     error = serial_unlock();
@@ -289,10 +451,15 @@ static void internal_guest_putchar(int guest, int c) {
 
 static int statemachine = 1;
 
-static int active_guest = 0;
-
 static void give_guest_char(uint8_t c) {
-    internal_guest_putchar(active_guest, c);
+    if (active_guest >= 0) {
+        internal_guest_putchar(active_guest, c);
+    } else if (active_guest == -1) {
+        for (int i = 0; i < MAX_GUESTS * 2; i++) {
+            if ((active_multiguests & BIT(i)) == BIT(i))
+                internal_guest_putchar(i, c);
+        }
+    }
 }
 
 static void handle_char(uint8_t c) {
@@ -313,19 +480,63 @@ static void handle_char(uint8_t c) {
         }
         break;
     case 2:
-        if (c == '~') {
+        switch (c) {
+        case '~':
             statemachine = 0;
             give_guest_char(c);
-        } else if (c >= '0' && c < '0' + VM_NUM_GUESTS) {
+            break;
+        case 'm':
+            statemachine = 3;
+            active_multiguests = 0;
+            active_guest = -1;
             last_out = -1;
-            int guest = c - '0';
-            printf(COLOUR_RESET "\r\nSwitching input to %d\r\n",guest);
-            active_guest = guest;
+            printf(COLOUR_RESET "\r\nMulti-guest input to guests: ");
+            fflush(stdout);
+            break;
+        case 'd':
+            debug = (debug + 1) % 3;
+            printf(COLOUR_RESET "\r\nDebug: %i\r\n", debug);
+            last_out = -1;
             statemachine = 1;
-        } else {
-            statemachine = 0;
-            give_guest_char('~');
-            give_guest_char(c);
+            break;
+        case '?':
+            last_out = -1;
+            printf(COLOUR_RESET "\r\n --- SerialServer help ---"
+                   "\r\n Escape char: ~"
+                   "\r\n 0 - %-2d switches input to that VM"
+                   "\r\n ?      shows this help"
+                   "\r\n m      simultaneous multi-guest input"
+                   "\r\n d      switch between debugging modes"
+                   "\r\n          0: no debugging"
+                   "\r\n          1: debug multi-input mode output coalescing"
+                   "\r\n          2: debug flush_buffer_line"
+                   "\r\n", VM_NUM_GUESTS-1);
+            statemachine = 1;
+            break;
+        default:
+            if (c >= '0' && c < '0' + VM_NUM_GUESTS) {
+                last_out = -1;
+                int guest = c - '0';
+                printf(COLOUR_RESET "\r\nSwitching input to %d\r\n",guest);
+                active_guest = guest;
+                statemachine = 1;
+            } else {
+                statemachine = 0;
+                give_guest_char('~');
+                give_guest_char(c);
+            }
+        }
+        break;
+    case 3:
+        if (c >= '0' && c < '0' + VM_NUM_GUESTS) {
+            printf(COLOUR_RESET "%s%d", (active_multiguests != 0 ? "," : "") ,(c - '0'));
+            active_multiguests |= BIT(c - '0');
+            last_out = -1;
+            fflush(stdout);
+        } else if (c == 'm' || c == 'M' || c == '\r' || c == '\n') {
+            last_out = -1;
+            printf(COLOUR_RESET "\r\nSwitching input to multi-guest. Output will be best-effort coalesced (colored white).\r\n");
+            statemachine = 1;
         }
         break;
     }
@@ -439,8 +650,21 @@ static void timer_callback(void *data) {
     } else if (has_data) {
         /* flush everything if no writes since last callback */
         int i;
-        for (i = 0; i < MAX_GUESTS * 2; i++) {
-            flush_buffer(i);
+        char is_done = 0;
+        char succeeded = 0;
+        while (!is_done) {
+            is_done = 1;
+            for (i = 0; i < MAX_GUESTS * 2; i++) {
+                if (flush_buffer_line(i)) {
+                    succeeded = 1;
+                    is_done = 0;
+                }
+            }
+        }
+        if (!succeeded) {
+            for (i = 0; i < MAX_GUESTS * 2; i++) {
+                flush_buffer(i);
+            }
         }
     }
     error = serial_unlock();

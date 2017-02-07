@@ -159,6 +159,7 @@ echo -e "\e[1;96mPacking final root filesystem in $ROOTFS_DEST...\e[0m"
 ROOTFS_DEST_ABS=`pwd`/$ROOTFS_DEST
 pushd $OUT/$ROOTFS_TMP
 find . -print0 | fakeroot cpio --null -H newc -o > $ROOTFS_DEST_ABS
+if which lzop >&/dev/null; then lzop -U $ROOTFS_DEST_ABS && mv $ROOTFS_DEST_ABS{.lzo,} ;fi
 popd
 
 echo -e "\e[1;96mModules added to root filesystem for linux $LINUX_VERSION!\e[0m"

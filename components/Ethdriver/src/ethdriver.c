@@ -296,6 +296,10 @@ int client_tx(int len) {
         memcpy(tx_buf->buf + 6, client->mac, 6);
         /* queue up transmit */
         err = eth_driver.i_fn.raw_tx(&eth_driver, 1, (uintptr_t*)&(tx_buf->buf), (unsigned int*)&len, tx_buf);
+        if (err == ETHIF_TX_FAILED){
+            /* Free the internal tx buffer in case tx fails. Up to the client to retry the trasmission */
+            client->num_tx++; 
+        }
     }
     ethdriver_unlock();
 

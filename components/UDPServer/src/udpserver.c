@@ -51,12 +51,20 @@ static int raw_tx(struct eth_driver *driver, unsigned int num, uintptr_t *phys, 
     unsigned int total_len = 0;
     int i;
     void *p = (void*)ethdriver_buf;
+    int err;
+    
     for (i = 0; i < num; i++) {
         memcpy(p + total_len, (void*)phys[i], len[i]);
         total_len += len[i];
     }
 
-    return ethdriver_tx(total_len);
+    /* Retry whilst the link is down */
+    while((err = ethdriver_tx(total_len)) == ETHIF_TX_FAILED) {
+        lwip_unlock();
+        lwip_lock();
+    }
+    
+    return ETHIF_TX_COMPLETE;   
 }
 
 static void handle_irq(struct eth_driver *driver, int irq) {

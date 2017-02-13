@@ -18,6 +18,7 @@
 #include <sel4utils/iommu_dma.h>
 #include <simple/simple_helpers.h>
 #include <vka/capops.h>
+#include <utils/util.h>
 
 #include <camkes.h>
 #include <camkes/dataport.h>
@@ -43,20 +44,20 @@
 volatile Buf*__attribute__((weak)) ethdriver_buf;
 
 int __attribute__((weak)) ethdriver_tx(int len) {
-    assert(!"should not be here");
+    ZF_LOGF("should not be here");
 }
 
 int __attribute__((weak)) ethdriver_rx(int *len) {
-    assert(!"should not be here");
+    ZF_LOGF("should not be here");
     return 0;
 }
 
 void __attribute__((weak)) ethdriver_mac(uint8_t *b1, uint8_t *b2, uint8_t *b3, uint8_t *b4, uint8_t *b5, uint8_t *b6) {
-    assert(!"should not be here");
+    ZF_LOGF("should not be here");
 }
 
 int __attribute__((weak)) eth_rx_ready_reg_callback(void (*proc)(void*),void *blah) {
-    assert(!"should not be here");
+    ZF_LOGF("should not be here");
     return 0;
 }
 
@@ -100,7 +101,7 @@ static void emul_raw_handle_irq(struct eth_driver *driver, int irq) {
 }
 
 static void emul_raw_poll(struct eth_driver *driver) {
-    assert(!"not implemented");
+    ZF_LOGF("not implemented");
 }
 
 static void emul_low_level_init(struct eth_driver *driver, uint8_t *mac, int *mtu) {
@@ -109,7 +110,7 @@ static void emul_low_level_init(struct eth_driver *driver, uint8_t *mac, int *mt
 }
 
 static void emul_print_state(struct eth_driver* driver) {
-    assert(!"not implemented");
+    ZF_LOGF("not implemented");
 }
 
 static struct raw_iface_funcs emul_driver_funcs = {

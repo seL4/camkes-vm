@@ -20,8 +20,16 @@ clean:
 distclean: clean
 	rm -f *.tcz core.gz bzimage config/*
 
+# Organise TCZ list by dependencies. Remember that $^ (in GNU make) deduplicates.
+TCZ_BASH:=bash.tcz readline.tcz
+TCZ_PYTHON:=python.tcz bzip2-lib.tcz gdbm.tcz openssl.tcz readline.tcz sqlite3.tcz
+TCZ_SCREEN:=screen.tcz elfutils.tcz ncurses.tcz
+TCZ_GDB:=gdb.tcz glibc_add_lib.tcz ncurses.tcz
+
+TCZ:=${TCZ_BASH} ${TCZ_PYTHON} ${TCZ_SCREEN} ${TCZ_GDB}
+
 # Edit the TCZ extension list on the following line to change the software available in the image.
-rootfs-bare.cpio: Makefile core.gz bash.tcz readline.tcz ncurses.tcz python.tcz screen.tcz elfutils.tcz
+rootfs-bare.cpio: Makefile core.gz ${TCZ}
 	fakeroot rm -rf extr.$@
 	mkdir extr.$@
 	( cd extr.$@ ; zcat ../$(filter %.gz, $^) | fakeroot cpio -idm )

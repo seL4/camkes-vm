@@ -134,6 +134,9 @@ void pre_init(void) {
     ipaddr_aton(udp_ip_addr,  &ipaddr);
     ipaddr_aton(multicast_addr,  &multicast);
     ipaddr_aton("255.255.255.0", &netmask);
+
+    lwip_lock();
+
     lwip_init();
     netif = netif_add(&_netif, &ipaddr, &netmask, &gw, lwip_driver, ethif_get_ethif_init(lwip_driver),
                        ethernet_input);
@@ -144,6 +147,8 @@ void pre_init(void) {
     if (ip_addr_ismulticast(&multicast)) {
         igmp_joingroup(&ipaddr, &multicast);
     }
+
+    lwip_unlock();
 }
 
 /* Provided by the Ethdriver template */

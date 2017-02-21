@@ -120,7 +120,7 @@ connector seL4SerialServer {
 
 connector seL4GlobalAsynchCallback {
     from Event template "seL4GlobalAsynchCallback-from.template.c";
-    to Event template "seL4GlobalAsynchCallback-to.template.c";
+    to Events template "seL4GlobalAsynchCallback-to.template.c";
 }
 
 connector seL4MultiSharedData {

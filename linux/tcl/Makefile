@@ -18,7 +18,8 @@ clean:
 	rm -f build-rootfs rootfs-bare.cpio rootfs.cpio
 
 distclean: clean
-	rm -f *.tcz core.gz bzimage config/*
+	rm -f *.tcz core.gz bzimage camkes_init
+	rm -rf config
 
 # Organise TCZ list by dependencies. Remember that $^ (in GNU make) deduplicates.
 TCZ_BASH:=bash.tcz readline.tcz
@@ -52,7 +53,7 @@ rootfs-bare.cpio: Makefile core.gz ${TCZ}
 # 	fi ) \
 # done
 # Optionally, compress with UPX. Isn't actually doing much good as far as I can tell...
-	-find extr.$@/ -executable -type f | xargs file -i | grep application/x-executable | cut -d':' -f1 | xargs upx --best
+#	-find extr.$@/ -executable -type f | xargs file -i | grep application/x-executable | cut -d':' -f1 | xargs upx --best
 	( cd extr.$@ ; find | fakeroot cpio -o -H newc ) > $@
 
 LINUX_MAJOR=4

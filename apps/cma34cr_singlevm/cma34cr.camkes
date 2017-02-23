@@ -85,7 +85,7 @@ component VM {
         vm0.ethdriver_attributes = "1";
         vm0.ethdriver_global_endpoint = "vm0";
         vm0.ethdriver_badge = "134479872";
-        vm0.ethdriver_mac = [06, 00, 00, 11, 12, 13];
+        vm0.ethdriver_mac = [6, 0, 0, 11, 12, 13];
         /*
         vm0_config.ioports = [
             {"start":0x3000, "end":0x3020, "pci_device":0, "name":"Ethernet5"}, // From PCI Scan dev 10d3, bus 5

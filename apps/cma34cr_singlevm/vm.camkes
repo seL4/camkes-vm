@@ -113,7 +113,7 @@ assembly {
         udpserver0.ethdriver_attributes = "1";
         udpserver0.ethdriver_shmem_size = 0x1000;
         udpserver0.ethdriver_global_endpoint = "udpserver0_endpoint";
-        udpserver0.ethdriver_mac = [06, 00, 00, 12, 13, 14];
+        udpserver0.ethdriver_mac = [6, 0, 0, 12, 13, 14];
         udpserver0.heap_size = 0;
 
         udpserver1.num_client_recv_bufs = 8;
@@ -122,7 +122,7 @@ assembly {
         udpserver1.ethdriver_attributes = "2";
         udpserver1.ethdriver_shmem_size = 0x1000;
         udpserver1.ethdriver_global_endpoint = "udpserver1_endpoint";
-        udpserver1.ethdriver_mac = [06, 00, 00, 13, 14, 15];
+        udpserver1.ethdriver_mac = [6, 0, 0, 13, 14, 15];
         udpserver1.heap_size = 0;
 
         HWEthDriver.mmio_paddr = 0xc0400000;

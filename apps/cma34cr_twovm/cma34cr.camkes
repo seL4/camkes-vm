@@ -142,7 +142,7 @@ component VM {
         vm0.ethdriver_attributes = "1";
         vm0.ethdriver_global_endpoint = "vm0";
         vm0.ethdriver_badge = "134479872";
-        vm0.ethdriver_mac = [06, 00, 00, 11, 12, 13];
+        vm0.ethdriver_mac = [6, 0, 0, 11, 12, 13];
 
         vm1_config.init_cons = [
             {"init":"vchan_init_init", "badge":VM_PIC_BADGE_VCHAN_HAS_DATA, "irq":"vchan_interrupt"},

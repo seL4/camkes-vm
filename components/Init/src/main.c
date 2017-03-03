@@ -166,6 +166,20 @@ void pre_init(void) {
         assert(!error);
     }
 
+    /* add untyped mmios */
+    for (int i = 0; i < simple_get_untyped_count(&camkes_simple); i++) {
+        size_t size;
+        uintptr_t paddr;
+        bool device;
+        seL4_CPtr cap = simple_get_nth_untyped(&camkes_simple, i, &size, &paddr, &device);
+        if (device) {
+            cspacepath_t path;
+            vka_cspace_make_path(&vka, cap, &path);
+            error = allocman_utspace_add_uts(allocman, 1, &path, &size, &paddr, ALLOCMAN_UT_DEV);
+            assert(!error);
+        }
+    }
+
     sel4utils_reserve_range_no_alloc(&vspace, &muslc_brk_reservation_memory, BRK_VIRTUAL_SIZE, seL4_AllRights, 1, &muslc_brk_reservation_start);
     muslc_this_vspace = &vspace;
     muslc_brk_reservation = (reservation_t){.res = &muslc_brk_reservation_memory};

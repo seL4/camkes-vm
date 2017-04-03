@@ -47,4 +47,8 @@ if [ "$?" -lt "0" ]; then
 	# fi
 fi
 
+# VFAT FS kernel module synthesised from Cogent
+insmod /lib/modules/__LINUX_VERSION__/kernel/drivers/vfat/cg-fat.ko
+insmod /lib/modules/__LINUX_VERSION__/kernel/drivers/vfat/cg-vfat.ko
+
 exec /sbin/init $*

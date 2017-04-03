@@ -105,7 +105,7 @@ cat $ROOTFS_SRC_ABS | fakeroot cpio \
     --no-preserve-owner --preserve-modification-time
 popd
 
-MODULE_PATH=`pwd`/$OUT/$ROOTFS_TMP/lib/modules/$LINUX_VERSION/kernel/drivers/vmm
+MODULE_PATH=`pwd`/$OUT/$ROOTFS_TMP/lib/modules/$LINUX_VERSION/kernel/drivers
 mkdir -p $MODULE_PATH
 
 KHEAD=`pwd`/$OUT/$LINUX_DIR
@@ -115,7 +115,17 @@ for module in $MODULES_DIR/*; do
     pushd $module
 
     make KHEAD=$KHEAD
-    cp -v *.ko $MODULE_PATH
+
+    case "$module" in
+        "modules/cogent_vfat")
+            mkdir -p $MODULE_PATH/vfat
+            cp -v *.ko $MODULE_PATH/vfat
+            ;;
+        *)
+            mkdir -p $MODULE_PATH/vmm
+            cp -v *.ko $MODULE_PATH/vmm
+            ;;
+    esac
 
     popd
 done

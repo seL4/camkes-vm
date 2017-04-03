@@ -53,6 +53,7 @@ menu "Applications"
     source "apps/cma34cr_twovm/Kconfig"
     source "apps/cma34cr_vchan/Kconfig"
     source "apps/cma34cr_ubuntu/Kconfig"
+    source "apps/cma34cr_centos/Kconfig"
     source "apps/cxx/Kconfig"
 endmenu
 

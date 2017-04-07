@@ -42,6 +42,7 @@ import <RTC/RTC.camkes>;
 import <SerialServer/SerialServer.camkes>;
 import <Ethdriver/Ethdriver.camkes>;
 import <UDPServer/UDPServer.camkes>;
+import <PicoUDPServer/PicoUDPServer.camkes>;
 import <Vchan/Vchan.camkes>;
 import <HelloWorld/HelloWorld.camkes>;
 import <FileServer/FileServer.camkes>;
@@ -56,6 +57,16 @@ connector seL4UDPSend {
 connector seL4UDPRecv {
     from Procedure template "seL4UDPRecv-from.template.c";
     to Procedure template "seL4UDPRecv-to.template.c";
+}
+
+connector seL4PicoUDPSend {
+    from Procedure template "seL4PicoUDPSend-from.template.c";
+    to Procedure template "seL4PicoUDPSend-to.template.c";
+}
+
+connector seL4PicoUDPRecv {
+    from Procedure template "seL4PicoUDPRecv-from.template.c";
+    to Procedure template "seL4PicoUDPRecv-to.template.c";
 }
 
 connector seL4VMNet {

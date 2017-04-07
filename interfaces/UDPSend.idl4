@@ -11,6 +11,5 @@
  */
 
 procedure UDPSend {
-    include <lwip/ip_addr.h>;
-    int send(in uintptr_t data, in unsigned int len, in ip_addr_t addr);
+    int send(in uintptr_t data, in unsigned int len, in uint32_t ip4addr);
 };

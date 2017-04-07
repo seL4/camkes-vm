@@ -1,0 +1,32 @@
+/*
+ * Copyright 2017, Data61
+ * Commonwealth Scientific and Industrial Research Organisation (CSIRO)
+ * ABN 41 687 119 230.
+ *
+ * This software may be distributed and modified according to the terms of
+ * the GNU General Public License version 2. Note that NO WARRANTY is provided.
+ * See "LICENSE_GPLv2.txt" for details.
+ *
+ * @TAG(DATA61_GPL)
+ */
+
+/* A demo app for using picoTCP as a library inside this component to 
+ * perform some TCP/IP communication over a network. 
+ */
+ 
+import <Ethdriver.idl4>;
+import <PutChar.idl4>;
+import <Timer.idl4>;
+
+component PicoTCPServer {
+    control;
+    has mutex picotcp;
+
+    uses Ethdriver ethdriver;
+    attribute string server_ip_addr;
+    attribute string multicast_addr;
+    attribute int num_client_recv_bufs;
+
+    uses Timer timer;
+    consumes Notification timer_complete;
+}

@@ -11,22 +11,22 @@
  */
 
 #include <autoconf.h>
+#include <utils/time.h>
 
 #include <camkes.h>
 /* get rid of camkes ERR_IF macro that collides with the lwip one */
 #undef ERR_IF
 #include <string.h>
-#include <lwip/udp.h>
 
 void echo_recv_ready_callback() {
     int status = 0;
     while (status == 0) {
         unsigned int len;
         uint16_t port;
-        ip_addr_t addr;
-        status = echo_recv_poll(&len, &port, &addr);
+        uint32_t ip4addr;
+        status = echo_recv_poll(&len, &port, &ip4addr);
         if (status != -1) {
-            echo_send_send((uintptr_t)echo_recv_buf, len, addr);
+            echo_send_send((uintptr_t)echo_recv_buf, len, ip4addr);
         }
     }
 }
@@ -36,10 +36,19 @@ void echo2_recv_ready_callback() {
     while (status == 0) {
         unsigned int len;
         uint16_t port;
-        ip_addr_t addr;
-        status = echo2_recv_poll(&len, &port, &addr);
+        uint32_t ip4addr;
+        status = echo2_recv_poll(&len, &port, &ip4addr);
         if (status != -1) {
-            echo2_send_send((uintptr_t)echo2_recv_buf, len, addr);
+            echo2_send_send((uintptr_t)echo2_recv_buf, len, ip4addr);
         }
     }
+}
+
+void post_init() {
+    /* timeout once a second */
+    int ret = timer_periodic(0, NS_IN_S * 1);
+}
+
+void timer_complete_callback() {
+    /* do nothing with the timer tick */
 }

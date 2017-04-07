@@ -42,6 +42,7 @@ menu "Libraries"
     source "libs/libsel4cxx/Kconfig"
     source "libs/libethdrivers/Kconfig"
     source "libs/liblwip/Kconfig"
+    source "libs/libpicotcp/Kconfig"
 endmenu
 
 menu "Applications"
@@ -52,6 +53,7 @@ menu "Applications"
     source "apps/cma34cr_twovm/Kconfig"
     source "apps/cma34cr_vchan/Kconfig"
     source "apps/cma34cr_ubuntu/Kconfig"
+    source "apps/cma34cr_picotcp/Kconfig"
     source "apps/cxx/Kconfig"
 endmenu
 

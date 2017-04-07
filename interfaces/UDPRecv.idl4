@@ -11,6 +11,5 @@
  */
 
 procedure UDPRecv {
-    include <lwip/ip_addr.h>;
-    int poll(out unsigned int len, out uint16_t port, out ip_addr_t addr);
+    int poll(out unsigned int len, out uint16_t port, out uint32_t ip4addr);
 };

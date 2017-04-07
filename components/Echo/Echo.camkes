@@ -41,4 +41,7 @@ component Echo {
     consumes Notification echo2_recv_ready;
     uses UDPSend echo2_send;
     dataport Buf echo2_send_buf;
+    uses Timer timer;
+    consumes Notification timer_complete;
+    //uses RTC rtc;
 }

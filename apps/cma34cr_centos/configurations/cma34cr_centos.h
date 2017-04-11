@@ -17,6 +17,7 @@
 #define C162_ROOTFS "rootfs.cpio"
 
 #define PASSTHROUGH_SATA
+//#define PASSTHROUGH_ETHERNET
 
 // rd.lvm.lv=centos/root rd.lvm.lv=centos/swap
 

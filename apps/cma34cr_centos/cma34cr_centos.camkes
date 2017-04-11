@@ -24,7 +24,9 @@ component Init0 {
 
     has mutex cross_vm_event_mutex;
 
+#ifndef PASSTHROUGH_ETHERNET
     uses Ethdriver ethdriver;
+#endif
 
 #ifndef PASSTHROUGH_SATA
     // sata server interface
@@ -58,6 +60,7 @@ component VM {
 
         connection seL4RPCCall cross_vm_putchar(from string_reverse.putchar,
                                                 to serial.vm_putchar);
+#ifndef PASSTHROUGH_ETHERNET
         /* Ethernet driver that we share to Linux */
         component Ethdriver ethdriver;
         component HWEthDriver HWEthdriver;
@@ -91,6 +94,7 @@ component VM {
 
         /* Connect Echo to the RTC */
         connection seL4RPCCall echo_rtc(from echo.rtc, to rtc.rtc);
+#endif
 
 #ifndef PASSTHROUGH_SATA
         // sata server instances and connections
@@ -115,6 +119,8 @@ component VM {
         vm0.dp2_id = 2;
         vm0.dp2_size = STRING_REVERSE_BUFSIZE;
 
+#ifndef PASSTHROUGH_ETHERNET
+
         ethdriver.simple = true;
         ethdriver.cnode_size_bits = 12;
         ethdriver.iospaces = "0x12:0x6:0x0:0"; // <------------ may be different (corresponds to below)
@@ -136,18 +142,22 @@ component VM {
         vm0.ethdriver_global_endpoint = "vm0";
         vm0.ethdriver_badge = "134479872";
         vm0.ethdriver_mac = [6, 0, 0, 11, 12, 13];
+#endif
 
 #ifndef PASSTHROUGH_SATA
         // sata server attributes
 #endif
 
         vm0_config.init_cons = [
+#ifndef PASSTHROUGH_ETHERNET
             {"init":"make_virtio_net", "badge":134479872, "irq":"virtio_net_notify"},
+#endif
 #ifndef PASSTHROUGH_SATA
             // virtio block device init function
 #endif
         ];
 
+#ifndef PASSTHROUGH_ETHERNET
         /* The attributes for the receive buffer represent the client ID
          * this needs to match the the 'echo_recv_attributes' to indicate that
          * the this is the buffer for that client */
@@ -216,9 +226,13 @@ component VM {
         udpserver1.ethdriver_global_endpoint = "udpserver1_endpoint";
         udpserver1.ethdriver_mac = [6, 0, 0, 13, 14, 15];
         udpserver1.heap_size = 0;
+#endif
 
         vm0_config.ioports = [
             {"start":0x3000, "end":0x3020, "pci_device":0, "name":"Ethernet5"},
+#ifdef PASSTHROUGH_ETHERNET
+            {"start":0x2000, "end":0x2020, "pci_device":0, "name":"Ethernet6"},
+#endif
 #ifdef PASSTHROUGH_SATA
 #ifdef SATA_AHCI
             {"start":0x4088, "end":0x4088 + 8, "pci_device":0x1f, "name":"SATA"},
@@ -284,6 +298,17 @@ component VM {
                 {"paddr":0xc0520000, "size":0x4000, "page_bits":12},
             ],
         },
+#ifdef PASSTHROUGH_ETHERNET
+        {
+            "name":"Ethernet6",
+            "bus":6, "dev":0, "fun":0,
+            "irq":"Ethernet6",
+            "memory":[
+                {"paddr":0xc0400000, "size":0x20000, "page_bits":12},
+                {"paddr":0xc0420000, "size":0x4000, "page_bits":12}
+            ],
+        },
+#endif
 #ifdef PASSTHROUGH_SATA
         {
             "name":"SATA",
@@ -304,6 +329,9 @@ component VM {
             {"name":"USB2", "source":0x10, "level_trig":1, "active_low":1, "dest":14},
             {"name":"USB3", "source":0x17, "level_trig":1, "active_low":1, "dest":15},
             {"name":"Ethernet5", "source":0x11, "level_trig":1, "active_low":1, "dest":10},
+#ifdef PASSTHROUGH_ETHERNET
+            {"name":"Ethernet6", "source":0x12, "level_trig":1, "active_low":1, "dest":12},
+#endif
 #ifdef PASSTHROUGH_SATA
             {"name":"SATA", "source":19, "level_trig":1, "active_low":1, "dest":11},
 #endif

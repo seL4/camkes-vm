@@ -32,7 +32,7 @@ static camkes_emit_fn emitted_events[] = {
 };
 
 // mutex to protect shared event context
-static camkes_mutex_t cross_vm_event_mutex = (camkes_mutex_t) {
+static camkes_mutex_t cross_vm_event_mutex = {
     .lock = cross_vm_event_mutex_lock,
     .unlock = cross_vm_event_mutex_unlock,
 };

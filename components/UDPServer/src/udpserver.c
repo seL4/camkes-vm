@@ -54,7 +54,7 @@ static int raw_tx(struct eth_driver *driver, unsigned int num, uintptr_t *phys, 
     int i;
     void *p = (void*)ethdriver_buf;
     int err;
-    
+
     for (i = 0; i < num; i++) {
         memcpy(p + total_len, (void*)phys[i], len[i]);
         total_len += len[i];
@@ -65,8 +65,8 @@ static int raw_tx(struct eth_driver *driver, unsigned int num, uintptr_t *phys, 
         lwip_unlock();
         lwip_lock();
     }
-    
-    return ETHIF_TX_COMPLETE;   
+
+    return ETHIF_TX_COMPLETE;
 }
 
 static void handle_irq(struct eth_driver *driver, int irq) {

@@ -45,6 +45,7 @@ volatile Buf*__attribute__((weak)) ethdriver_buf;
 
 int __attribute__((weak)) ethdriver_tx(int len) {
     ZF_LOGF("should not be here");
+    return 0;
 }
 
 int __attribute__((weak)) ethdriver_rx(int *len) {

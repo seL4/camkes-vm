@@ -62,8 +62,8 @@ static int raw_tx(struct eth_driver *driver, unsigned int num, uintptr_t *phys, 
 
     /* Retry whilst the link is down */
     while((err = ethdriver_tx(total_len)) == ETHIF_TX_FAILED) {
-        lwip_unlock();
-        lwip_lock();
+        err = lwip_unlock();
+        err = lwip_lock();
     }
 
     return ETHIF_TX_COMPLETE;
@@ -120,6 +120,7 @@ static lwip_iface_t _lwip_driver;
 void pre_init(void) {
     struct ip_addr netmask, ipaddr, gw, multicast;
     struct netif *netif;
+    int UNUSED error;
     lwip_iface_t *lwip_driver;
     memset(&io_ops, 0, sizeof(io_ops));
     io_ops.dma_manager = (ps_dma_man_t) {
@@ -137,7 +138,7 @@ void pre_init(void) {
     ipaddr_aton(multicast_addr,  &multicast);
     ipaddr_aton("255.255.255.0", &netmask);
 
-    lwip_lock();
+    error = lwip_lock();
 
     lwip_init();
     netif = netif_add(&_netif, &ipaddr, &netmask, &gw, lwip_driver, ethif_get_ethif_init(lwip_driver),
@@ -150,17 +151,18 @@ void pre_init(void) {
         igmp_joingroup(&ipaddr, &multicast);
     }
 
-    lwip_unlock();
+    error = lwip_unlock();
 }
 
 /* Provided by the Ethdriver template */
 seL4_CPtr ethdriver_notification(void);
 
 int run() {
+    int UNUSED error;
     while(1) {
         seL4_Wait(ethdriver_notification(), NULL);
-        lwip_lock();
+        error = lwip_lock();
         ethif_lwip_handle_irq(&_lwip_driver, 0);
-        lwip_unlock();
+        error = lwip_unlock();
     }
 }

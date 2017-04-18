@@ -231,6 +231,7 @@ static struct raw_iface_callbacks ethdriver_callbacks = {
 };
 
 int client_rx(int *len) {
+    int UNUSED err;
     if (!done_init) {
         return -1;
     }
@@ -244,10 +245,10 @@ int client_rx(int *len) {
     }
     assert(client);
     void *packet = client->dataport;
-    ethdriver_lock();
+    err = ethdriver_lock();
     if (client->rx_head == client->rx_tail) {
         client->should_notify = 1;
-        ethdriver_unlock();
+        err = ethdriver_unlock();
         return -1;
     }
     pending_rx_t rx = client->rx[client->rx_tail];
@@ -262,11 +263,12 @@ int client_rx(int *len) {
     }
     rx_bufs[num_rx_bufs] = rx.buf;
     num_rx_bufs++;
-    ethdriver_unlock();
+    err = ethdriver_unlock();
     return ret;
 }
 
 int client_tx(int len) {
+    int UNUSED error;
     if (!done_init) {
         return;
     }
@@ -286,7 +288,7 @@ int client_tx(int len) {
     }
     assert(client);
     void *packet = client->dataport;
-    ethdriver_lock();
+    error = ethdriver_lock();
     /* silently drop packets */
     if (client->num_tx != 0) {
         client->num_tx --;
@@ -301,12 +303,13 @@ int client_tx(int len) {
             client->num_tx++; 
         }
     }
-    ethdriver_unlock();
+    error = ethdriver_unlock();
 
     return err;
 }
 
 void client_mac(uint8_t *b1, uint8_t *b2, uint8_t *b3, uint8_t *b4, uint8_t *b5, uint8_t *b6) {
+    int UNUSED error;
     int id = client_get_sender_id();
     client_t *client = NULL;
     for (int i = 0; i < num_clients; i++) {
@@ -316,21 +319,22 @@ void client_mac(uint8_t *b1, uint8_t *b2, uint8_t *b3, uint8_t *b4, uint8_t *b5,
     }
     assert(client);
     assert(done_init);
-    ethdriver_lock();
+    error = ethdriver_lock();
     *b1 = client->mac[0];
     *b2 = client->mac[1];
     *b3 = client->mac[2];
     *b4 = client->mac[3];
     *b5 = client->mac[4];
     *b6 = client->mac[5];
-    ethdriver_unlock();
+    error = ethdriver_unlock();
 }
 
 void irq_handle() {
-    ethdriver_lock();
+    int UNUSED error;
+    error = ethdriver_lock();
     eth_driver.i_fn.raw_handleIRQ(&eth_driver, 0);
-    irq_acknowledge();
-    ethdriver_unlock();
+    error = irq_acknowledge();
+    error = ethdriver_unlock();
 }
 
 /* Returns the cap to the frame mapped to vaddr, assuming
@@ -364,7 +368,7 @@ void post_init(void) {
     int error;
     int pci_bdf_int;
     int bus, dev, fun;
-    ethdriver_lock();
+    error = ethdriver_lock();
     /* initialize seL4 allocators and give us a half sane environment */
     init_system();
     /* initialize the driver */
@@ -441,6 +445,6 @@ void post_init(void) {
 
     assert(!error);
     done_init = 1;
-    irq_acknowledge();
-    ethdriver_unlock();
+    error = irq_acknowledge();
+    error = ethdriver_unlock();
 }

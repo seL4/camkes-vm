@@ -47,7 +47,7 @@ void post_init() {
     rtc_time_date_t time_date = rtc_time_date();
     assert(time_date.year == 2017);
     /* timeout once a second */
-    int ret;
+    int UNUSED ret;
     ret = timer_periodic(0, 1000000000);
 }
 

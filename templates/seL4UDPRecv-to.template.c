@@ -144,7 +144,7 @@ void /*? me.interface.name ?*/__run(void) {
 }
 
 void /*? me.interface.name ?*/__init(void) {
-    int err;
+    int UNUSED err;
     int i, j;
     lwip_lock();
     for (i = 0; i < /*? len(clients) ?*/; i++) {

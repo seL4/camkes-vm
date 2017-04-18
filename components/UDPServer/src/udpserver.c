@@ -12,6 +12,8 @@
 
 #include <string.h>
 #include <camkes.h>
+/* get rid of the camkes ERR_IF macro that collides with lwip one */
+#undef ERR_IF
 #include <ethdrivers/lwip.h>
 #include <lwip/udp.h>
 #include <netif/etharp.h>

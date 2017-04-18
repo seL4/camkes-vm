@@ -11,6 +11,8 @@
 #include <autoconf.h>
 
 #include <camkes.h>
+/* get rid of camkes ERR_IF macro that collides with the lwip one */
+#undef ERR_IF
 #include <string.h>
 #include <lwip/udp.h>
 

@@ -270,13 +270,13 @@ int client_rx(int *len) {
 int client_tx(int len) {
     int UNUSED error;
     if (!done_init) {
-        return;
+        return -1;
     }
     if (len > BUF_SIZE) {
         len = BUF_SIZE;
     }
     if (len < 12) {
-        return;
+        return -1;
     }
     int err = ETHIF_TX_COMPLETE;
     int id = client_get_sender_id();

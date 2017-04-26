@@ -41,16 +41,3 @@ void echo2_recv_ready_callback() {
         }
     }
 }
-
-void post_init() {
-    /* Check it's the right year */
-    rtc_time_date_t time_date = rtc_time_date();
-    assert(time_date.year == 2017);
-    /* timeout once a second */
-    int UNUSED ret;
-    ret = timer_periodic(0, 1000000000);
-}
-
-void timer_complete_callback() {
-    /* do nothing with the timer tick */
-}

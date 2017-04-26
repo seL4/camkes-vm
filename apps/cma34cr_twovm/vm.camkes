@@ -49,13 +49,6 @@ assembly {
         connection seL4MultiSharedData udp_echo2_send_buf(from echo.echo2_send_buf, to udpserver1.client_send_buf);
         connection seL4MultiSharedData udp_echo2_recv_buf(from echo.echo2_recv_buf, to udpserver1.client_recv_buf);
         connection seL4GlobalAsynchCallback udp_echo2_recv_ready(from udpserver1.client_recv_ready, to echo.echo2_recv_ready);
-
-        /* Connect Echo to the timer server */
-        connection seL4TimeServer echo_timer(from echo.timer, to vm.time_server_timer);
-        connection seL4GlobalAsynchCallback echo_int(from vm.time_server_complete, to echo.timer_complete);
-
-        /* Connect Echo to the RTC */
-        connection seL4RPCCall echo_rtc(from echo.rtc, to vm.rtc_interface);
     }
     configuration {
         /* The attributes for the receive buffer represent the client ID

@@ -31,6 +31,7 @@ include PCIConfigIO/PCIConfigIO.mk
 include FileServer/FileServer.mk
 include Init/Init.mk
 include StringReverse/StringReverse.mk
+include Firewall/Firewall.mk
 
 Init0_CFILES += $(wildcard $(SOURCE_DIR)/src/*.c) \
                 $(wildcard $(SOURCE_DIR)/common/src/*.c)

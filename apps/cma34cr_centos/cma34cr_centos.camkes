@@ -38,6 +38,7 @@ component Init0 {
 import <StringReverse/StringReverse.camkes>;
 import <UDPServer/UDPServer.camkes>;
 import <HelloWorld/HelloWorld.camkes>;
+import <Firewall/Firewall.camkes>;
 
 component VM {
     composition {
@@ -64,12 +65,10 @@ component VM {
         /* Ethernet driver that we share to Linux */
         component Ethdriver ethdriver;
         component HWEthDriver HWEthdriver;
+        component Firewall firewall;
         /* Hardware resources for the ethernet driver */
         connection seL4HardwareMMIO ethdrivermmio(from ethdriver.EthDriver, to HWEthdriver.mmio);
         connection seL4HardwareInterrupt hwethirq(from HWEthdriver.irq, to ethdriver.irq);
-        /* Connect vm0 ethernet to the ethdriver */
-        connection seL4Ethdriver ethdriver_con(from vm0.ethdriver, to ethdriver.client);
-
 
         component Echo echo;
         component UDPServer udpserver0;
@@ -88,6 +87,12 @@ component VM {
         connection seL4MultiSharedData udp_echo2_recv_buf(from echo.echo2_recv_buf, to udpserver1.client_recv_buf);
         connection seL4GlobalAsynchCallback udp_echo2_recv_ready(from udpserver1.client_recv_ready, to echo.echo2_recv_ready);
 
+        /* Connect vm0 ethernet to the firewall */
+        connection seL4Ethdriver firewall_con(from vm0.ethdriver, to firewall.client);
+        /* Connect the firewall to the ethdriver */
+        connection seL4Ethdriver ethdriver_con(from firewall.ethdriver, to ethdriver.client);
+        /* Setup the firewall's global endpoint callback */
+        connection seL4GlobalAsynchCallback firewall_global_callback(from firewall.dummy, to firewall.ethdriver_has_data);
 #endif
 
 #ifndef PASSTHROUGH_SATA
@@ -140,6 +145,12 @@ component VM {
         vm0.ethdriver_global_endpoint = "vm0";
         vm0.ethdriver_badge = "134479872";
         vm0.ethdriver_mac = [6, 0, 0, 11, 12, 13];
+
+        firewall.ethdriver_attributes = "1";
+        firewall.ethdriver_global_endpoint = "firewall";
+        firewall.ethdriver_badge = "134217729";
+        firewall.ethdriver_mac = [6, 0, 0, 11, 12, 13];
+        firewall.ethdriver_has_data_global_endpoint = "firewall";
 #endif
 
 #ifndef PASSTHROUGH_SATA

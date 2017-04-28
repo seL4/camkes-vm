@@ -23,6 +23,10 @@
 
 set -e
 
+# Change to directory containing this script
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd $DIR
+
 : ${LINUX_MD5:="5230b0185b5f4916feab86c450207606"}
 : ${LINUX_MAJOR:="4"}
 : ${LINUX_VERSION:="$LINUX_MAJOR.8.16"}

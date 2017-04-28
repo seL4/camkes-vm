@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # CAmkES project configuration
-# Wed Apr 26 14:19:46 2017
+# Fri Apr 28 14:55:57 2017
 #
 
 #
@@ -12,14 +12,15 @@
 # CONFIG_ARCH_ARM_V8A is not set
 CONFIG_HAVE_FPU=y
 CONFIG_KERNEL_MASTER=y
-CONFIG_WORD_SIZE=64
+CONFIG_WORD_SIZE=32
 
 #
 # seL4 System
 #
 CONFIG_ARCH_X86=y
 # CONFIG_ARCH_ARM is not set
-CONFIG_ARCH_X86_64=y
+# CONFIG_ARCH_X86_64 is not set
+CONFIG_ARCH_IA32=y
 # CONFIG_ARM1136JF_S is not set
 # CONFIG_ARM_CORTEX_A7 is not set
 # CONFIG_ARM_CORTEX_A8 is not set
@@ -43,15 +44,12 @@ CONFIG_XAPIC=y
 CONFIG_IOMMU=y
 CONFIG_VTX=y
 CONFIG_MAX_VPIDS=1024
-# CONFIG_HUGE_PAGE is not set
-# CONFIG_SUPPORT_PCID is not set
 CONFIG_SYSENTER=y
-# CONFIG_SYSCALL is not set
 CONFIG_FXSAVE=y
 # CONFIG_XSAVE is not set
 CONFIG_XSAVE_SIZE=512
+CONFIG_FSGSBASE_GDT=y
 # CONFIG_FSGSBASE_MSR is not set
-CONFIG_FSGSBASE_INST=y
 
 #
 # Multiboot options

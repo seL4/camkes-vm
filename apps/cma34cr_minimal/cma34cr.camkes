@@ -15,6 +15,18 @@
 
 component Init0 {
     VM_INIT_DEF()
+
+    has mutex cross_vm_event_mutex;
+    dataport Buf(4096) data;
+    emits DoPrint do_print;
+    consumes DonePrinting done_printing;
+}
+
+component PrintServer {
+    control;
+    dataport Buf(4096) data;
+    consumes DoPrint do_print;
+    emits DonePrinting done_printing;
 }
 
 component VM {
@@ -22,6 +34,15 @@ component VM {
     composition {
         VM_COMPOSITION_DEF()
         VM_PER_VM_COMP_DEF(0)
+
+        component PrintServer print_server;
+        connection seL4Notification conn_do_print(from vm0.do_print,
+                                                 to print_server.do_print);
+        connection seL4Notification conn_done_printing(from print_server.done_printing,
+                                                      to vm0.done_printing);
+
+        connection seL4SharedDataWithCaps conn_data(from print_server.data,
+                                                    to vm0.data);
     }
 
     configuration {
@@ -36,5 +57,47 @@ component VM {
         vm0.kernel_relocs = KERNEL_IMAGE;
         vm0.initrd_image = ROOTFS;
         vm0.iospace_domain = 0x0f;
+
+        vm0.data_id = 1;
+        vm0.data_size = 4096;
+
+        vm0_config.pci_devices_iospace = 1;
+
+        vm0_config.ioports = [
+            {"start":0x4080, "end":0x4090, "pci_device":0x1f, "name":"SATA"},
+            {"start":0x4090, "end":0x40a0, "pci_device":0x1f, "name":"SATA"},
+            {"start":0x40b0, "end":0x40b8, "pci_device":0x1f, "name":"SATA"},
+            {"start":0x40b8, "end":0x40c0, "pci_device":0x1f, "name":"SATA"},
+            {"start":0x40c8, "end":0x40cc, "pci_device":0x1f, "name":"SATA"},
+            {"start":0x40cc, "end":0x40d0, "pci_device":0x1f, "name":"SATA"},
+            {"start":0x3000, "end":0x3020, "pci_device":0, "name":"Ethernet5"},
+        ];
+
+        vm0_config.pci_devices = [
+            {
+                "name":"SATA",
+                "bus":0,
+                "dev":0x1f,
+                "fun":2,
+                "irq":"SATA",
+                "memory":[],
+            },
+            {
+                "name":"Ethernet5",
+                "bus":5,
+                "dev":0,
+                "fun":0,
+                "irq":"Ethernet5",
+                "memory":[
+                    {"paddr":0xc0500000, "size":0x20000, "page_bits":12},
+                    {"paddr":0xc0520000, "size":0x4000, "page_bits":12},
+                ],
+            },
+        ];
+
+        vm0_config.irqs = [
+            {"name":"SATA", "source":19, "level_trig":1, "active_low":1, "dest":11},
+            {"name":"Ethernet5", "source":0x11, "level_trig":1, "active_low":1, "dest":10},
+        ];
     }
 }

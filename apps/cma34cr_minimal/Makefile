@@ -31,6 +31,13 @@ include PCIConfigIO/PCIConfigIO.mk
 include FileServer/FileServer.mk
 include Init/Init.mk
 
+Init0_CFILES += $(wildcard $(SOURCE_DIR)/cross_vm.c) \
+                $(wildcard $(SOURCE_DIR)/common/src/*.c)
+Init0_HFILES += $(wildcard $(SOURCE_DIR)/common/include/*.h) \
+                $(wildcard $(SOURCE_DIR)/common/shared_include/cross_vm_shared/*.h)
+
+PrintServer_CFILES += $(SOURCE_DIR)/print_server.c
+
 # We want to run C99
 CFLAGS += -std=gnu99 "-DCAMKES_VM_CONFIG=${VM_CONFIG}" -I${SOURCE_DIR}/configurations -I${SOURCE_DIR}/../../components/VM/configurations
 
@@ -48,7 +55,7 @@ ${STAGE_DIR}/${KERNEL_FILENAME}: $(SOURCE_DIR)/linux/${KERNEL_FILENAME}
 	$(Q)mkdir -p $(@D)
 	${PWD}/tools/elf/extract-vmlinux $< > $@
 
-${STAGE_DIR}/${ROOTFS_FILENAME}: ${SOURCE_DIR}/linux/${ROOTFS_FILENAME}
+${STAGE_DIR}/${ROOTFS_FILENAME}: ${SOURCE_DIR}/${ROOTFS_FILENAME}
 	@echo "[CP] $@"
 	@cp $< $@
 

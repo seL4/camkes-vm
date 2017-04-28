@@ -106,6 +106,11 @@ void pit_pre_init(void);
 void rtc_pre_init(void);
 void serial_pre_init(void);
 
+static int poke_handler(vmm_vcpu_t *vcpu) {
+    printf("POKE!!!\n");
+    return 0;
+}
+
 void pre_init(void) {
     int error;
 
@@ -731,6 +736,9 @@ void *main_continued(void *arg) {
     assert(!error);
 
 //    vmm_exit_init();
+
+    reg_new_handler(&vmm, poke_handler, 4);
+
     /* Now go run the event loop */
     vmm_run(&vmm);
 

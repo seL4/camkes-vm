@@ -17,9 +17,9 @@
 # Dataport sizes must match those in the camkes spec.
 # For each argument to dataport_init, the nth pair
 # corresponds to the dataport with id n.
-dataport_init /dev/camkes_reverse_src 8192 /dev/camkes_reverse_dest 8192
+dataport_init /dev/camkes_data 4096
 
 # The nth argument to event_init corresponds to the
 # event with id n according to the camkes vmm.
-consumes_event_init /dev/camkes_reverse_done
-emits_event_init /dev/camkes_reverse_ready
+consumes_event_init /dev/camkes_done_printing
+emits_event_init /dev/camkes_do_print

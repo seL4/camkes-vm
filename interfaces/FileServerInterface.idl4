@@ -12,6 +12,5 @@ procedure FileServerInterface {
     /* File instance code */
     int lookup(in string name);
     size_t filesize(in int fd);
-    int read(in int fd, in off_t offset, in size_t size);
-    void read_complete();
+    ssize_t read(in int fd, in off_t offset, in size_t size);
 };

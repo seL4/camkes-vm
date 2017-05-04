@@ -54,7 +54,6 @@ int fsclient_read(void *dest, int fd, off_t offset, size_t size) {
         copy_len -= ret_len;
     }
 
-    fs_read_complete();
     return 0;
 }
 
@@ -66,6 +65,8 @@ void fsclient_close(int fd) {
     return;
 }
 
+extern void *fs_buf;
+
 static void *client_get_file_dataport(void) {
-    return (void *)fs_mem;
+    return (void *)fs_buf;
 }

@@ -20,14 +20,10 @@
 
 #include <camkes.h>
 
-#define BUF_SIZE PAGE_SIZE_4K
 #define FS_ERR_NOFILE -1
-#define FS_ERR_BLOCKED_PORT -2
 
 /* Files are loaded from the cpio archive */
 extern char _cpio_archive[];
-
-static seL4_Word busy_with_request = -1;
 
 typedef struct cpio_entry {
     const char *name;
@@ -42,8 +38,6 @@ static struct cpio_info cinfo;
 static void *server_get_file_dataport(void);
 static void init_cpio_list(void);
 static cpio_entry_t *get_cpio_entry(int fd);
-
-static void *fs_dataport;
 
 /*
     Initialise a list of files from the cpio
@@ -62,15 +56,7 @@ static void init_cpio_list(void) {
 }
 
 void pre_init(void) {
-    fs_dataport = (void *) fs_mem;
     init_cpio_list();
-}
-
-/*
-    Return the address of a client/guest vm's shared dataport
-*/
-static void *server_get_file_dataport() {
-    return fs_dataport;
 }
 
 /*
@@ -88,15 +74,6 @@ int fs_ctrl_lookup(const char *name) {
 
 seL4_Word fs_ctrl_get_sender_id(void);
 
-/*
-    Ends a server-client lock
-*/
-void fs_ctrl_read_complete() {
-    seL4_Word lock = fs_ctrl_get_sender_id();
-    if(lock == busy_with_request)
-        busy_with_request = -1;
-}
-
 size_t fs_ctrl_filesize(int fd) {
     cpio_entry_t *ent = get_cpio_entry(fd);
     if(ent == NULL)
@@ -107,28 +84,23 @@ size_t fs_ctrl_filesize(int fd) {
 /*
     Writes some data into a clients dataport, up to the maximum size for that dataport
 */
-int fs_ctrl_read(int fd, off_t offset, size_t size) {
+ssize_t fs_ctrl_read(int fd, off_t offset, size_t size) {
     cpio_entry_t *ent = get_cpio_entry(fd);
     if(ent == NULL)
         return FS_ERR_NOFILE;
 
-    seL4_Word lock = fs_ctrl_get_sender_id();
-    if(busy_with_request == -1) {
-        busy_with_request = lock;
-    } else if(busy_with_request != lock) {
-        return FS_ERR_BLOCKED_PORT;
-    }
+    seL4_Word client = fs_ctrl_get_sender_id();
 
     if(offset >= ent->size) {
         return 0;
     }
 
-    void *dataport = server_get_file_dataport();
-    if(dataport == NULL) {
-        return -1;
-    }
+    void *dataport = fs_ctrl_buf(client);
+    assert(dataport);
 
-    size = MIN(size, BUF_SIZE);
+    size_t max = fs_ctrl_buf_size(client);
+
+    size = MIN(size, max);
     memcpy(dataport, ent->file + offset, size);
     return size;
 }

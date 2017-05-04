@@ -12,7 +12,6 @@ import <PutChar.idl4>;
 import <FileServerInterface.idl4>;
 
 component FileServer {
-    dataport Buf fs_mem;
+    /* This should be connected with the seL4RPCDataport connector */
     provides FileServerInterface fs_ctrl;
-    maybe uses PutChar putchar;
 }

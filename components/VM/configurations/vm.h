@@ -68,7 +68,6 @@
     uses Timer init_timer; \
     /* File Server */ \
     uses FileServerInterface fs; \
-    dataport Buf fs_mem; \
     uses GetChar serial_getchar; \
     attribute string kernel_cmdline; \
     attribute string kernel_image; \
@@ -89,8 +88,7 @@
     /* Connect the intready to itself to generate a template for retrieving the AEP */ \
     connection seL4GlobalAsynch intreadycon##num(from vm##num.intready_connector, to vm##num.intready); \
     /* Connect all Init components to the fileserver */ \
-    connection seL4RPCCall fs##num(from vm##num.fs, to fserv.fs_ctrl); \
-    connection seL4SharedData fs_sharemem##num(from vm##num.fs_mem, to fserv.fs_mem); \
+    connection seL4RPCDataport fs##num(from vm##num.fs, to fserv.fs_ctrl); \
     /* Connect all the components to the serial server */ \
     connection seL4RPCCall serial_vm##num(from vm##num.putchar, to serial.vm_putchar); \
     connection seL4RPCCall serial_guest_vm##num(from vm##num.guest_putchar, to serial.guest_putchar); \
@@ -119,6 +117,7 @@
 
 #define VM_PER_VM_CONFIG_DEF(num, numplustwo) \
     vm##num.fs_attributes = VAR_STRINGIZE(num); \
+    vm##num.fs_shmem_size = 0x1000; \
     vm##num.init_timer_global_endpoint = VAR_STRINGIZE(vm##num); \
     vm##num.init_timer_badge = VAR_STRINGIZE(VM_INIT_TIMER_BADGE); \
     vm##num.init_timer_attributes = numplustwo; \

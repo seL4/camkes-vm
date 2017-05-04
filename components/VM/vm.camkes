@@ -13,6 +13,7 @@
 #include <configurations/vm.h>
 
 import <std_connector.camkes>;
+import <global-connectors.camkes>;
 
 import <VirtIOPort.idl4>;
 import <InterruptGenerator.idl4>;

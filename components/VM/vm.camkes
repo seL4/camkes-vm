@@ -49,11 +49,6 @@ import <FileServer/FileServer.camkes>;
 
 import <Echo/Echo.camkes>;
 
-connector seL4GlobalAsynch {
-    from Event template "seL4GlobalAsynch-from.template.c";
-    to Events template "seL4GlobalAsynch-to.template.c";
-}
-
 connector seL4UDPSend {
     from Procedure template "seL4UDPSend-from.template.c";
     to Procedure template "seL4UDPSend-to.template.c";
@@ -112,11 +107,6 @@ connector seL4Ethdriver {
 connector seL4SerialServer {
     from Procedures template "seL4SerialServer-from.template.c" with 0 threads;
     to Procedure template "seL4SerialServer-to.template.c";
-}
-
-connector seL4GlobalAsynchCallback {
-    from Event template "seL4GlobalAsynchCallback-from.template.c";
-    to Events template "seL4GlobalAsynchCallback-to.template.c";
 }
 
 connector seL4MultiSharedData {

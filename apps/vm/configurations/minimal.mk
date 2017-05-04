@@ -10,32 +10,6 @@
 # @TAG(D61_GPL)
 #
 
-TARGETS := $(notdir ${SOURCE_DIR}).cdl
-ADL := vm.camkes
-
-# Subdirectory containing extra templates.
-TEMPLATES := templates global-templates
-
-VM_CONFIG := cma34cr_minimal
-VM_NUM_VM := 1
-
-include TimeServer/TimeServer.mk
-include SerialServer/SerialServer.mk
-include RTC/RTC.mk
-include Ethdriver/Ethdriver.mk
-include UDPServer/UDPServer.mk
-include HelloWorld/HelloWorld.mk
-include Echo/Echo.mk
-include Vchan/Vchan.mk
-include PCIConfigIO/PCIConfigIO.mk
-include FileServer/FileServer.mk
-include Init/Init.mk
-
-# We want to run C99
-CFLAGS += -std=gnu99 "-DCAMKES_VM_CONFIG=${VM_CONFIG}" -I${SOURCE_DIR}/configurations -I${SOURCE_DIR}/../../components/VM/configurations
-
-CAMKES_FLAGS += --cpp-flag=-I${SOURCE_DIR}/configurations --cpp-flag=-I${SOURCE_DIR}/../../components/VM --cpp-flag="-DCAMKES_VM_CONFIG=${VM_CONFIG}" --cache-dir=${PWD}/build/camkes_cache
-
 include ${PWD}/tools/camkes/camkes.mk
 
 KERNEL_FILENAME := bzimage
@@ -57,4 +31,3 @@ ${BUILD_DIR}/src/vm.fserv/static/archive.o: ${ARCHIVE_DEPS}
 	@echo "[CPIO] $@"
 	$(Q)${COMMON_PATH}/files_to_obj.sh $@ _cpio_archive $^
 	@echo "[CPIO] done."
-

@@ -103,11 +103,6 @@ connector seL4VMPCIDevices {
     to hardware Procedure;
 }
 
-connector seL4RPCDataport {
-    from Procedure template "seL4RPCDataport-from.template.c";
-    to Procedure template "seL4RPCDataport-to.template.c";
-}
-
 connector seL4Ethdriver {
     from Procedures template "seL4Ethdriver-from.template.c" with 0 threads;
     to Procedure template "seL4Ethdriver-to.template.c";

@@ -35,7 +35,6 @@ static cpio_entry_t *cpio_file_list = NULL;
 static struct cpio_info cinfo;
 
 /* Function pointers for managing instances, valid clients */
-static void *server_get_file_dataport(void);
 static void init_cpio_list(void);
 static cpio_entry_t *get_cpio_entry(int fd);
 
@@ -73,6 +72,8 @@ int fs_ctrl_lookup(const char *name) {
 }
 
 seL4_Word fs_ctrl_get_sender_id(void);
+void *fs_ctrl_buf(seL4_Word);
+size_t fs_ctrl_buf_size(seL4_Word);
 
 size_t fs_ctrl_filesize(int fd) {
     cpio_entry_t *ent = get_cpio_entry(fd);

@@ -10,10 +10,4 @@
 # @TAG(D61_GPL)
 #
 
-apps-$(CONFIG_APP_CAMKES_VM)    += vm
-
-vm-y     = common libsel4 libmuslc libsel4vka libsel4allocman libsel4muslcsys \
-libsel4vspace libsel4utils libpci libcpio libsel4vmm libelf libutils libsel4camkes libsel4sync libsel4debug libsel4muslccamkes libsel4simple libsel4simple-default libsel4platsupport libethdrivers liblwip
-
-
-vm: $(vm-y)
+VM_NUM_VM := 2

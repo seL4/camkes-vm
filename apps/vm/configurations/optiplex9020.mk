@@ -1,12 +1,22 @@
 #
-# Copyright 2014, NICTA
+# Copyright 2017, Data61, CSIRO
+# Commonwealth Scientific and Industrial Research Organisation (CSIRO)
+# ABN 41 687 119 230.
 #
 # This software may be distributed and modified according to the terms of
 # the GNU General Public License version 2. Note that NO WARRANTY is provided.
 # See "LICENSE_GPLv2.txt" for details.
 #
-# @TAG(NICTA_GPL)
+# @TAG(D61_GPL)
 #
+
+Init0_CFILES += $(wildcard $(SOURCE_DIR)/src/optiplex9020_onevm/*.c) \
+				$(wildcard $(SOURCE_DIR)/common/src/*.c)
+
+Init0_HFILES += $(wildcard $(SOURCE_DIR)/common/include/*.h) \
+				$(wildcard $(SOURCE_DIR)/common/shared_include/cross_vm_shared/*.h)
+
+include ${PWD}/tools/camkes/camkes.mk
 
 KERNEL_FILENAME := bzimage
 ROOTFS_FILENAME := rootfs.cpio
@@ -22,20 +32,9 @@ ${STAGE_DIR}/${ROOTFS_FILENAME}: ${SOURCE_DIR}/linux/${ROOTFS_FILENAME}
 	@echo "[CP] $@"
 	@cp $< $@
 
-${BUILD_DIR}/src/vm_vm0/static/archive.o: ${ARCHIVE_DEPS}
+${BUILD_DIR}/src/vm.fserv/static/archive.o: ${ARCHIVE_DEPS}
 	$(Q)mkdir -p $(dir $@)
 	@echo "[CPIO] $@"
 	$(Q)${COMMON_PATH}/files_to_obj.sh $@ _cpio_archive $^
 	@echo "[CPIO] done."
 
-${BUILD_DIR}/src/vm_vm1/static/archive.o: ${ARCHIVE_DEPS}
-	$(Q)mkdir -p $(dir $@)
-	@echo "[CPIO] $@"
-	$(Q)${COMMON_PATH}/files_to_obj.sh $@ _cpio_archive $^
-	@echo "[CPIO] done."
-
-${BUILD_DIR}/src/vm_vm2/static/archive.o: ${ARCHIVE_DEPS}
-	$(Q)mkdir -p $(dir $@)
-	@echo "[CPIO] $@"
-	$(Q)${COMMON_PATH}/files_to_obj.sh $@ _cpio_archive $^
-	@echo "[CPIO] done."

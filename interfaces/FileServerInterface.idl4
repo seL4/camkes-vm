@@ -9,8 +9,13 @@
  */
 
 procedure FileServerInterface {
-    /* File instance code */
-    int lookup(in string name);
-    size_t filesize(in int fd);
-    ssize_t read(in int fd, in off_t offset, in size_t size);
+    /* open a file returning a file descriptor. flags and return codes are the same as
+     * posix 'open' syscall. Actual flags supported dependent upon file server implementation */
+    int open(in string name, in int flags);
+    /* read from an opened file. content is placed into the clients shared memory buffer */
+    ssize_t read(in int fd, in size_t size);
+    /* seek inside the file stream. this is equivalent to lseek64 */
+    int64_t seek(in int fd, in int64_t offset, in int whence);
+    /* close an open file */
+    int close(in int fd);
 };

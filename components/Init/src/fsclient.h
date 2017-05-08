@@ -1,21 +1,15 @@
 /*
- * Copyright 2014, NICTA
+ * Copyright 2017, Data 61
+ * Commonwealth Scientific and Industrial Research Organisation (CSIRO)
+ * ABN 41 687 119 230.
  *
  * This software may be distributed and modified according to the terms of
  * the GNU General Public License version 2. Note that NO WARRANTY is provided.
  * See "LICENSE_GPLv2.txt" for details.
  *
- * @TAG(NICTA_GPL)
+ * @TAG(D61_GPL)
  */
 
-#ifndef VM_INIT_FSCLIENT_H
-#define VM_INIT_FSCLIENT_H
+#pragma once
 
-#include <stdint.h>
-
-int fsclient_open(const char *name);
-int fsclient_read(void *dest, int fd, off_t offset, size_t size);
-size_t fsclient_filelength(int fd);
-void fsclient_close(int fd);
-
-#endif
+void install_fileserver();

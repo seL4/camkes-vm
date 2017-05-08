@@ -529,17 +529,16 @@ void *main_continued(void *arg) {
     ioops = make_pci_io_ops();
     libpci_scan(ioops);
 
+    /* install custom open/close/read implementations to redirect I/O from the VMM to
+     * our file server */
+    install_fileserver();
+
     /* Construct a new VM */
     platform_callbacks_t callbacks = (platform_callbacks_t) {
         .get_interrupt = i8259_get_interrupt,
         .has_interrupt = i8259_has_interrupt,
         .do_async = handle_async_event,
         .get_async_event_notification = get_async_event_notification,
-
-        .open = fsclient_open,
-        .read = fsclient_read,
-        .filelength = fsclient_filelength,
-        .close = fsclient_close,
     };
     error = vmm_init(&vmm, allocman, camkes_simple, vka, vspace, callbacks);
     assert(!error);

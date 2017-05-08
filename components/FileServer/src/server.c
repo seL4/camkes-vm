@@ -11,106 +11,97 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-
+#include <fcntl.h>
+#include <errno.h>
 #include <cpio/cpio.h>
-#include <sel4utils/mapping.h>
 
+#include <muslcsys/io.h>
 #include <sel4/sel4.h>
-#include <utils/util.h>
 
 #include <camkes.h>
-
-#define FS_ERR_NOFILE -1
-
-/* Files are loaded from the cpio archive */
-extern char _cpio_archive[];
-
-typedef struct cpio_entry {
-    const char *name;
-    unsigned long size;
-    void *file;
-} cpio_entry_t;
-
-static cpio_entry_t *cpio_file_list = NULL;
-static struct cpio_info cinfo;
-
-/* Function pointers for managing instances, valid clients */
-static void init_cpio_list(void);
-static cpio_entry_t *get_cpio_entry(int fd);
-
-/*
-    Initialise a list of files from the cpio
-        that can be searched and indexed
-*/
-static void init_cpio_list(void) {
-    int error UNUSED = cpio_info(_cpio_archive, &cinfo);
-    assert(error == 0);
-    cpio_file_list = malloc(sizeof(cpio_entry_t) * cinfo.file_count);
-    assert(cpio_file_list != NULL);
-    for(int i = 0; i < cinfo.file_count; i++) {
-        cpio_entry_t *ent = &(cpio_file_list[i]);
-        ent->file = cpio_get_entry(_cpio_archive, i, &ent->name, &ent->size);
-        assert(ent->file != NULL);
-    }
-}
-
-void pre_init(void) {
-    init_cpio_list();
-}
-
-/*
-    Lookup a file on the fileserver and return an index number to that file
-*/
-int fs_ctrl_lookup(const char *name) {
-    for(int i = 0; i < cinfo.file_count; i++) {
-        cpio_entry_t *ent = &(cpio_file_list[i]);
-        if(strncmp(name, ent->name, strlen(name)) == 0) {
-            return i;
-        }
-    }
-    return FS_ERR_NOFILE;
-}
 
 seL4_Word fs_ctrl_get_sender_id(void);
 void *fs_ctrl_buf(seL4_Word);
 size_t fs_ctrl_buf_size(seL4_Word);
 
-size_t fs_ctrl_filesize(int fd) {
-    cpio_entry_t *ent = get_cpio_entry(fd);
-    if(ent == NULL)
-        return 0;
-    return ent->size;
+typedef struct cpio_file_data_wrap {
+    cpio_file_data_t data;
+    seL4_Word client;
+} cpio_file_data_wrap_t;
+
+extern char _cpio_archive[];
+
+void pre_init() {
+    /* install the _cpio_archive */
+    muslcsys_install_cpio_interface(_cpio_archive, cpio_get_file);
 }
 
-/*
-    Writes some data into a clients dataport, up to the maximum size for that dataport
-*/
-ssize_t fs_ctrl_read(int fd, off_t offset, size_t size) {
-    cpio_entry_t *ent = get_cpio_entry(fd);
-    if(ent == NULL)
-        return FS_ERR_NOFILE;
-
-    seL4_Word client = fs_ctrl_get_sender_id();
-
-    if(offset >= ent->size) {
-        return 0;
+bool validate_client_fd(int fd, seL4_Word client) {
+    if (!valid_fd(fd)) {
+        ZF_LOGE("Client %zu attempted to use invalid fd %d", client, fd);
+        return false;
     }
+    muslcsys_fd_t *fd_struct = get_fd_struct(fd);
+    if (fd_struct->filetype != FILE_TYPE_CPIO) {
+        ZF_LOGE("Client %zu attempted to use fd %d of a non-open file", client, fd);
+        return false;
+    }
+    cpio_file_data_wrap_t *data = (cpio_file_data_wrap_t*)fd_struct->data;
+    if (data->client != client) {
+        ZF_LOGE("Client %zu attempted to use fd %d that is for client %zu", client, fd, data->client);
+        return false;
+    }
+    return true;
+}
 
+int fs_ctrl_open(const char *name, int flags) {
+    /* try the open and return early if we get an error */
+    int fd = open(name, flags);
+    if (fd < 0) {
+        return fd;
+    }
+    /* we make an assumption that we're still backed by the libsel4muslcsys
+     * implementation and we can extend its book keeping slightly to track
+     * the current client */
+    muslcsys_fd_t *fd_struct = get_fd_struct(fd);
+    assert(fd_struct);
+    cpio_file_data_wrap_t *newdata = realloc(fd_struct->data, sizeof(cpio_file_data_wrap_t));
+    if (!newdata) {
+        ZF_LOGE("Failed to allocate space for additional file metadata");
+        close(fd);
+        return -ENOMEM;
+    }
+    newdata->client = fs_ctrl_get_sender_id();
+    fd_struct->data = newdata;
+    return fd;
+}
+
+int64_t fs_ctrl_seek(int fd, int64_t offset, int whence) {
+    seL4_Word client = fs_ctrl_get_sender_id();
+    if (!validate_client_fd(fd, client)) {
+        return -1;
+    }
+    return lseek(fd, offset, whence);
+}
+
+ssize_t fs_ctrl_read(int fd, size_t size) {
+    seL4_Word client = fs_ctrl_get_sender_id();
+    if (!validate_client_fd(fd, client)) {
+        return -1;
+    }
     void *dataport = fs_ctrl_buf(client);
     assert(dataport);
 
     size_t max = fs_ctrl_buf_size(client);
 
     size = MIN(size, max);
-    memcpy(dataport, ent->file + offset, size);
-    return size;
+    return read(fd, dataport, size);
 }
 
-static cpio_entry_t *get_cpio_entry(int fd) {
-    if(fd < 0)
-        return NULL;
-    if(fd >= cinfo.file_count)
-        return NULL;
-    return &cpio_file_list[fd];
+int fs_ctrl_close(int fd) {
+    seL4_Word client = fs_ctrl_get_sender_id();
+    if (!validate_client_fd(fd, client)) {
+        return -EBADF;
+    }
+    return close(fd);
 }
-

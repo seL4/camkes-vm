@@ -26,7 +26,7 @@ import <ExtraRAM.idl4>;
 import <VMIOPorts.idl4>;
 import <VMIRQs.idl4>;
 import <VMPCIDevices.idl4>;
-import <FileServerInterface.idl4>;
+import <FileServerInterface.camkes>;
 import <InitConnection.idl4>;
 import <GuestMaps.idl4>;
 import <VchanInitInterface.idl4>;

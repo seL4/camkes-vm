@@ -18,4 +18,4 @@ import <GetChar.idl4>;
 import <PutChar.idl4>;
 import <Ethdriver.idl4>;
 import <VchanInterface.idl4>;
-import <FileServerInterface.idl4>;
+import <FileServerInterface.camkes>;

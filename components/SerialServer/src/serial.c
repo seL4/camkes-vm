@@ -61,6 +61,7 @@
 #define IIR_LSR (BIT(2) | BIT(1))
 #define IIR_PENDING BIT(0)
 
+#define ESCAPE_CHAR '@'
 /* No background */
 
 // Standard colours
@@ -472,7 +473,7 @@ static void handle_char(uint8_t c) {
         give_guest_char(c);
         break;
     case 1:
-        if (c == '~') {
+        if (c == ESCAPE_CHAR) {
             statemachine = 2;
         } else {
             statemachine = 0;
@@ -481,7 +482,7 @@ static void handle_char(uint8_t c) {
         break;
     case 2:
         switch (c) {
-        case '~':
+        case ESCAPE_CHAR:
             statemachine = 0;
             give_guest_char(c);
             break;
@@ -502,7 +503,7 @@ static void handle_char(uint8_t c) {
         case '?':
             last_out = -1;
             printf(COLOUR_RESET "\r\n --- SerialServer help ---"
-                   "\r\n Escape char: ~"
+                   "\r\n Escape char: %c"
                    "\r\n 0 - %-2d switches input to that VM"
                    "\r\n ?      shows this help"
                    "\r\n m      simultaneous multi-guest input"
@@ -510,7 +511,7 @@ static void handle_char(uint8_t c) {
                    "\r\n          0: no debugging"
                    "\r\n          1: debug multi-input mode output coalescing"
                    "\r\n          2: debug flush_buffer_line"
-                   "\r\n", VM_NUM_GUESTS-1);
+                   "\r\n", ESCAPE_CHAR, VM_NUM_GUESTS-1);
             statemachine = 1;
             break;
         default:
@@ -522,7 +523,7 @@ static void handle_char(uint8_t c) {
                 statemachine = 1;
             } else {
                 statemachine = 0;
-                give_guest_char('~');
+                give_guest_char(ESCAPE_CHAR);
                 give_guest_char(c);
             }
         }

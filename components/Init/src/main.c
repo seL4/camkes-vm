@@ -13,7 +13,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <autoconf.h>
-
+#include <utils/util.h>
+#include <sel4utils/sel4_zf_logif.h>
 #include <sel4platsupport/arch/io.h>
 #include <sel4utils/vspace.h>
 #include <sel4utils/stack.h>
@@ -60,8 +61,8 @@ static seL4_CPtr get_async_event_notification() {
 }
 
 void platsupport_serial_setup_simple(vspace_t *vspace, simple_t *simple, vka_t *vka) {
-    printf("Ignoring call to %s\n", __FUNCTION__);
-    printf("Assuming camkes sorted this out\n");
+    ZF_LOGW("Ignoring call to %s\n", __FUNCTION__);
+    ZF_LOGW("Assuming camkes sorted this out\n");
 }
 
 void camkes_make_simple(simple_t *simple);
@@ -93,7 +94,7 @@ static seL4_Error simple_frame_cap_wrapper(void *data, void *paddr, int size_bit
     /* Check whether it is a guest mapped region. */
     cap = guest_mappings_get_mapping_mem_frame((uintptr_t)paddr);
     if (cap != 0) {
-        printf("Guest map found at %p\n", paddr);
+        ZF_LOGI("Guest map found at %p\n", paddr);
         vka_cspace_make_path(&vka, cap, path);
         return 0;
     }
@@ -127,14 +128,17 @@ void pre_init(void) {
             BIT(simple_get_cnode_size_bits(&camkes_simple)),
             sizeof(allocator_mempool), allocator_mempool
     );
-    assert(allocman);
+    ZF_LOGF_IF(allocman == NULL, "Failed to create allocman");
+
     error = allocman_add_simple_untypeds(allocman, &camkes_simple);
+    ZF_LOGF_IF(error, "Failed to add untypeds to allocman");
+
     allocman_make_vka(&vka, allocman);
 
     /* Initialize the vspace */
     error = sel4utils_bootstrap_vspace(&vspace, &vspace_data,
             simple_get_init_cap(&camkes_simple, seL4_CapInitThreadPD), &vka, NULL, NULL, existing_frames);
-    assert(!error);
+    ZF_LOGF_IF(error, "Failed to bootstrap vspace");
 
     /* Create virtual pool */
     reservation_t pool_reservation;
@@ -163,7 +167,7 @@ void pre_init(void) {
         sz_size_bits = size_bits;
         vka_cspace_make_path(&vka, cap, &path);
         error = allocman_utspace_add_uts(allocman, 1, &path, &sz_size_bits, &paddr, ALLOCMAN_UT_DEV_MEM);
-        assert(!error);
+        ZF_LOGF_IF(error, "Failed to add device mem uts to allocman");
     }
 
     /* add untyped mmios */
@@ -176,7 +180,7 @@ void pre_init(void) {
             cspacepath_t path;
             vka_cspace_make_path(&vka, cap, &path);
             error = allocman_utspace_add_uts(allocman, 1, &path, &size, &paddr, ALLOCMAN_UT_DEV);
-            assert(!error);
+            ZF_LOGF_IF(error, "Failed to add MMIO uts allocman");
         }
     }
 
@@ -348,7 +352,7 @@ int pci_config_io_in(void *cookie, uint32_t port, int io_size, uint32_t *result)
         *result=pci_config_read32(bus, dev, fun, reg);
         break;
     default:
-        assert(!"Invalid size");
+        ZF_LOGF("Invalid size");
         return -1;
     }
     return 0;
@@ -387,7 +391,7 @@ int pci_config_io_out(void *cookie, uint32_t port, int io_size, uint32_t val) {
         pci_config_write32(bus, dev, fun, reg, val);
         break;
     default:
-        assert(!"Invalid size");
+        ZF_LOGF("Invalid size");
         return -1;
     }
     return 0;
@@ -453,7 +457,7 @@ static int handle_async_event(seL4_Word badge) {
         for (int i = 0; i < device_notify_list_len; i++) {
             uint32_t device_badge = device_notify_list[i].badge;
             if ( (badge & device_badge) == device_badge) {
-                assert(device_notify_list[i].func);
+                ZF_LOGF_IF(device_notify_list[i].func == NULL, "Undefined notify func");
                 device_notify_list[i].func(&vmm);
             }
         }
@@ -482,13 +486,14 @@ static void init_irqs() {
         irqs_get_irq(i, &irq_handler, &source, &level_trig, &active_low, &dest);
         vka_cspace_make_path(&vka, intready_notification(), &async_path);
         error = vka_cspace_alloc_path(&vka, &badge_path);
-        assert(!error);
+        ZF_LOGF_IF(error, "Failed to alloc cspace path");
+
         error = vka_cnode_mint(&badge_path, &async_path, seL4_AllRights, seL4_CapData_Badge_new(irq_badges[dest]));
-        assert(!error);
+        ZF_LOGF_IF(error, "Failed to mint cnode");
         error = seL4_IRQHandler_SetNotification(irq_handler, badge_path.capPtr);
-        assert(!error);
+        ZF_LOGF_IF(error, "Failed to set notification for irq handler");
         error = seL4_IRQHandler_Ack(irq_handler);
-        assert(!error);
+        ZF_LOGF_IF(error, "Failed to ack irq handler");
         hw_irq_handlers[dest] = irq_handler;
     }
 }
@@ -509,7 +514,7 @@ void init_con_irq_init(void) {
     }
     device_notify_list_len = irqs;
     device_notify_list = malloc(sizeof(*device_notify_list) * irqs);
-    assert(device_notify_list);
+    ZF_LOGF_IF(device_notify_list == NULL, "Malloc failed");
     for (i = 0; i < irqs; i++) {
         init_cons_has_interrupt(i, &badge, &fun);
         device_notify_list[i].badge = badge;
@@ -524,9 +529,11 @@ void *main_continued(void *arg) {
     ps_io_port_ops_t ioops;
 
     rtc_time_date_t time_date = system_rtc_time_date();
-    printf("Starting VM %s at: %04d:%02d:%02d %02d:%02d:%02d\n", get_instance_name(), time_date.year, time_date.month, time_date.day, time_date.hour, time_date.minute, time_date.second);
+    ZF_LOGI("Starting VM %s at: %04d:%02d:%02d %02d:%02d:%02d\n", get_instance_name(), time_date.year, time_date.month, time_date.day, time_date.hour, time_date.minute, time_date.second);
 
     ioops = make_pci_io_ops();
+
+    ZF_LOGI("PCI scan");
     libpci_scan(ioops);
 
     /* install custom open/close/read implementations to redirect I/O from the VMM to
@@ -540,32 +547,46 @@ void *main_continued(void *arg) {
         .do_async = handle_async_event,
         .get_async_event_notification = get_async_event_notification,
     };
+
+    ZF_LOGI("VMM init");
     error = vmm_init(&vmm, allocman, camkes_simple, vka, vspace, callbacks);
-    assert(!error);
+    ZF_LOGF_IF(error, "VMM init failed");
 
     /* First we initialize any host information */
+    ZF_LOGI("VMM init host");
     error = vmm_init_host(&vmm);
-    assert(!error);
+    ZF_LOGF_IF(error, "VMM init host failed");
 
+    ZF_LOGI("Init guest");
     /* Early init of guest. We populate everything later */
     error = vmm_init_guest(&vmm, CONFIG_CAMKES_DEFAULT_PRIORITY);
-    assert(!error);
+    ZF_LOGF_IF(error, "Guest init failed");
 
     /* Initialize the init device badges and notification functions */
+    ZF_LOGI("Init device badges and notification functions");
     init_con_irq_init();
 
     have_initrd = !(strcmp(initrd_image, "") == 0);
 
+    ZF_LOGI("Init irqs");
     init_irqs();
 
+    ZF_LOGI("i8259 pre init");
     i8259_pre_init();
+
+    ZF_LOGI("serial pre init");
     serial_pre_init();
+
+    ZF_LOGI("Pit pre init");
     pit_pre_init();
+
+    ZF_LOGI("RTC pre init");
     rtc_pre_init();
 
 #ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_IOMMU
     /* Do early device discovery and find any relevant PCI busses that
      * need to get added */
+    ZF_LOGI("PCI early device discovery");
     for (i = 0; i < pci_devices_num_devices(); i++) {
         uint8_t bus;
         uint8_t dev;
@@ -573,12 +594,13 @@ void *main_continued(void *arg) {
         seL4_CPtr iospace_cap;
         pci_devices_get_device(i, &bus, &dev, &fun, &iospace_cap);
         error = vmm_guest_vspace_add_iospace(&vmm.host_vspace, &vmm.guest_mem.vspace, iospace_cap);
-        assert(!error);
+        ZF_LOGF_IF(error, "failed to add iospace to vspace");
     }
 #endif
 
     /* Do we need to do any early reservations of guest address space? */
 #ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE
+    ZF_LOGI("Setting up early guest reservations");
     for (i = 0; i < ARRAY_SIZE(guest_ram_regions); i++) {
         /* try and put a device here */
         error = vmm_map_guest_device_at(&vmm, guest_ram_regions[i].base, guest_ram_regions[i].base, guest_ram_regions[i].size);
@@ -589,12 +611,12 @@ void *main_continued(void *arg) {
 #endif
     for (i = 0; i < ARRAY_SIZE(guest_ram_regions); i++) {
         error = vmm_alloc_guest_ram_at(&vmm, guest_ram_regions[i].base, guest_ram_regions[i].size);
-        assert(!error);
+        ZF_LOGF_IF(error, "Failed to alloc guest ram at %p", guest_ram_regions[i].base);
     }
 
     for (i = 0; i < ARRAY_SIZE(guest_fake_devices); i++) {
         error = vmm_alloc_guest_device_at(&vmm, guest_fake_devices[i].base, guest_fake_devices[i].size);
-        assert(!error);
+        ZF_LOGF_IF(error, "Failed to alloc guest device at %p", guest_fake_devices[i].base);
     }
 
     /* Add in the device mappings specified by the guest. */
@@ -602,7 +624,7 @@ void *main_continued(void *arg) {
         uint64_t frame_paddr;
         uint64_t size;
         error = guest_mappings_get_guest_map(i, &frame_paddr, &size);
-        assert(!error);
+        ZF_LOGF_IF(error, "Failed to get guest map at %d\n", i);
     }
 
     /* Allocate guest ram. This is the main memory that the guest will actually get
@@ -614,9 +636,10 @@ void *main_continued(void *arg) {
     paddr_is_vaddr = 0;
 #endif
     error = vmm_alloc_guest_ram(&vmm, guest_ram_mb * 1024 * 1024, paddr_is_vaddr);
-    assert(!error);
+    ZF_LOGF_IF(error, "Failed to allocate guest ram");
 
     /* Perform device discovery and give passthrough device information */
+    ZF_LOGI("PCI device discovery");
     for (i = 0; i < pci_devices_num_devices(); i++) {
         uint8_t bus;
         uint8_t dev;
@@ -661,12 +684,14 @@ void *main_continued(void *arg) {
     }
 
     /* Initialize any extra init devices */
+    ZF_LOGI("Init extra devices");
     for (i = 0; i < init_cons_num_connections(); i++) {
         void (*proc)(vmm_t*) = (void (*)(vmm_t*))init_cons_init_function(i);
         proc(&vmm);
     }
 
     /* Add any IO ports */
+    ZF_LOGI("Adding IO ports");
     for (i = 0; i < ARRAY_SIZE(ioport_handlers); i++) {
         if (ioport_handlers[i].port_in) {
             error = vmm_io_port_add_handler(&vmm.io_port, ioport_handlers[i].start_port, ioport_handlers[i].end_port, NULL, ioport_handlers[i].port_in, ioport_handlers[i].port_out, ioport_handlers[i].desc);
@@ -691,26 +716,28 @@ void *main_continued(void *arg) {
 
     /* Load in an elf file. Hard code alignment to 4M */
     /* TODO: use proper libc file handles with the CPIO file system */
+    ZF_LOGI("Elf loading");
     error = vmm_load_guest_elf(&vmm, kernel_image, BIT(PAGE_BITS_4M));
-    assert(!error);
+    ZF_LOGF_IF(error, "Failed to load guest elf file");
 
     /* Relocate the elf */
+    ZF_LOGI("Relocate elf");
     vmm_plat_guest_elf_relocate(&vmm, kernel_relocs);
 
     /* Add a boot module */
     if (have_initrd) {
         error = vmm_guest_load_boot_module(&vmm, initrd_image);
-        assert(!error);
+        ZF_LOGF_IF(error, "Failed to load boot module");
     }
 
     vmm_plat_init_guest_boot_structure(&vmm, kernel_cmdline);
 
     error = reg_new_handler(&vmm, &vchan_handler, VMM_MANAGER_TOKEN);
-    assert(!error);
+    ZF_LOGF_IF(error, "Failed register vchan_handler");
 
     if (cross_vm_dataports_init) {
         error = cross_vm_dataports_init(&vmm);
-        assert(!error);
+        ZF_LOGF("cross vm dataports init failed");
     }
 
     if (cross_vm_emits_events_init) {
@@ -726,8 +753,9 @@ void *main_continued(void *arg) {
     }
 
     /* Final VMM setup now that everything is defined and loaded */
+    ZF_LOGI("Finalising VMM");
     error = vmm_finalize(&vmm);
-    assert(!error);
+    ZF_LOGF_IF(error, "Failed to finalise VMM");
 
 //    vmm_exit_init();
     /* Now go run the event loop */

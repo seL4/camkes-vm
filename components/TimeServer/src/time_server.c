@@ -95,17 +95,18 @@ static void insert_timer(client_timer_t *timer) {
 static void signal_client(client_timer_t *timer, uint64_t current_time) {
     the_timer_emit(timer->client_id + 1);
     client_state[timer->client_id].completed |= BIT(timer->id);
-    remove_timer(timer);
     switch(timer->timer_type) {
     case TIMER_TYPE_OFF:
-        assert(!"not possible");
+        /* nothing to do */
         break;
     case TIMER_TYPE_PERIODIC:
+        remove_timer(timer);
         timer->timeout_time += timer->periodic_ns;
         insert_timer(timer);
         break;
     case TIMER_TYPE_ABSOLUTE:
     case TIMER_TYPE_RELATIVE:
+        remove_timer(timer);
         timer->timer_type = TIMER_TYPE_OFF;
         break;
     }
@@ -163,9 +164,18 @@ static int _oneshot_absolute(int cid, int tid, uint64_t ns) {
     if (t->timer_type != TIMER_TYPE_OFF) {
         remove_timer(t);
     }
-    t->timer_type = TIMER_TYPE_ABSOLUTE;
-    t->timeout_time = ns;
-    insert_timer(t);
+
+    uint64_t current_time = current_time_ns();
+    if (ns <= current_time) {
+        /* timeout has already passed */
+        signal_client(t, current_time);
+    } else {
+        /* set timeout */
+        t->timer_type = TIMER_TYPE_ABSOLUTE;
+        t->timeout_time = ns;
+        insert_timer(t);
+    }
+
     error = time_server_unlock();
     ZF_LOGF_IF(error, "Failed to unlock time server");
     return 0;

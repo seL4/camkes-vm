@@ -535,11 +535,6 @@ void *main_continued(void *arg) {
         .has_interrupt = i8259_has_interrupt,
         .do_async = handle_async_event,
         .get_async_event_notification = get_async_event_notification,
-
-        .open = fsclient_open,
-        .read = fsclient_read,
-        .filelength = fsclient_filelength,
-        .close = fsclient_close,
     };
     error = vmm_init(&vmm, allocman, camkes_simple, vka, vspace, callbacks);
     assert(!error);

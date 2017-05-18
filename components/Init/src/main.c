@@ -611,12 +611,12 @@ void *main_continued(void *arg) {
 #endif
     for (i = 0; i < ARRAY_SIZE(guest_ram_regions); i++) {
         error = vmm_alloc_guest_ram_at(&vmm, guest_ram_regions[i].base, guest_ram_regions[i].size);
-        ZF_LOGF_IF(error, "Failed to alloc guest ram at %p", guest_ram_regions[i].base);
+        ZF_LOGF_IF(error, "Failed to alloc guest ram at %p", (void*)guest_ram_regions[i].base);
     }
 
     for (i = 0; i < ARRAY_SIZE(guest_fake_devices); i++) {
         error = vmm_alloc_guest_device_at(&vmm, guest_fake_devices[i].base, guest_fake_devices[i].size);
-        ZF_LOGF_IF(error, "Failed to alloc guest device at %p", guest_fake_devices[i].base);
+        ZF_LOGF_IF(error, "Failed to alloc guest device at %p", (void*)guest_fake_devices[i].base);
     }
 
     /* Add in the device mappings specified by the guest. */

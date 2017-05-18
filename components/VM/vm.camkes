@@ -20,7 +20,7 @@ import <InterruptGenerator.idl4>;
 import <PCIConfig.idl4>;
 import <Timer.idl4>;
 import <RTC.idl4>;
-import <Ethdriver.idl4>;
+import <Ethdriver.camkes>;
 import <VchanInterface.idl4>;
 import <ExtraRAM.idl4>;
 import <VMIOPorts.idl4>;
@@ -128,12 +128,6 @@ component PieceOfHardware {
     hardware;
     provides IOPort pci_config_address;
     provides IOPort pci_config_data;
-};
-
-component HWEthDriver {
-    hardware;
-    emits IRQ irq;
-    dataport EthDriverMMIO_t mmio;
 };
 
 component VMConfig {

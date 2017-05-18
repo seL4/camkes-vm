@@ -364,6 +364,9 @@ static void* camkes_iommu_dma_alloc(void *cookie, size_t size,
     return vaddr;
 }
 
+/* depending on the actual component a different init function will be linked against */
+int ethif_init(struct eth_driver *eth_driver, ps_io_ops_t io_ops, void *config);
+
 void post_init(void) {
     int error;
     int pci_bdf_int;
@@ -433,15 +436,7 @@ void post_init(void) {
         .bar0 = (void*)EthDriver
     };
 
-    if (strcmp(device_model, "82574") == 0){
-        error = ethif_e82574_init(&eth_driver, ioops, &eth_config);
-    } else if (strcmp(device_model, "82580") == 0){
-        error = ethif_e82580_init(&eth_driver, ioops, &eth_config);
-    } else {
-        /* Default to the 82574 model. */
-        printf("Warning:: Device Model not found. Using the 82574.\n");
-        error = ethif_e82574_init(&eth_driver, ioops, &eth_config);
-    }
+    error = ethif_init(&eth_driver, ioops, &eth_config);
 
     assert(!error);
     done_init = 1;

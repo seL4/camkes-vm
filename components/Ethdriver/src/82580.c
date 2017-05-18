@@ -10,11 +10,9 @@
  * @TAG(D61_GPL)
  */
 
-import <Ethdriver.camkes>;
+#include <ethdrivers/intel.h>
 
-component Firewall {
-    uses Ethdriver ethdriver;
-    provides Ethdriver client;
-    emits HasData dummy;
-    consumes HasData ethdriver_has_data;
+int ethif_init(struct eth_driver *eth_driver, ps_io_ops_t io_ops, void *config) {
+    return ethif_e82580_init(eth_driver, io_ops, config);
 }
+

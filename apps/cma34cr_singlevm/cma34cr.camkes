@@ -30,8 +30,8 @@ component VM {
         VM_PER_VM_COMP_DEF(0)
 
         /* Ethernet driver that we share to Linux */
-        component Ethdriver ethdriver;
-        component HWEthDriver HWEthdriver;
+        component Ethdriver82574 ethdriver;
+        component HWEthDriver82574 HWEthdriver;
 
         /* Hardware resources for the ethernet driver */
         connection seL4HardwareMMIO ethdrivermmio(from ethdriver.EthDriver, to HWEthdriver.mmio);
@@ -71,7 +71,6 @@ component VM {
         ethdriver.iospace_id = 0x11;
         ethdriver.pci_bdf = "5:0.0";
         ethdriver.simple_untyped20_pool = 2;
-        ethdriver.device_model = "82574";
         ethdriver.heap_size = 0x10000;
         ethdriver.dma_pool = 0x100000;
 

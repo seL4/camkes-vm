@@ -21,8 +21,8 @@ assembly {
         component UDPServer udpserver0;
         component UDPServer udpserver1;
         /* Ethernet driver */
-        component Ethdriver ethdriver;
-        component HWEthDriver HWEthDriver;
+        component Ethdriver82580 ethdriver;
+        component HWEthDriver82580 HWEthDriver;
         /* The VM sub component */
         component VM vm;
 
@@ -125,7 +125,6 @@ assembly {
         ethdriver.iospace_id = 0x12;
         ethdriver.pci_bdf = "1:0.0";
         ethdriver.simple_untyped20_pool = 2;
-        ethdriver.device_model = "82580";
         ethdriver.heap_size = 0x10000;
         ethdriver.dma_pool = 0x100000;
     }

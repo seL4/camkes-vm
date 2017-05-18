@@ -21,7 +21,7 @@
  * $ netcat -lup <ECHO_SEND_PORT> #Recieve the rebounded echo replies on this port. Echos data from sender. 
  */
 
-import <Ethdriver.idl4>;
+import <Ethdriver.camkes>;
 import <PutChar.idl4>;
 import <UDPRecv.idl4>;
 import <UDPSend.idl4>;

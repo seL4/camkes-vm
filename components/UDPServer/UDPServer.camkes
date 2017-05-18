@@ -8,7 +8,7 @@
  * @TAG(NICTA_GPL)
  */
 
-import <Ethdriver.idl4>;
+import <Ethdriver.camkes>;
 import <PutChar.idl4>;
 import <UDPSend.idl4>;
 import <UDPRecv.idl4>;

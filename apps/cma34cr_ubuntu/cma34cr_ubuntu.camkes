@@ -59,8 +59,8 @@ component VM {
         connection seL4RPCCall cross_vm_putchar(from string_reverse.putchar,
                                                 to serial.vm_putchar);
         /* Ethernet driver that we share to Linux */
-        component Ethdriver ethdriver;
-        component HWEthDriver HWEthdriver;
+        component Ethdriver82574 ethdriver;
+        component HWEthDriver82574 HWEthdriver;
         /* Hardware resources for the ethernet driver */
         connection seL4HardwareMMIO ethdrivermmio(from ethdriver.EthDriver, to HWEthdriver.mmio);
         connection seL4HardwareInterrupt hwethirq(from HWEthdriver.irq, to ethdriver.irq);
@@ -114,7 +114,6 @@ component VM {
         ethdriver.iospace_id = 0x12;
         ethdriver.pci_bdf = "6:0.0"; // <------------ may be different
         ethdriver.simple_untyped20_pool = 2;
-        ethdriver.device_model = "82574";
         ethdriver.heap_size = 0x10000;
         ethdriver.dma_pool = 0x200000;
 

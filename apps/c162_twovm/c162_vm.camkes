@@ -37,8 +37,8 @@ component VM {
         VM_PER_VM_COMP_DEF(0)
         VM_PER_VM_COMP_DEF(1)
         /* Ethernet driver that we share to Linux */
-        component Ethdriver ethdriver;
-        component HWEthDriver HWEthdriver;
+        component Ethdriver82580 ethdriver;
+        component HWEthDriver82580 HWEthdriver;
         /* Vchan interface for communicating to native tasks */
         component Vchan vchan;
         component HelloWorld hello;
@@ -77,7 +77,6 @@ component VM {
         ethdriver.iospace_id = 0x11;
         ethdriver.pci_bdf = "1:0.1";
         ethdriver.simple_untyped20_pool = 2;
-        ethdriver.device_model = "82580";
         ethdriver.heap_size = 0;
         HWEthdriver.mmio_paddr = 0xf1a80000;
         HWEthdriver.mmio_size = 0x80000;

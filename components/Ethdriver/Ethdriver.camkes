@@ -8,21 +8,45 @@
  * @TAG(NICTA_GPL)
  */
 
-import <Ethdriver.idl4>;
-import <PutChar.idl4>;
+import <Ethdriver.camkes>;
 
-component Ethdriver {
+component Ethdriver82574 {
     include "EthType.h";
     has mutex ethdriver;
 
     provides Ethdriver client;
 
     consumes IRQ irq;
-    dataport EthDriverMMIO_t EthDriver;
+    dataport EthDriver82574MMIO_t EthDriver;
 
     attribute int iospace_id;
     /* format for bdf is "BUS:DEV.fun" where BUS and DEV are hex and FUN is decimal */
     attribute string pci_bdf;
-    /* the model of the ethernet device, available from the board documentation or PCI scan */
-    attribute string device_model;
 }
+
+component Ethdriver82580 {
+    include "EthType.h";
+    has mutex ethdriver;
+
+    provides Ethdriver client;
+
+    consumes IRQ irq;
+    dataport EthDriver82580MMIO_t EthDriver;
+
+    attribute int iospace_id;
+    /* format for bdf is "BUS:DEV.fun" where BUS and DEV are hex and FUN is decimal */
+    attribute string pci_bdf;
+}
+
+/* Example hardware components that contain minimal necessary spec for different ethdrivers */
+component HWEthDriver82574 {
+    hardware;
+    emits IRQ irq;
+    dataport EthDriver82574MMIO_t mmio;
+};
+
+component HWEthDriver82580 {
+    hardware;
+    emits IRQ irq;
+    dataport EthDriver82580MMIO_t mmio;
+};

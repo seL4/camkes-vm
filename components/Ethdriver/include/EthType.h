@@ -1,20 +1,21 @@
 /*
- * Copyright 2014, NICTA
+ * Copyright 2017, Data 61
+ * Commonwealth Scientific and Industrial Research Organisation (CSIRO)
+ * ABN 41 687 119 230.
  *
  * This software may be distributed and modified according to the terms of
  * the GNU General Public License version 2. Note that NO WARRANTY is provided.
  * See "LICENSE_GPLv2.txt" for details.
  *
- * @TAG(NICTA_GPL)
+ * @TAG(D61_GPL)
  */
-#ifndef VMM_CONFIG_ETHTYPE_H
-#define VMM_CONFIG_ETHTYPE_H
 
-/* Device configuration file from the apps/<vm-application>/configurations/device_config.h */
-#include "device_config.h"
+#pragma once
 
-typedef struct EthDriverMMIO {
-    char buf[ETHDRIVER_MMIO_BUF_SZ];
-} EthDriverMMIO_t;
+typedef struct EthDriver82574MMIO {
+    char buf[0x20000];
+} EthDriver82574MMIO_t;
 
-#endif
+typedef struct EthDriver82580MMIO {
+    char buf[0x80000];
+} EthDriver82580MMIO_t;

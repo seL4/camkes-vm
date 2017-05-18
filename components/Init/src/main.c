@@ -737,7 +737,7 @@ void *main_continued(void *arg) {
 
     if (cross_vm_dataports_init) {
         error = cross_vm_dataports_init(&vmm);
-        ZF_LOGF("cross vm dataports init failed");
+        ZF_LOGF_IF(error, "cross vm dataports init failed");
     }
 
     if (cross_vm_emits_events_init) {

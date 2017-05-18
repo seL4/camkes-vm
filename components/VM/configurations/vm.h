@@ -176,7 +176,7 @@
     /**/
 
 #define VM_CONFIGURATION_DEF() \
-    fserv.heap_size = 4096; \
+    fserv.heap_size = 165536; \
     serial.timeout_attributes = 1; \
     serial.timeout_global_endpoint = "serial_server"; \
     serial.timeout_badge = "1"; \

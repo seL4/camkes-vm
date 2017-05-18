@@ -142,6 +142,7 @@ static int _oneshot_relative(int cid, int tid, uint64_t ns) {
     client_timer_t *t = &client_state[cid].timers[tid];
     if (t->timer_type != TIMER_TYPE_OFF) {
         remove_timer(t);
+        t->timer_type = TIMER_TYPE_OFF;
     }
     t->timer_type = TIMER_TYPE_RELATIVE;
     t->timeout_time = current_time_ns() + ns;
@@ -163,6 +164,7 @@ static int _oneshot_absolute(int cid, int tid, uint64_t ns) {
     client_timer_t *t = &client_state[cid].timers[tid];
     if (t->timer_type != TIMER_TYPE_OFF) {
         remove_timer(t);
+        t->timer_type = TIMER_TYPE_OFF;
     }
 
     uint64_t current_time = current_time_ns();
@@ -193,6 +195,7 @@ static int _periodic(int cid, int tid, uint64_t ns) {
     client_timer_t *t = &client_state[cid].timers[tid];
     if (t->timer_type != TIMER_TYPE_OFF) {
         remove_timer(t);
+        t->timer_type = TIMER_TYPE_OFF;
     }
     t->timer_type = TIMER_TYPE_PERIODIC;
     t->periodic_ns = ns;

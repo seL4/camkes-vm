@@ -38,3 +38,5 @@ ${BUILD_DIR}/src/vm.fserv/static/archive.o: ${ARCHIVE_DEPS}
 	$(Q)${COMMON_PATH}/files_to_obj.sh $@ _cpio_archive $^
 	@echo "[CPIO] done."
 
+Init0_CFILES += $(wildcard $(SOURCE_DIR)/src/$(VM_CONFIG)/*.c)
+Init0_HFILES += $(wildcard $(SOURCE_DIR)/common/include/*.h)

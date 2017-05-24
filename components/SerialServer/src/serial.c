@@ -16,7 +16,6 @@
 
 #include <sel4/sel4.h>
 #include <camkes.h>
-#include "vm.h"
 
 /* configuration */
 #define BAUD_RATE 115200
@@ -110,6 +109,7 @@ void getchar_emit(unsigned int id);
 seL4_Word getchar_enumerate_badge(unsigned int id);
 unsigned int getchar_num_badges();
 void *getchar_buf(unsigned int id);
+int getchar_largest_badge(void);
 
 typedef struct getchar_buffer {
     uint32_t head;
@@ -511,11 +511,11 @@ static void handle_char(uint8_t c) {
                    "\r\n          0: no debugging"
                    "\r\n          1: debug multi-input mode output coalescing"
                    "\r\n          2: debug flush_buffer_line"
-                   "\r\n", ESCAPE_CHAR, VM_NUM_GUESTS-1);
+                   "\r\n", ESCAPE_CHAR, getchar_largest_badge());
             statemachine = 1;
             break;
         default:
-            if (c >= '0' && c < '0' + VM_NUM_GUESTS) {
+            if (c >= '0' && c < '0' + (getchar_largest_badge()+1)) {
                 last_out = -1;
                 int guest = c - '0';
                 printf(COLOUR_RESET "\r\nSwitching input to %d\r\n",guest);
@@ -529,7 +529,7 @@ static void handle_char(uint8_t c) {
         }
         break;
     case 3:
-        if (c >= '0' && c < '0' + VM_NUM_GUESTS) {
+        if (c >= '0' && c < '0' + (getchar_largest_badge()+1)) {
             printf(COLOUR_RESET "%s%d", (active_multiguests != 0 ? "," : "") ,(c - '0'));
             active_multiguests |= BIT(c - '0');
             last_out = -1;

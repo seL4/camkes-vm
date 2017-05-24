@@ -38,3 +38,7 @@ void /*? me.interface.name ?*/_emit(unsigned int badge) {
     assert(lookup[badge]);
     lookup[badge]();
 }
+
+int /*? me.interface.name ?*/_largest_badge(void) {
+    return /*? badges[len(badges) - 1] ?*/;
+}

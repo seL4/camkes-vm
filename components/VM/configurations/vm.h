@@ -144,8 +144,6 @@
     component PCIConfigIO pci_config; \
     component TimeServer time_server; \
     component RTC rtc; \
-    /* Hack to get hardware definitions sensibly in camkes for the cmoment */ \
-    component PieceOfHardware poh; \
     /* These components don't do much output, but just in case they can pretend to \
      * be vm0 */ \
     connection seL4RPCCall serial_pci_config(from pci_config.putchar, to serial.processed_putchar); \
@@ -153,9 +151,6 @@
     connection seL4RPCCall serial_rtc(from rtc.putchar, to serial.processed_putchar); \
     /* COnnect the serial server to the timer server */ \
     connection seL4TimeServer serialserver_timer(from serial.timeout, to time_server.the_timer); \
-    /* Connect io ports to pci config space */ \
-    connection seL4HardwareIOPort config_address_ports(from pci_config.config_address, to poh.pci_config_address); \
-    connection seL4HardwareIOPort config_data_ports(from pci_config.config_data, to poh.pci_config_data); \
     /**/
 
 #define VM_PER_VM_COMP_DEF(num) \
@@ -168,12 +163,8 @@
     serial.timeout_attributes = 1; \
     time_server.putchar_attributes = 0; \
     time_server.timers_per_client = 9; \
-    pci_config.putchar_attributes = "0"; \
-    pci_config.heap_size = 0; \
+    pci_config.putchar_attributes = 0; \
     rtc.putchar_attributes = 0; \
-    /* PCI config space definitions */ \
-    poh.pci_config_address_attributes = "0xcf8:0xcfb"; \
-    poh.pci_config_data_attributes = "0xcfc:0xcff"; \
     /* Put the entire time server at the highest priority */ \
     time_server.priority = 255; \
     /* Put the serial interrupt at 200  \

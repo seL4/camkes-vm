@@ -13,10 +13,31 @@
 import <PCIConfig.idl4>;
 import <PutChar.idl4>;
 
+component PCIConfigHardware {
+    hardware;
+    provides IOPort pci_config_address;
+    provides IOPort pci_config_data;
+    attribute string pci_config_address_attributes = "0xcf8:0xcfb";
+    attribute string pci_config_data_attributes = "0xcfc:0xcff";
+
+};
+
 component PCIConfigIO {
     has mutex lock;
     provides PCIConfig pci_config;
     uses IOPort config_address;
     uses IOPort config_data;
     uses PutChar putchar;
+    attribute int heap_size = 0;
+
+    /* Connect io ports to pci config space */
+    composition {
+        component PCIConfigHardware poh;
+        connection seL4HardwareIOPort config_address_ports(from config_address, to poh.pci_config_address);
+        connection seL4HardwareIOPort config_data_ports(from config_data, to poh.pci_config_data);
+    }
+    configuration {
+        poh.pci_config_address_attributes <- pci_config_address_attributes;
+        poh.pci_config_data_attributes <- pci_config_data_attributes;
+    }
 }

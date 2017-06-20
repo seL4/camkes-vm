@@ -123,12 +123,6 @@ connector seL4VChanInit {
     to Procedure template "seL4VChanInit-to.template.c";
 }
 
-component PieceOfHardware {
-    hardware;
-    provides IOPort pci_config_address;
-    provides IOPort pci_config_data;
-};
-
 component VMConfig {
     hardware;
     provides ExtraRAM ram;

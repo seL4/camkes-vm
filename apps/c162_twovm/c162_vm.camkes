@@ -49,8 +49,8 @@ component VM {
         connection seL4RPCCall hvchan(from hello.vchan_con, to vchan.vchan_com);
         connection seL4SharedData hvchan_sharemem_0(from hello.share_mem, to vchan.share_mem);
         /* Connect hello and vchan to the serial server (pretend to be vm1) */
-        connection seL4RPCCall hserial(from hello.putchar, to serial.vm_putchar);
-        connection seL4RPCCall vchanserial(from vchan.putchar, to serial.vm_putchar);
+        connection seL4RPCCall hserial(from hello.putchar, to serial.processed_putchar);
+        connection seL4RPCCall vchanserial(from vchan.putchar, to serial.processed_putchar);
         /* Connect vm1 to the vchan component */
         connection seL4VChanInit vchan_init(from vm1.vchan_init, to vchan.vchan_init);
         connection seL4RPCCall vchan_(from vm1.vchan_con, to vchan.vchan_com);

@@ -14,12 +14,22 @@ import <GetChar.idl4>;
 import <PutChar.idl4>;
 import <Timer.idl4>;
 
+component Serial {
+    hardware;
+    provides IOPort serial;
+    emits Irq4 serial_irq;
+    attribute string serial_attributes = "0x3f8:0x3ff";
+    attribute string serial_irq_irq_type = "isa";
+    attribute int serial_irq_irq_ioapic = 0;
+    attribute int serial_irq_irq_ioapic_pin = 4;
+    attribute int serial_irq_irq_vector = 4;
+}
+
 component SerialServer {
     control;
     has mutex serial;
-
-    provides PutChar vm_putchar;
-    provides PutChar guest_putchar;
+    provides PutChar processed_putchar;
+    provides PutChar raw_putchar;
 
     provides GetChar getchar;
 
@@ -27,4 +37,25 @@ component SerialServer {
 
     uses IOPort serial_port;
     consumes Irq4 serial_irq;
+
+    /* Size of the driver's heap */
+    attribute int heap_size = 4096;
+    /* Unique endpoint for incoming timer notifications to serial driver */
+    attribute string timeout_global_endpoint = "serial_server";
+    /* Badge number for timer notifications coming into the serial driver */
+    attribute string timeout_badge = "1";
+
+    composition {
+        component Serial hw_serial;
+        connection seL4HardwareIOPort serial_ioport(from serial_port, to hw_serial.serial);
+        connection seL4HardwareInterrupt serial_irq(from hw_serial.serial_irq, to serial_irq);
+    }
+
+    configuration {
+        hw_serial.serial_attributes <- serial_attributes;
+        hw_serial.serial_irq_irq_type <- serial_irq_irq_type;
+        hw_serial.serial_irq_irq_ioapic <- serial_irq_irq_ioapic;
+        hw_serial.serial_irq_irq_ioapic_pin <- serial_irq_irq_ioapic_pin;
+        hw_serial.serial_irq_irq_vector <- serial_irq_irq_vector;
+    }
 }

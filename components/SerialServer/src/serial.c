@@ -103,8 +103,8 @@
 
 #define COLOUR_RESET "\033[0m"
 
-#define MAX_GUESTS 12
-#define GUEST_OUTPUT_BUFFER_SIZE 4096
+#define MAX_CLIENTS 12
+#define CLIENT_OUTPUT_BUFFER_SIZE 4096
 
 /* TODO: have the MultiSharedData template generate a header with these */
 void getchar_emit(unsigned int id);
@@ -132,8 +132,8 @@ static int last_out = -1;
 static int fifo_depth = 1;
 static int fifo_used = 0;
 
-static uint8_t output_buffers[MAX_GUESTS * 2][GUEST_OUTPUT_BUFFER_SIZE];
-static int output_buffers_used[MAX_GUESTS * 2] = { 0 };
+static uint8_t output_buffers[MAX_CLIENTS * 2][CLIENT_OUTPUT_BUFFER_SIZE];
+static int output_buffers_used[MAX_CLIENTS * 2] = { 0 };
 static uint16_t output_buffer_bitmask = 0;
 
 static int done_output = 0;
@@ -144,8 +144,8 @@ static int num_getchar_clients = 0;
 static getchar_client_t *getchar_clients = NULL;
 
 /* We predefine output colours for clients */
-const char *all_output_colours[MAX_GUESTS * 2] = {
-    /* VMMs */
+const char *all_output_colours[MAX_CLIENTS * 2] = {
+    /* Processed streams */
     COLOUR_R,
     COLOUR_G,
     COLOUR_B,
@@ -159,7 +159,7 @@ const char *all_output_colours[MAX_GUESTS * 2] = {
     COLOUR_BY,
     COLOUR_BC,
 
-    /* Guests */
+    /* Raw streams */
     COLOUR_BG_R,
     COLOUR_BG_G,
     COLOUR_BG_B,
@@ -299,17 +299,17 @@ static int is_newline(const uint8_t *c) {
     return (c[0] == '\r' && c[1] == '\n') || (c[0] == '\n' && c[1] == '\r');
 }
 
-static int active_guest = 0;
-static int active_multiguests = 0;
+static int active_client = 0;
+static int active_multiclients = 0;
 
-/* Try coalescing guest output. This is intended for use with
- * multi-input mode to all guests. */
+/* Try coalescing client output. This is intended for use with
+ * multi-input mode to all clients. */
 
 /* (XXX) CAVEATS:
  *
- * - Has not been tested with more than 2 guests
+ * - Has not been tested with more than 2 clients
  *
- * - Has not been tested with multi-input mode set not matching guest
+ * - Has not been tested with multi-input mode set not matching client
  *   set
  *
  * - Does not handle ANSI codes, UTF-8 or other multibytes specially;
@@ -319,9 +319,9 @@ static int active_multiguests = 0;
  *   failures are sufficiently rare that this is still useful. */
 static int try_coalesce_output() {
     size_t length = 0;
-    size_t used[MAX_GUESTS * 2] = { 0 };
+    size_t used[MAX_CLIENTS * 2] = { 0 };
     size_t n_used = 0;
-    for (size_t i = 0; i < MAX_GUESTS * 2; i++) {
+    for (size_t i = 0; i < MAX_CLIENTS * 2; i++) {
         if (output_buffers_used[i] > 0) {
             used[n_used++] = i;
             if (length == 0 || length > output_buffers_used[i]) {
@@ -381,37 +381,37 @@ static void internal_putchar(int b, int c) {
     output_buffers_used[b]++;
     int coalesce_status = -1;
 
-    if (active_guest == -1) {
-        /* Test for special case: multiple guests outputting the EXACT SAME THING. */
+    if (active_client == -1) {
+        /* Test for special case: multiple clients outputting the EXACT SAME THING. */
         coalesce_status = try_coalesce_output();
     }
-    if (output_buffers_used[b] == GUEST_OUTPUT_BUFFER_SIZE) {
+    if (output_buffers_used[b] == CLIENT_OUTPUT_BUFFER_SIZE) {
         /* Since we're violating contract anyway (flushing in the
          * middle of someone else's line), flush all buffers, so the
          * fastpath can be used again. */
         char is_done;
         int i;
-        int prev_guest = last_out;
-        if (prev_guest != -1) {
-            flush_buffer_line(prev_guest);
+        int prev_client = last_out;
+        if (prev_client != -1) {
+            flush_buffer_line(prev_client);
         }
         while (!is_done) {
             is_done = 1;
-            for (i = 0; i < MAX_GUESTS * 2; i++) {
+            for (i = 0; i < MAX_CLIENTS * 2; i++) {
                 if (flush_buffer_line(i)) {
                     is_done = 0;
                 }
             }
         }
         /* Flush the rest, if necessary. */
-        if (output_buffers_used[b] == GUEST_OUTPUT_BUFFER_SIZE) {
-            for (i = 0; i < MAX_GUESTS * 2; i++) {
+        if (output_buffers_used[b] == CLIENT_OUTPUT_BUFFER_SIZE) {
+            for (i = 0; i < MAX_CLIENTS * 2; i++) {
                 if (i != b) {
                     flush_buffer(i);
                 }
             }
         }
-        /* then set the colors back. If this VM's buffer overflowed,
+        /* then set the colors back. If this clients's buffer overflowed,
          * it's probably going to overflow again, so let's avoid
          * that. */
         if (last_out != b) {
@@ -420,9 +420,9 @@ static void internal_putchar(int b, int c) {
         }
     } else if ((index >= 1 && is_newline(buffer + index - 1) && coalesce_status == -1)
                || (last_out == b && output_buffer_bitmask == 0 && coalesce_status == -1)) {
-        /* Allow fast output (newline or same-as-last-VM) if
+        /* Allow fast output (newline or same-as-last-client) if
          * multi-input is not enabled OR last coalescing attempt
-         * failed due to a mismatch. This is important as VM output
+         * failed due to a mismatch. This is important as client output
          * may be delayed; coalescing failure due to empty buffer
          * should lead to further buffering rather than early flush,
          * in case we can coalesce later. */
@@ -434,8 +434,8 @@ static void internal_putchar(int b, int c) {
     error = serial_unlock();
 }
 
-static void internal_guest_putchar(int guest, int c) {
-    getchar_client_t *client = &getchar_clients[guest];
+static void internal_raw_putchar(int id, int c) {
+    getchar_client_t *client = &getchar_clients[id];
     uint32_t next_tail = (client->buf->tail + 1) % sizeof(client->buf->buf);
     if ( next_tail == client->buf->head) {
         /* full */
@@ -454,13 +454,13 @@ static void internal_guest_putchar(int guest, int c) {
 
 static int statemachine = 1;
 
-static void give_guest_char(uint8_t c) {
-    if (active_guest >= 0) {
-        internal_guest_putchar(active_guest, c);
-    } else if (active_guest == -1) {
-        for (int i = 0; i < MAX_GUESTS * 2; i++) {
-            if ((active_multiguests & BIT(i)) == BIT(i))
-                internal_guest_putchar(i, c);
+static void give_client_char(uint8_t c) {
+    if (active_client >= 0) {
+        internal_raw_putchar(active_client, c);
+    } else if (active_client == -1) {
+        for (int i = 0; i < MAX_CLIENTS * 2; i++) {
+            if ((active_multiclients & BIT(i)) == BIT(i))
+                internal_raw_putchar(i, c);
         }
     }
 }
@@ -472,28 +472,28 @@ static void handle_char(uint8_t c) {
         if (c == '\r' || c == '\n') {
             statemachine = 1;
         }
-        give_guest_char(c);
+        give_client_char(c);
         break;
     case 1:
         if (c == ESCAPE_CHAR) {
             statemachine = 2;
         } else {
             statemachine = 0;
-            give_guest_char(c);
+            give_client_char(c);
         }
         break;
     case 2:
         switch (c) {
         case ESCAPE_CHAR:
             statemachine = 0;
-            give_guest_char(c);
+            give_client_char(c);
             break;
         case 'm':
             statemachine = 3;
-            active_multiguests = 0;
-            active_guest = -1;
+            active_multiclients = 0;
+            active_client = -1;
             last_out = -1;
-            printf(COLOUR_RESET "\r\nMulti-guest input to guests: ");
+            printf(COLOUR_RESET "\r\nMulti-client input to clients: ");
             fflush(stdout);
             break;
         case 'd':
@@ -506,9 +506,9 @@ static void handle_char(uint8_t c) {
             last_out = -1;
             printf(COLOUR_RESET "\r\n --- SerialServer help ---"
                    "\r\n Escape char: %c"
-                   "\r\n 0 - %-2d switches input to that VM"
+                   "\r\n 0 - %-2d switches input to that client"
                    "\r\n ?      shows this help"
-                   "\r\n m      simultaneous multi-guest input"
+                   "\r\n m      simultaneous multi-client input"
                    "\r\n d      switch between debugging modes"
                    "\r\n          0: no debugging"
                    "\r\n          1: debug multi-input mode output coalescing"
@@ -519,26 +519,26 @@ static void handle_char(uint8_t c) {
         default:
             if (c >= '0' && c < '0' + (getchar_largest_badge()+1)) {
                 last_out = -1;
-                int guest = c - '0';
-                printf(COLOUR_RESET "\r\nSwitching input to %d\r\n",guest);
-                active_guest = guest;
+                int client = c - '0';
+                printf(COLOUR_RESET "\r\nSwitching input to %d\r\n",client);
+                active_client = client;
                 statemachine = 1;
             } else {
                 statemachine = 0;
-                give_guest_char(ESCAPE_CHAR);
-                give_guest_char(c);
+                give_client_char(ESCAPE_CHAR);
+                give_client_char(c);
             }
         }
         break;
     case 3:
         if (c >= '0' && c < '0' + (getchar_largest_badge()+1)) {
-            printf(COLOUR_RESET "%s%d", (active_multiguests != 0 ? "," : "") ,(c - '0'));
-            active_multiguests |= BIT(c - '0');
+            printf(COLOUR_RESET "%s%d", (active_multiclients != 0 ? "," : "") ,(c - '0'));
+            active_multiclients |= BIT(c - '0');
             last_out = -1;
             fflush(stdout);
         } else if (c == 'm' || c == 'M' || c == '\r' || c == '\n') {
             last_out = -1;
-            printf(COLOUR_RESET "\r\nSwitching input to multi-guest. Output will be best-effort coalesced (colored white).\r\n");
+            printf(COLOUR_RESET "\r\nSwitching input to multi-client. Output will be best-effort coalesced (colored white).\r\n");
             statemachine = 1;
         }
         break;
@@ -657,7 +657,7 @@ static void timer_callback(void *data) {
         char succeeded = 0;
         while (!is_done) {
             is_done = 1;
-            for (i = 0; i < MAX_GUESTS * 2; i++) {
+            for (i = 0; i < MAX_CLIENTS * 2; i++) {
                 if (flush_buffer_line(i)) {
                     succeeded = 1;
                     is_done = 0;
@@ -665,7 +665,7 @@ static void timer_callback(void *data) {
             }
         }
         if (!succeeded) {
-            for (i = 0; i < MAX_GUESTS * 2; i++) {
+            for (i = 0; i < MAX_CLIENTS * 2; i++) {
                 flush_buffer(i);
             }
         }
@@ -717,21 +717,21 @@ void pre_init(void) {
     error = serial_unlock();
 }
 
-seL4_Word vm_putchar_get_sender_id(void);
+seL4_Word processed_putchar_get_sender_id(void);
 
-void vm_putchar_putchar(int c) {
-    seL4_Word n = vm_putchar_get_sender_id();
+void processed_putchar_putchar(int c) {
+    seL4_Word n = processed_putchar_get_sender_id();
     internal_putchar((int)n, c);
     if (c == '\n') {
         internal_putchar(n, '\r');
     }
 }
 
-seL4_Word guest_putchar_get_sender_id(void);
+seL4_Word raw_putchar_get_sender_id(void);
 
-void guest_putchar_putchar(int c) {
-    seL4_Word n = guest_putchar_get_sender_id();
-    internal_putchar((int)n + MAX_GUESTS, c);
+void raw_putchar_putchar(int c) {
+    seL4_Word n = raw_putchar_get_sender_id();
+    internal_putchar((int)n + MAX_CLIENTS, c);
 }
 
 /* We had to define at least one function in the getchar RPC procedure

@@ -57,7 +57,7 @@ component VM {
                                              to vm0.done);
 
         connection seL4RPCCall cross_vm_putchar(from string_reverse.putchar,
-                                                to serial.vm_putchar);
+                                                to serial.processed_putchar);
         /* Ethernet driver that we share to Linux */
         component Ethdriver82574 ethdriver;
         component HWEthDriver82574 HWEthdriver;

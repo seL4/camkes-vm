@@ -53,7 +53,7 @@ component VM {
                                              to vm0.done);
 
         connection seL4RPCCall cross_vm_putchar(from string_reverse.putchar,
-                                                to serial.vm_putchar);
+                                                to serial.processed_putchar);
     }
     configuration {
         VM_CONFIGURATION_DEF()

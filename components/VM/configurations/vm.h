@@ -92,8 +92,8 @@
     /* Connect all Init components to the fileserver */ \
     connection seL4RPCDataport fs##num(from vm##num.fs, to fserv.fs_ctrl); \
     /* Connect all the components to the serial server */ \
-    connection seL4RPCCall serial_vm##num(from vm##num.putchar, to serial.vm_putchar); \
-    connection seL4RPCCall serial_guest_vm##num(from vm##num.guest_putchar, to serial.guest_putchar); \
+    connection seL4RPCCall serial_vm##num(from vm##num.putchar, to serial.processed_putchar); \
+    connection seL4RPCCall serial_guest_vm##num(from vm##num.guest_putchar, to serial.raw_putchar); \
     /* Connect the emulated serial input to the serial server */ \
     connection seL4SerialServer serial_input##num(from vm##num.serial_getchar, to serial.getchar); \
     /* Temporarily connect the VM directly to the RTC */ \
@@ -147,14 +147,13 @@
     /* Hardware components that are not actuall instantiated */ \
     component PIT pit; \
     component CMOS cmos; \
-    component Serial hw_serial; \
     /* Hack to get hardware definitions sensibly in camkes for the cmoment */ \
     component PieceOfHardware poh; \
     /* These components don't do much output, but just in case they can pretend to \
      * be vm0 */ \
-    connection seL4RPCCall serial_pci_config(from pci_config.putchar, to serial.vm_putchar); \
-    connection seL4RPCCall serial_time_server(from time_server.putchar, to serial.vm_putchar); \
-    connection seL4RPCCall serial_rtc(from rtc.putchar, to serial.vm_putchar); \
+    connection seL4RPCCall serial_pci_config(from pci_config.putchar, to serial.processed_putchar); \
+    connection seL4RPCCall serial_time_server(from time_server.putchar, to serial.processed_putchar); \
+    connection seL4RPCCall serial_rtc(from rtc.putchar, to serial.processed_putchar); \
     /* Connect the hardware RTC to the RTC component */ \
     connection seL4HardwareIOPort rtc_cmos_address(from rtc.cmos_address, to cmos.cmos_address); \
     connection seL4HardwareIOPort rtc_cmos_data(from rtc.cmos_data, to cmos.cmos_data); \
@@ -167,9 +166,6 @@
     connection seL4HardwareIOPort pit_command(from time_server.pit_command, to pit.command); \
     connection seL4HardwareIOPort pit_channel0(from time_server.pit_channel0, to pit.channel0); \
     connection seL4HardwareInterrupt pit_irq(from pit.irq, to time_server.irq); \
-    /* Connect the hardware serial to the serial server */ \
-    connection seL4HardwareIOPort serial_ioport(from serial.serial_port, to hw_serial.serial); \
-    connection seL4HardwareInterrupt serial_irq(from hw_serial.serial_irq, to serial.serial_irq); \
     /**/
 
 #define VM_PER_VM_COMP_DEF(num) \
@@ -180,9 +176,6 @@
 #define VM_CONFIGURATION_DEF() \
     fserv.heap_size = 165536; \
     serial.timeout_attributes = 1; \
-    serial.timeout_global_endpoint = "serial_server"; \
-    serial.timeout_badge = "1"; \
-    serial.heap_size = 4096; \
     time_server.putchar_attributes = "0"; \
     time_server.timers_per_client = 9; \
     time_server.heap_size = 8192; \
@@ -193,12 +186,6 @@
     pit.irq_irq_ioapic_pin = 2; \
     pit.irq_irq_vector = 2; \
     pit.heap_size = 0; \
-    /* Serial port definitions */ \
-    hw_serial.serial_attributes="0x3f8:0x3ff"; \
-    hw_serial.serial_irq_irq_type = "isa"; \
-    hw_serial.serial_irq_irq_ioapic = 0; \
-    hw_serial.serial_irq_irq_ioapic_pin = 4; \
-    hw_serial.serial_irq_irq_vector = 4; \
     pci_config.putchar_attributes = "0"; \
     pci_config.heap_size = 0; \
     rtc.putchar_attributes = "0"; \

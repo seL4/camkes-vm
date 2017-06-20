@@ -36,7 +36,6 @@ import <VchanInitInterface.idl4>;
 import "PIC.camkes";
 import "PIT.camkes";
 import "CMOS.camkes";
-import "Serial.camkes";
 
 import <Init/Init.camkes>;
 import <PCIConfigIO/PCIConfigIO.camkes>;

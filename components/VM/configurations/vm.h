@@ -145,7 +145,6 @@
     component TimeServer time_server; \
     component RTC rtc; \
     /* Hardware components that are not actuall instantiated */ \
-    component PIT pit; \
     component CMOS cmos; \
     /* Hack to get hardware definitions sensibly in camkes for the cmoment */ \
     component PieceOfHardware poh; \
@@ -162,10 +161,6 @@
     /* Connect io ports to pci config space */ \
     connection seL4HardwareIOPort config_address_ports(from pci_config.config_address, to poh.pci_config_address); \
     connection seL4HardwareIOPort config_data_ports(from pci_config.config_data, to poh.pci_config_data); \
-    /* Connect the hardware pit to the timer driver */ \
-    connection seL4HardwareIOPort pit_command(from time_server.pit_command, to pit.command); \
-    connection seL4HardwareIOPort pit_channel0(from time_server.pit_channel0, to pit.channel0); \
-    connection seL4HardwareInterrupt pit_irq(from pit.irq, to time_server.irq); \
     /**/
 
 #define VM_PER_VM_COMP_DEF(num) \
@@ -176,16 +171,8 @@
 #define VM_CONFIGURATION_DEF() \
     fserv.heap_size = 165536; \
     serial.timeout_attributes = 1; \
-    time_server.putchar_attributes = "0"; \
+    time_server.putchar_attributes = 0; \
     time_server.timers_per_client = 9; \
-    time_server.heap_size = 8192; \
-    pit.command_attributes = "0x43:0x43"; \
-    pit.channel0_attributes = "0x40:0x40"; \
-    pit.irq_irq_type = "isa"; \
-    pit.irq_irq_ioapic = 0; \
-    pit.irq_irq_ioapic_pin = 2; \
-    pit.irq_irq_vector = 2; \
-    pit.heap_size = 0; \
     pci_config.putchar_attributes = "0"; \
     pci_config.heap_size = 0; \
     rtc.putchar_attributes = "0"; \

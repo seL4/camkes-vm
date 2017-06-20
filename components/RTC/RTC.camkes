@@ -13,9 +13,30 @@
 import <RTC.idl4>;
 import <PutChar.idl4>;
 
+component CMOS {
+    hardware;
+    provides IOPort cmos_address;
+    provides IOPort cmos_data;
+    attribute string cmos_address_attributes = "0x70:0x70";
+    attribute string cmos_data_attributes = "0x71:0x71";
+
+}
+
 component RTC {
     provides RTC rtc;
     maybe uses PutChar putchar;
     uses IOPort cmos_address;
     uses IOPort cmos_data;
+    attribute int heap_size = 0;
+
+    /* Connect the hardware RTC to the RTC component */
+    composition {
+        component CMOS cmos;
+        connection seL4HardwareIOPort rtc_cmos_address(from cmos_address, to cmos.cmos_address);
+        connection seL4HardwareIOPort rtc_cmos_data(from cmos_data, to cmos.cmos_data);
+    }
+    configuration {
+        cmos.cmos_address_attributes <- cmos_address_attributes;
+        cmos.cmos_data_attributes <- cmos_data_attributes;
+    }
 }

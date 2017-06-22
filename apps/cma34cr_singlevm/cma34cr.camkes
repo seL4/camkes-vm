@@ -72,7 +72,7 @@ component VM {
         ethdriver.pci_bdf = "5:0.0";
         ethdriver.simple_untyped20_pool = 2;
         ethdriver.heap_size = 0x10000;
-        ethdriver.dma_pool = 0x100000;
+        ethdriver.dma_pool = 0x200000;
 
         HWEthdriver.mmio_paddr = 0xc0500000;
         HWEthdriver.mmio_size = 0x20000;

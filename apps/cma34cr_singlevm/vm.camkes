@@ -134,7 +134,7 @@ assembly {
         ethdriver.pci_bdf = "6:0.0";
         ethdriver.simple_untyped20_pool = 2;
         ethdriver.heap_size = 0x10000;
-        ethdriver.dma_pool = 0x100000;
+        ethdriver.dma_pool = 0x200000;
     }
 
 }

@@ -117,7 +117,7 @@ component VM {
             "bus":0, "dev":0x1a, "fun":0,
             "irq":"USB2",
             "memory":[
-                {"paddr":0xc0715000, "size":0x400, "page_bits":12},
+                {"paddr":0xc0714000, "size":0x400, "page_bits":12},
             ],
         },
         {
@@ -125,7 +125,7 @@ component VM {
             "bus":0, "dev":0x1d, "fun":0,
             "irq":"USB3",
             "memory":[
-                {"paddr":0xc0714000, "size":0x400, "page_bits":12},
+                {"paddr":0xc0713000, "size":0x400, "page_bits":12},
             ],
         },
         ];

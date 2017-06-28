@@ -117,12 +117,12 @@
 #define VM_MAYBE_ZONE_DMA(num)
 #endif
 
-#define VM_PER_VM_CONFIG_DEF(num, numplustwo) \
+#define VM_PER_VM_CONFIG_DEF(num) \
     vm##num.fs_attributes = VAR_STRINGIZE(num); \
     vm##num.fs_shmem_size = 0x1000; \
     vm##num.init_timer_global_endpoint = VAR_STRINGIZE(vm##num); \
     vm##num.init_timer_badge = VAR_STRINGIZE(VM_INIT_TIMER_BADGE); \
-    vm##num.init_timer_attributes = numplustwo; \
+    vm##num.init_timer_attributes = num + 2; \
     vm##num.intready_global_endpoint = VAR_STRINGIZE(vm##num); \
     vm##num.intready_connector_global_endpoint = VAR_STRINGIZE(vm##num); \
     vm##num.putchar_attributes = VAR_STRINGIZE(num); \

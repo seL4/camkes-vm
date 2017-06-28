@@ -91,7 +91,7 @@ component VM {
     }
     configuration {
         VM_CONFIGURATION_DEF()
-        VM_PER_VM_CONFIG_DEF(0, 2)
+        VM_PER_VM_CONFIG_DEF(0)
         vm0.simple_untyped23_pool = 20;
         vm0.heap_size = 0x2000000;
         vm0.guest_ram_mb = 128;

@@ -53,7 +53,7 @@ component VM {
 
     configuration {
         VM_CONFIGURATION_DEF()
-        VM_PER_VM_CONFIG_DEF(0, 2)
+        VM_PER_VM_CONFIG_DEF(0)
 
         vm0.simple_untyped24_pool = 48;
         vm0.heap_size = 0x10000;

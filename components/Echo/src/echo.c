@@ -11,7 +11,6 @@
  */
 
 #include <autoconf.h>
-#include <utils/time.h>
 
 #include <camkes.h>
 /* get rid of camkes ERR_IF macro that collides with the lwip one */
@@ -42,13 +41,4 @@ void echo2_recv_ready_callback() {
             echo2_send_send((uintptr_t)echo2_recv_buf, len, ip4addr);
         }
     }
-}
-
-void post_init() {
-    /* timeout once a second */
-    int ret = timer_periodic(0, NS_IN_S * 1);
-}
-
-void timer_complete_callback() {
-    /* do nothing with the timer tick */
 }

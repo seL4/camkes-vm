@@ -16,15 +16,15 @@
 #include <cma34cr_picotcp.h>
 
 component Init0 {
-    dataport Buf(STRING_REVERSE_BUFSIZE) dp1;
-    dataport Buf(STRING_REVERSE_BUFSIZE) dp2;
+    // dataport Buf(STRING_REVERSE_BUFSIZE) dp1;
+    // dataport Buf(STRING_REVERSE_BUFSIZE) dp2;
 
-    emits Ready ready;
-    consumes Done done;
+    // emits Ready ready;
+    // consumes Done done;
 
     has mutex cross_vm_event_mutex;
 
-    uses Ethdriver ethdriver;
+    // uses Ethdriver ethdriver;
 
 #ifndef PASSTHROUGH_SATA
     // sata server interface
@@ -37,22 +37,17 @@ import <StringReverse/StringReverse.camkes>;
 import <UDPServer/UDPServer.camkes>;
 import <HelloWorld/HelloWorld.camkes>;
 import <PicoUDPServer/PicoUDPServer.camkes>;
-import <HelloWorld/HelloWorld.camkes>;
 import <PicoTCPServer/PicoTCPServer.camkes>;
+import <Ethdriver/Ethdriver.camkes>;
 
 component VM {
     composition {
-
-        /* Pit timer */
-        component TimeServer time_server;
-        component PIT pit;
-        connection seL4HardwareIOPort pit_command(from time_server.pit_command, to pit.command); 
-        connection seL4HardwareIOPort pit_channel0(from time_server.pit_channel0, to pit.channel0); 
-        connection seL4HardwareInterrupt pit_irq(from pit.irq, to time_server.irq);   
+        // VM_COMPOSITION_DEF()
+        // VM_PER_VM_COMP_DEF(0)
 
         /* Ethernet driver that we share to Linux */
-        component Ethdriver ethdriver;
-        component HWEthDriver HWEthdriver;
+        component Ethdriver82574 ethdriver;
+        component HWEthDriver82574 HWEthdriver;
         /* Hardware resources for the ethernet driver */
         connection seL4HardwareMMIO ethdrivermmio(from ethdriver.EthDriver, to HWEthdriver.mmio);
         connection seL4HardwareInterrupt hwethirq(from HWEthdriver.irq, to ethdriver.irq);
@@ -76,8 +71,8 @@ component VM {
         connection seL4GlobalAsynchCallback udp_echo2_recv_ready(from udpserver1.client_recv_ready, to echo.echo2_recv_ready);
 
         /* Connect Echo to the timer server */
-        connection seL4TimeServer echo_timer(from echo.timer, to time_server.the_timer);
-        connection seL4GlobalAsynchCallback echo_int(from time_server.timer_notification, to echo.timer_complete);
+        // connection seL4TimeServer echo_timer(from echo.timer, to time_server.the_timer);
+        // connection seL4GlobalAsynchCallback echo_int(from time_server.timer_notification, to echo.timer_complete);
 
         /* Connect Echo to the RTC - only when the VM is used */
         // connection seL4RPCCall echo_rtc(from echo.rtc, to rtc.rtc);
@@ -88,7 +83,7 @@ component VM {
     }
     configuration {
         VM_CONFIGURATION_DEF()
-        VM_PER_VM_CONFIG_DEF(0, 2)
+        VM_PER_VM_CONFIG_DEF(0)
         vm0.simple_untyped23_pool = 20;
         vm0.heap_size = 0x2000000;
         vm0.guest_ram_mb = 128;

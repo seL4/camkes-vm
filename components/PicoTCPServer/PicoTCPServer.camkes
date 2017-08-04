@@ -14,7 +14,7 @@
  * perform some TCP/IP communication over a network. 
  */
  
-import <Ethdriver.idl4>;
+import <Ethdriver.camkes>;
 import <PutChar.idl4>;
 import <Timer.idl4>;
 

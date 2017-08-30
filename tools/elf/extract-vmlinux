@@ -1,3 +1,4 @@
+# @TAG(OTHER_GPL)
 #!/bin/sh
 # ----------------------------------------------------------------------
 # extract-vmlinux - Extract uncompressed vmlinux from a kernel image

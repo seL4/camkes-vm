@@ -77,6 +77,7 @@
     attribute string initrd_image; \
     attribute int iospace_domain; \
     attribute int guest_ram_mb; \
+    attribute int cnode_size_bits = 21; \
     /**/
 
 /* VM and per VM componenents */
@@ -131,7 +132,6 @@
     vm##num.serial_getchar_badge = VAR_STRINGIZE(VM_PIC_BADGE_SERIAL_HAS_DATA); \
     vm##num.serial_getchar_attributes = VAR_STRINGIZE(num); \
     vm##num.serial_getchar_shmem_size = 0x1000; \
-    vm##num.cnode_size_bits = 21; \
     vm##num.simple = true; \
     vm##num.asid_pool = true; \
     VM_MAYBE_ZONE_DMA(num) \

@@ -70,7 +70,7 @@ void platsupport_serial_setup_simple(vspace_t *vspace, simple_t *simple, vka_t *
 void camkes_make_simple(simple_t *simple);
 
 static allocman_t *allocman;
-static char allocator_mempool[888608];
+static char allocator_mempool[8886080];
 static simple_t camkes_simple;
 static vka_t vka;
 static vspace_t vspace;

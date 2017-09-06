@@ -58,7 +58,8 @@ component VM {
     configuration {
         VM_CONFIGURATION_DEF()
         VM_PER_VM_CONFIG_DEF(0)
-        vm0.simple_untyped23_pool = 22;
+        vm0.simple_untyped23_pool = 21;
+        vm0.simple_untyped22_pool = 1;
         vm0.heap_size = 0x10000;
         vm0.guest_ram_mb = 128;
         vm0.kernel_cmdline = VM_GUEST_CMDLINE;
@@ -75,7 +76,8 @@ component VM {
         vm0.dp2_size = STRING_REVERSE_BUFSIZE;
 
         VM_PER_VM_CONFIG_DEF(1)
-        vm1.simple_untyped23_pool = 22;
+        vm1.simple_untyped23_pool = 21;
+        vm1.simple_untyped22_pool = 1;
         vm1.heap_size = 0x10000;
         vm1.guest_ram_mb = 128;
         vm1.kernel_cmdline = VM_GUEST_CMDLINE;

@@ -490,7 +490,7 @@ static void init_irqs() {
         error = vka_cspace_alloc_path(&vka, &badge_path);
         ZF_LOGF_IF(error, "Failed to alloc cspace path");
 
-        error = vka_cnode_mint(&badge_path, &async_path, seL4_AllRights, seL4_CapData_Badge_new(irq_badges[dest]));
+        error = vka_cnode_mint(&badge_path, &async_path, seL4_AllRights, irq_badges[dest]);
         ZF_LOGF_IF(error, "Failed to mint cnode");
         error = seL4_IRQHandler_SetNotification(irq_handler, badge_path.capPtr);
         ZF_LOGF_IF(error, "Failed to set notification for irq handler");

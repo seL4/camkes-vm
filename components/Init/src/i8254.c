@@ -444,6 +444,14 @@ static void pit_irq_timer_update(PITChannelState *s, int64_t current_time)
     irq_level = pit_get_out1(s, current_time);
 //    qemu_set_irq(s->irq, irq_level);
     i8259_level_set(0, irq_level);
+    if (muldiv64(expire_time - current_time, PIT_FREQ, get_ticks_per_sec()) <= 2
+            && irq_level == 0 && pit_get_out1(s, expire_time) == 1) {
+        /* optimization to avoid setting really short timeouts. If the next transition is in
+         * 1 tick, and it's just to change the level. pretend the tick passes instantly (technically incorrect)
+         * and change the level back up */
+        i8259_level_set(0, 1);
+        expire_time = pit_get_next_transition_time(s, expire_time);
+    }
 #ifdef DEBUG_PIT
     printf("irq_level=%d next_delay=%f\n",
            irq_level,

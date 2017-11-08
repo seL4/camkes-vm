@@ -32,9 +32,12 @@
 
 #define PIC_NUM_PINS 16
 
-/* TODO: this exists due to this code originally being in a separate component
- * with its own thread. This is a temporary hack to make existing code work */
-extern seL4_CPtr hw_irq_handlers[];
+typedef struct irq_ack {
+    i8259_irq_ack_fn callback;
+    void *cookie;
+} irq_ack_t;
+
+static irq_ack_t irq_ack_fns[PIC_NUM_PINS];
 
 /* PIC Machine state. */
 struct i8259_state {
@@ -155,9 +158,8 @@ static void pic_clear_isr(struct i8259_state *s, int irq) {
         irq += 8;
 
     if (irq != 2) {
-        if (hw_irq_handlers[irq]) {
-            int error UNUSED = seL4_IRQHandler_Ack(hw_irq_handlers[irq]);
-            assert(!error);
+        if (irq_ack_fns[irq].callback) {
+            irq_ack_fns[irq].callback(irq, irq_ack_fns[irq].cookie);
         }
     }
 }
@@ -654,4 +656,21 @@ void i8259_level_raise(int irq) {
 
 void i8259_level_lower(int irq) {
     i8259_level_set(irq, 0);
+}
+
+i8259_irq_ack_fn i8259_register_irq_ack_callback(int irq, i8259_irq_ack_fn fn, void *cookie) {
+    if (irq < 0 || irq >= PIC_NUM_PINS) {
+        ZF_LOGF("irq %d is invalid", irq);
+    }
+    irq_ack_t *ack = &irq_ack_fns[irq];
+    i8259_irq_ack_fn prev = ack->callback;
+    ack->callback = fn;
+    ack->cookie = cookie;
+    return prev;
+}
+
+void i8259_irq_ack_hw_irq_handler(int irq, void *cptr) {
+    seL4_CPtr handler = (seL4_CPtr) cptr;
+    int UNUSED error = seL4_IRQHandler_Ack(handler);
+    assert(error);
 }

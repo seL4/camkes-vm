@@ -13,6 +13,21 @@
 #ifndef VM_INIT_I8259_H
 #define VM_INIT_I8259_H
 
+/* callback type for irq acknowledgement */
+typedef void (*i8259_irq_ack_fn)(int irq, void *cookie);
+
+/* register a callback to be run on interrupt acknowledgement. returns existing callback
+ * will panic if called on invalid IRQs */
+i8259_irq_ack_fn i8259_register_irq_ack_callback(int irq, i8259_irq_ack_fn fn, void *cookie);
+
+/* helper callback that performs a seL4_IRQHandler_Ack on the cookie (after casting to a seL4_CPtr) */
+void i8259_irq_ack_hw_irq_handler(int irq, void *cptr);
+
+/* wrapper for register a callback that users a hw irq handler */
+static inline i8259_irq_ack_fn i8259_register_hw_ack(int irq, seL4_CPtr cptr) {
+    return i8259_register_irq_ack_callback(irq, i8259_irq_ack_hw_irq_handler, (void*)cptr);
+}
+
 /* Tell the i8259 to simulate a edge triggered interrupt */
 void i8259_gen_irq(int irq);
 

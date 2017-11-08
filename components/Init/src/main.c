@@ -53,10 +53,6 @@ vspace_t  *muslc_this_vspace;
 static sel4utils_res_t muslc_brk_reservation_memory;
 
 seL4_CPtr intready_notification();
-/* TODO: these exist for other components that have been collapsed into
- * the init componenet, but we have not yet removed their dependency
- * on having a async endpoint interface */
-volatile seL4_CPtr hw_irq_handlers[16] = {0};
 
 static seL4_CPtr get_async_event_notification() {
     return intready_notification();
@@ -496,7 +492,7 @@ static void init_irqs() {
         ZF_LOGF_IF(error, "Failed to set notification for irq handler");
         error = seL4_IRQHandler_Ack(irq_handler);
         ZF_LOGF_IF(error, "Failed to ack irq handler");
-        hw_irq_handlers[dest] = irq_handler;
+        i8259_register_hw_ack(dest, irq_handler);
     }
 }
 

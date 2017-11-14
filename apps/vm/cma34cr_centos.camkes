@@ -338,7 +338,7 @@ component VM {
             {"name":"USB3", "source":0x17, "level_trig":1, "active_low":1, "dest":15},
             {"name":"Ethernet5", "source":0x11, "level_trig":1, "active_low":1, "dest":10},
 #ifdef PASSTHROUGH_ETHERNET
-            {"name":"Ethernet6", "source":0x12, "level_trig":1, "active_low":1, "dest":12},
+            {"name":"Ethernet6", "source":0x12, "level_trig":1, "active_low":1, "dest":13},
 #endif
 #ifdef PASSTHROUGH_SATA
             {"name":"SATA", "source":19, "level_trig":1, "active_low":1, "dest":11},

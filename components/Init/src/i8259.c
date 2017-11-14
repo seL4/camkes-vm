@@ -672,5 +672,5 @@ i8259_irq_ack_fn i8259_register_irq_ack_callback(int irq, i8259_irq_ack_fn fn, v
 void i8259_irq_ack_hw_irq_handler(int irq, void *cptr) {
     seL4_CPtr handler = (seL4_CPtr) cptr;
     int UNUSED error = seL4_IRQHandler_Ack(handler);
-    assert(error);
+    assert(!error);
 }

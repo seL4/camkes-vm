@@ -58,11 +58,6 @@ static seL4_CPtr get_async_event_notification() {
     return intready_notification();
 }
 
-void platsupport_serial_setup_simple(vspace_t *vspace, simple_t *simple, vka_t *vka) {
-    ZF_LOGW("Ignoring call to %s\n", __FUNCTION__);
-    ZF_LOGW("Assuming camkes sorted this out\n");
-}
-
 void camkes_make_simple(simple_t *simple);
 
 static allocman_t *allocman;

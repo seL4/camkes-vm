@@ -13,15 +13,9 @@
 CentOS Guest
 ============
 
-This boots the guest kernel from the "bzimage" file in this directory using the
-initrd from the "rootfs.cpio" file in this directory. Both files were generated
-by building a linux kernel using CentOS's package build system.
-
-To reproduce these files, follow the instructions here:
-https://wiki.centos.org/HowTos/Custom_Kernel
-
-The build config is in the centos-kernel-config file in this directory. When
-building linux the CentOS way, the "bzimage" file here will be at
-/boot/vmlinuz-3.10.0-514.el7.centos.YOUR_BUILDID.i686, and the rootfs.cpio
-file will be at:
-/boot/initramfs-3.10.0-514.el7.centos.YOUR_BUILDID.i686.img
+The bzimage and roofs.cpio in this directory are from altarch CentOS-7. They are the
+/boot/initramfs-3.10.0-693.5.2.el7.centos.plus.i686.img
+/boot/vmlinuz-3.10.0-693.5.2.el7.centos.plus.i686
+From an i386 CentOS-7 installation. You should be able to replace these with the
+equivalent files from any i386 CentOS-7 installation
+You may need to update the kernel command line in ../configurations/cma34cr_centos.h

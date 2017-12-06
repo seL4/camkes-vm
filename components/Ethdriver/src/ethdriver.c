@@ -178,6 +178,25 @@ static int is_broadcast(void *buf, unsigned int len) {
     return 0;
 }
 
+static int is_multicast(void *buf, unsigned int len) {
+    // the dest address is in the IP header (16 bytes in), which is located after the
+    // ethernet header. the dest address itself is a standard 4byte IP address
+    const int eth_header_len = 14;
+    const int ip_hdr_dest_offset = 16;
+    if (len < eth_header_len + ip_hdr_dest_offset + 4) {
+        return 0;
+    }
+    // read out a copy of the IP address so that it is correctly aligned
+    uint32_t addr;
+    memcpy(&addr, ((uintptr_t)buf) + eth_header_len + ip_hdr_dest_offset, 4);
+    // multicast addresses start with bit pattern 1110, which after accounting for
+    // network byte ordering is 0xe0
+    if ((addr & 0xf0) == 0xe0) {
+        return 1;
+    }
+    return 0;
+}
+
 static void give_client_buf(client_t *client, void *cookie, unsigned int len) {
     client->rx[client->rx_head] = (pending_rx_t){cookie,len, 0};
     client->rx_head = (client->rx_head + 1) % CLIENT_RX_BUFS;
@@ -194,7 +213,7 @@ static void eth_rx_complete(void *iface, unsigned int num_bufs, void **cookies, 
     }
     client_t *client = detect_client(cookies[0], lens[0]);
     if (!client) {
-        if (is_broadcast(cookies[0], lens[0])) {
+        if (is_broadcast(cookies[0], lens[0]) || is_multicast(cookies[0], lens[0])) {
             /* in a broadcast duplicate this buffer for every other client, we will fallthrough
              * to give the buffer to client 0 at the end */
             for (int i = 1; i < num_clients; i++) {

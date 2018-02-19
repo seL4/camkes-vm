@@ -167,6 +167,9 @@
     rtc.putchar_attributes = 0; \
     /* Put the entire time server at the highest priority */ \
     time_server.priority = 255; \
+    /* The timer server runs better if it can get the true tsc frequency from the kernel */ \
+    time_server.simple_extra_bootinfo = ["SEL4_BOOTINFO_HEADER_X86_TSC_FREQ"]; \
+    time_server.simple = true; \
     /* Put the serial interrupt at 200  \
      * but Leave the rest of the serial at default priority */ \
     serial.serial_irq_priority = 200; \

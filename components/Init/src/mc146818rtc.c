@@ -382,7 +382,7 @@ static void rtc_copy_date(RTCState *s)
 //    s->cmos_data[RTC_DAY_OF_WEEK] = rtc_to_bcd(s, tm->wday + 1);
 //    s->cmos_data[RTC_DAY_OF_MONTH] = rtc_to_bcd(s, tm->mday);
     s->cmos_data[RTC_DAY_OF_MONTH] = rtc_to_bcd(s, tm->day);
-    s->cmos_data[RTC_MONTH] = rtc_to_bcd(s, tm->month + 1);
+    s->cmos_data[RTC_MONTH] = rtc_to_bcd(s, tm->month);
     year = (tm->year - s->base_year) % 100;
     if (year < 0)
         year += 100;

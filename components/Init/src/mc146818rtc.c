@@ -793,8 +793,7 @@ void rtc_timer_interrupt(uint32_t completed) {
 
 void rtc_pre_init(void) {
     /* set the base year */
-    rtc_time_date_t tm = system_rtc_time_date();
-    rtc_state.base_year = tm.year;
+    rtc_state.base_year = 1900;
     rtc_initfn(&rtc_state);
     rtc_reset(&rtc_state);
 }

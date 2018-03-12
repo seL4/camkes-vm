@@ -102,9 +102,9 @@ component VM {
     configuration {
         VM_CONFIGURATION_DEF()
         VM_PER_VM_CONFIG_DEF(0)
-        vm0.simple_untyped28_pool = 6;
+        vm0.simple_untyped25_pool = 95;
         vm0.heap_size = 0x2000000;
-        vm0.guest_ram_mb = 512;
+        vm0.guest_ram_mb = 1900;
         vm0.kernel_cmdline = VM_GUEST_CMDLINE;
         vm0.kernel_image = C162_KERNEL_IMAGE;
         vm0.kernel_relocs = C162_KERNEL_IMAGE;
@@ -121,6 +121,7 @@ component VM {
         // For VESA vframebuffer
         vm0.untyped_mmios = ["0xb0000000:28"];
         vm0.simple_extra_bootinfo = ["SEL4_BOOTINFO_HEADER_X86_VBE"];
+        vm0.cnode_size_bits = 24;
 
 #ifndef PASSTHROUGH_ETHERNET
 
@@ -344,5 +345,10 @@ component VM {
             {"name":"SATA", "source":19, "level_trig":1, "active_low":1, "dest":11},
 #endif
         ];
+
+        // These ranges are RMRR for the IOMMU and so we must exclude the from the guest
+        // physical address space as we cannot overwrite the mappings that will already exist
+        // in the iommu for them
+        vm0_config.exclude_paddr = [ [0xaae84000, 0x20000], [0xab800000, 0x4200000]];
     }
 }

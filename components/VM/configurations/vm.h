@@ -60,6 +60,7 @@
     uses PCIConfig pci_config; \
     uses RTC system_rtc; \
     uses ExtraRAM ram; \
+    uses ExcludeGuestPAddr exclude_paddr; \
     uses VMIOPorts ioports; \
     uses VMIRQs irqs; \
     uses GuestMaps guest_mappings; \
@@ -105,6 +106,7 @@
     connection seL4RPCCall pciconfig##num(from vm##num.pci_config, to pci_config.pci_config); \
     /* Connect the fake hardware devices */ \
     connection seL4ExtraRAM extra_ram##num(from vm##num.ram, to CAT(vm##num,_config).ram); \
+    connection seL4ExcludeGuestPAddr exclude_paddr##num(from vm##num.exclude_paddr, to CAT(vm##num,_config).exclude_paddr); \
     connection seL4VMIOPorts vm_ioports##num(from vm##num.ioports, to CAT(vm##num,_config).ioports); \
     connection seL4GuestMaps vm_guest_maps##num(from vm##num.guest_mappings, to CAT(vm##num,_config).guest_mappings); \
     connection seL4VMIRQs vm_irqs##num(from vm##num.irqs, to CAT(vm##num,_config).irqs); \

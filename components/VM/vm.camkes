@@ -25,6 +25,7 @@ import <RTC.idl4>;
 import <Ethdriver.camkes>;
 import <VchanInterface.idl4>;
 import <ExtraRAM.idl4>;
+import <ExcludeGuestPAddr.idl4>;
 import <VMIOPorts.idl4>;
 import <VMIRQs.idl4>;
 import <VMPCIDevices.idl4>;
@@ -79,6 +80,11 @@ connector seL4ExtraRAM {
     to hardware Procedure;
 }
 
+connector seL4ExcludeGuestPAddr {
+    from Procedure template "seL4ExcludeGuestPAddr.template.c";
+    to hardware Procedure;
+}
+
 connector seL4InitConnection {
     from Procedure template "seL4InitConnection.template.c";
     to hardware Procedure;
@@ -127,6 +133,7 @@ connector seL4VChanInit {
 component VMConfig {
     hardware;
     provides ExtraRAM ram;
+    provides ExcludeGuestPAddr exclude_paddr;
     provides VMIOPorts ioports;
     provides GuestMaps guest_mappings;
     provides VMIRQs irqs;

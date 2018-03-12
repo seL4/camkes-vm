@@ -620,6 +620,17 @@ void *main_continued(void *arg) {
         ZF_LOGF_IF(error, "Failed to get guest map at %d\n", i);
     }
 
+    // Remove any guest physical addresses that are defined as unavailable
+    for (i = 0; i < exclude_paddr_num_regions(); i++) {
+        uintptr_t base;
+        size_t bytes;
+        exclude_paddr_get_region(i, &base, &bytes);
+        reservation_t res = vspace_reserve_range_at(&vmm.guest_mem.vspace, (void*)base, bytes, seL4_AllRights, 1);
+        if (!res.res) {
+            ZF_LOGF("Failed to reserve guest physical address range %p - %p\n", (void*)base, (void*)(base + bytes));
+        }
+    }
+
     /* Allocate guest ram. This is the main memory that the guest will actually get
      * told exists. Other memory may get allocated and mapped into the guest */
     int paddr_is_vaddr;

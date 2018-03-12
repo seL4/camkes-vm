@@ -639,8 +639,19 @@ void *main_continued(void *arg) {
 #else
     paddr_is_vaddr = 0;
 #endif
-    error = vmm_alloc_guest_ram(&vmm, (size_t)guest_ram_mb * 1024 * 1024, paddr_is_vaddr);
-    ZF_LOGF_IF(error, "Failed to allocate guest ram");
+    // allocate guest ram in 512MiB chunks. This prevents extreme fragmentation of the
+    // physical address space when a large amount of guest RAM has been reuqested.
+    // An important side affect is that if the requested RAM is large, and there are
+    // devices or other regions in the lower 4GiB of the guest address space then we will
+    // still allocate some RAM in the lower 4GiB, which a guest may require to run correctly.
+    size_t remaining = MiB_TO_BYTES(guest_ram_mb);
+    while (remaining > 0) {
+        size_t allocate = MIN(remaining, MiB_TO_BYTES(512));
+        error = vmm_alloc_guest_ram(&vmm, allocate, paddr_is_vaddr);
+        ZF_LOGF_IF(error, "Failed to allocate %lu bytes of guest ram. Already allocated %lu.",
+            (long)allocate, (long)(MiB_TO_BYTES(guest_ram_mb) - remaining));
+        remaining -= allocate;
+    }
 
     /* Perform device discovery and give passthrough device information */
     ZF_LOGI("PCI device discovery");

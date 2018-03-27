@@ -11,4 +11,6 @@
 #
 CURRENT_DIR := $(dir $(abspath $(lastword ${MAKEFILE_LIST})))
 
-Firewall_CFILES := $(wildcard ${CURRENT_DIR}/src/*.c)
+# Firewall_CFILES := $(wildcard ${CURRENT_DIR}/src/*.c)
+# Firewall_OFILES := ${CURRENT_DIR}/libsample.a
+Firewall_RUST = ${CURRENT_DIR}/rustwall

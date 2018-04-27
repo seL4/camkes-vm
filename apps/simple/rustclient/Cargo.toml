@@ -20,7 +20,7 @@ crate-type = ["staticlib"]
 
 [dependencies]
 # for the sel4-specific liblibc definitions
-libc = { optional = true, git = "https://github.com/aisamanra/liblibc.git" }
+libc = { optional = true, git = "https://github.com/GaloisInc/rs_liblibc.git" }
 
 [replace]
-"libc:0.2.40" = { git = 'https://github.com/aisamanra/liblibc.git' }
+"libc:0.2.40" = { git = 'https://github.com/GaloisInc/rs_liblibc.git' }

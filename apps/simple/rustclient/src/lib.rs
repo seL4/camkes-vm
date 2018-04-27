@@ -30,7 +30,8 @@ extern "C" {
 #[no_mangle]
 pub extern "C" fn run() -> isize {
     // println!("Hello, RUST!!");
-    unsafe{ printf(b"Hello from rust\0".as_ptr() as *const i8); }
+    let x = Box::new(1);
+    unsafe{ printf(format!("Hello from rust! Box={}\0",x).as_ptr() as *const i8); }
     0
 }
 

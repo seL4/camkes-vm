@@ -10,10 +10,10 @@
  * @TAG(DATA61_BSD)
  */
 
-import "../../interfaces/TestCall.idl4";
+import "../../interfaces/Simple.idl4";
 
 component Client {
         control;
-        uses TestCall s;
+        uses Simple a;
 }
 

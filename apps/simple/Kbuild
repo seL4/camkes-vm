@@ -9,11 +9,7 @@
 #
 # @TAG(DATA61_BSD)
 #
+#
 
-config APP_CXX
-    bool "Simple CAmkES application"
-    default n
-    depends on LIB_SEL4_CXX
-    select APP_CAMKES_CXX
-    help
-        A simple application to demonstrate C++ building
+apps-$(CONFIG_APP_SIMPLE) += simple
+simple: libsel4 libmuslc libsel4platsupport libsel4muslccamkes libsel4camkes libsel4sync libsel4bench

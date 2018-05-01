@@ -23,8 +23,7 @@
 /*- set nonpci_ioports = [] -*/
 /*- if config_ioports is not none -*/
     /*- for ioport in config_ioports -*/
-        /*- set cap = alloc('iport_%d_%d' % (ioport['start'], ioport['end']), seL4_IA32_IOPort) -*/
-        /*- do cap_space.cnode[cap].set_ports(range(ioport['start'], ioport['end'] + 1)) -*/
+        /*- set cap = alloc('iport_%d_%d' % (ioport['start'], ioport['end']), seL4_IA32_IOPort, start_port=ioport['start'], end_port=ioport['end'] + 1) -*/
         /*- if ioport['pci_device'] is not none -*/
             /*- do pci_ioports.append( (cap, ioport['start'], ioport['end'], ioport['name'].strip('"')) ) -*/
         /*- else -*/

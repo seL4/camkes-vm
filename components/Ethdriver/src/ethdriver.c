@@ -422,7 +422,7 @@ void post_init(void) {
     assert(!error);
     ioops.dma_manager.dma_alloc_fn = camkes_iommu_dma_alloc;
 
-    error = sel4platsupport_get_io_port_ops(&ioops.io_port_ops, &camkes_simple);
+    error = sel4platsupport_get_io_port_ops(&ioops.io_port_ops, &camkes_simple, &vka);
     assert(!error);
     /* preallocate buffers */
     for (int i = 0; i < RX_BUFS; i++) {

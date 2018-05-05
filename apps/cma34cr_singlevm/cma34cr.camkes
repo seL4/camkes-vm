@@ -15,23 +15,23 @@
 //#include <string_reverse.h>
 //#include <cma34cr_centos.h>
 
-import <Firewall/Firewall.camkes>;
+import <Netstack/Netstack.camkes>;
 
 component VM {
     composition {
         /* Ethernet driver that we share to Linux */
         component Ethdriver82574 ethdriver;
         component HWEthDriver82574 HWEthdriver;
-        component Firewall firewall;
+        component Netstack netstack;
         /* Hardware resources for the ethernet driver */
         connection seL4HardwareMMIO ethdrivermmio(from ethdriver.EthDriver, to HWEthdriver.mmio);
         connection seL4HardwareInterrupt hwethirq(from HWEthdriver.irq, to ethdriver.irq);
 
 
-        /* Connect the firewall to the ethdriver */
-        connection seL4Ethdriver ethdriver_con(from firewall.ethdriver, to ethdriver.client);
-        /* Setup the firewall's global endpoint callback */
-        connection seL4GlobalAsynchCallback firewall_global_callback(from firewall.dummy, to firewall.ethdriver_has_data);
+        /* Connect the netstack to the ethdriver */
+        connection seL4Ethdriver ethdriver_con(from netstack.ethdriver, to ethdriver.client);
+        /* Setup the netstack's global endpoint callback */
+        connection seL4GlobalAsynchCallback netstack_global_callback(from netstack.dummy, to netstack.ethdriver_has_data);
 
     }
     configuration {
@@ -52,13 +52,13 @@ component VM {
         HWEthdriver.irq_irq_ioapic_pin = 11;
         HWEthdriver.irq_irq_vector = 11;
 
-        firewall.ethdriver_attributes = "1";
-        firewall.ethdriver_shmem_size = 0x1000;
-        firewall.ethdriver_global_endpoint = "firewall";
-        firewall.ethdriver_badge = "134217729";
-        firewall.ethdriver_mac = [6, 0, 0, 11, 12, 13];
-        firewall.ethdriver_has_data_global_endpoint = "firewall";
+        netstack.ethdriver_attributes = "1";
+        netstack.ethdriver_shmem_size = 0x1000;
+        netstack.ethdriver_global_endpoint = "netstack";
+        netstack.ethdriver_badge = "134217729";
+        netstack.ethdriver_mac = [6, 0, 0, 11, 12, 13];
+        netstack.ethdriver_has_data_global_endpoint = "netstack";
 
-        //firewall.udp_ip_addr = "192.168.179.2";
+        //netstack.udp_ip_addr = "192.168.179.2";
     }
 }

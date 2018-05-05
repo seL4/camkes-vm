@@ -22,14 +22,11 @@
  */
 
 #include <sel4/sel4.h>
-#include <camkes.h>
-#include <camkes_consumes_event.h>
-#include <camkes_mutex.h>
-#include <cross_vm_shared_vmm_to_guest_event.h>
+#include "camkes_consumes_event.h"
+#include "camkes_mutex.h"
+#include "cross_vm_shared/cross_vm_shared_vmm_to_guest_event.h"
 #include <vmm/vmm.h>
 #include <vspace/vspace.h>
-
-#include "i8259.h"
 
 static event_context_t *event_context = NULL;
 static vspace_t *vmm_vspace;

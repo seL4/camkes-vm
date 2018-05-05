@@ -10,8 +10,8 @@
  * @TAG(DATA61_GPL)
  */
 
-#include <cross_vm_shared_dataport.h>
-#include <dataport_caps.h>
+#include "cross_vm_shared/cross_vm_shared_dataport.h"
+#include "dataport_caps.h"
 #include <vmm/vmm.h>
 
 static dataport_caps_handle_t **dataports;

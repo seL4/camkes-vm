@@ -10,9 +10,8 @@
  * @TAG(DATA61_GPL)
  */
 
-#include <camkes.h>
-#include <camkes_emits_event.h>
-#include <cross_vm_shared_guest_to_vmm_event.h>
+#include "camkes_emits_event.h"
+#include "cross_vm_shared/cross_vm_shared_guest_to_vmm_event.h"
 #include <vmm/vmm.h>
 #include <utils/zf_log.h>
 

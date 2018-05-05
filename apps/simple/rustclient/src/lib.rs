@@ -1,26 +1,6 @@
-// Copyright 2016, NICTA
-//
-// This software may be distributed and modified according to the terms of
-// the BSD 2-Clause license. Note that NO WARRANTY is provided.
-// See "LICENSE_BSD2.txt" for details.
-//
-// @TAG(NICTA_BSD)
-//
+extern crate smoltcp;
 
-// For no_std: 
-// Note that you do need either libc or eh_personality and panic_fmt. 
-// Having both libc and manual definitions will be an error, 
-// but having neither is also an error.
-
-
-// This is the camkes entry point for this app
-//#![feature(lang_items, libc)]
-//extern crate libc;
-
-// also works as no_std and without libc
-//#![no_std]
-// but no_std requires panic
-
+use smoltcp::wire::{EthernetAddress};
 
 #[no_mangle]
 extern "C" {
@@ -29,10 +9,17 @@ extern "C" {
 
 #[no_mangle]
 pub extern "C" fn run() -> isize {
-    // println!("Hello, RUST!!");
     let x = Box::new(1);
-    unsafe{ printf(format!("Hello from rust! Box={}\0",x).as_ptr() as *const i8); }
+    unsafe{ printf(format!("Hello from rust! Box={}\n\0",x).as_ptr() as *const i8); }
+
+    let mut v = vec![];
+    v.push(1);
+    v.push(2);
+    v.push(3);
+    unsafe{ printf(format!("Hello from rust! Vec={:?}\n\0",v).as_ptr() as *const i8); }
+
+    let ethernet_addr = EthernetAddress([0x02, 0x00, 0x00, 0x00, 0x00, 0x01]);
+    unsafe{ printf(format!("Ethernet addr:s {}\n\0",ethernet_addr).as_ptr() as *const i8); }
     0
 }
-
 

@@ -18,6 +18,13 @@ description = "Sample rust hello world on camkes"
 path = "src/lib.rs"
 crate-type = ["staticlib"]
 
+[dependencies.smoltcp]
+default-features = false
+features = ["proto-ipv4", "proto-ipv6","phy-sel4",
+  "socket-raw", "socket-icmp", "socket-udp", "socket-tcp"]
+path = "../../../projects/smoltcp"
+
+
 [dependencies]
 # for the sel4-specific liblibc definitions
 libc = { optional = true, git = "https://github.com/GaloisInc/rs_liblibc.git" }

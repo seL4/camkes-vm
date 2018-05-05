@@ -12,7 +12,7 @@
 
 import <Ethdriver.camkes>;
 
-component Firewall {
+component Netstack {
     uses Ethdriver ethdriver;
     emits HasData dummy;
     consumes HasData ethdriver_has_data;

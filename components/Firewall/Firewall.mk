@@ -14,3 +14,7 @@ CURRENT_DIR := $(dir $(abspath $(lastword ${MAKEFILE_LIST})))
 # Firewall_CFILES := $(wildcard ${CURRENT_DIR}/src/*.c)
 # Firewall_OFILES := ${CURRENT_DIR}/libsample.a
 Firewall_RUST = ${CURRENT_DIR}/rustwall
+
+# Replaces build.rs scritp
+# Repalce with your own build configuration
+Firewall_CFILES := ${CURRENT_DIR}/rustwall/src/external_firewall.c

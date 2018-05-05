@@ -36,6 +36,7 @@ include FileServer/FileServer.mk
 include Init/Init.mk
 include StringReverse/StringReverse.mk
 include Firewall/Firewall.mk
+include Netstack/Netstack.mk
 
 # We want to run C99
 CFLAGS += -std=gnu99 "-DCAMKES_VM_CONFIG=${VM_CONFIG}" -I${SOURCE_DIR}/configurations -I${SOURCE_DIR}/../../components/VM/configurations

@@ -10,8 +10,6 @@
  * @TAG(DATA61_GPL)
  */
 
-#include <autoconf.h>
-
 #include <configurations/vm.h>
 import <VirtIOPort.idl4>;
 import <InterruptGenerator.idl4>;

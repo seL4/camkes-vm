@@ -10,16 +10,11 @@
  * @TAG(DATA61_GPL)
  */
 
-#include <autoconf.h>
-
 #define _VAR_STRINGIZE(...) #__VA_ARGS__
 #define VAR_STRINGIZE(...) _VAR_STRINGIZE(__VA_ARGS__)
 
 #define _CAT(x, y) x ## y
 #define CAT(x, y) _CAT(x, y)
-
-#define VM_CONFIGURATION_HEADER() VAR_STRINGIZE(CAMKES_VM_CONFIG.h)
-#include VM_CONFIGURATION_HEADER()
 
 /* For all the async sources on the intready endpoint the high bit
  * is set to indicate that an async event occured, and the low bits

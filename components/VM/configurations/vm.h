@@ -114,11 +114,7 @@
     connection seL4InitConnection vm_init_cons##num(from vm##num.init_cons, to CAT(vm##num,_config).init_cons); \
     /**/
 
-#ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE
-#define VM_MAYBE_ZONE_DMA(num) vm##num.mmio = "0x8000:0x97000:12";
-#else
 #define VM_MAYBE_ZONE_DMA(num)
-#endif
 
 #define VM_PER_VM_CONFIG_DEF(num) \
     vm##num.fs_attributes = VAR_STRINGIZE(num); \

@@ -188,42 +188,18 @@ typedef struct memory_range {
     size_t size;
 } memory_range_t;
 
-#if  defined(CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE) || defined(CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE_UNSAFE)
-static memory_range_t guest_ram_regions[] = {
-    /* Define one of the standard ram regions
-     * Making sure it is page aligned so it will
-     * work from device memory */
-#ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE
-    {0x8000, 0x9f000 - 0x8000},
-#else
-    /* Make the range as small as possible since
-     * we will not be allocating this one to one
-     * and we want to pray that linux cannot end
-     * up using it for DMA */
-    {0x8000, 0x81000 - 0x8000},
-#endif
-};
-#else
 static memory_range_t guest_ram_regions[] = {
     /* Allocate all the standard low memory areas */
     {0x500, 0x7c00 - 0x500},
     {0x7e00, 0x80000 - 0x7e00},
     {0x80000, 0x9fc00 - 0x80000},
 };
-#endif
 
 static memory_range_t guest_fake_devices[] = {
     {0xf0000, 0x10000}, // DMI
     {0xe0000, 0x10000}, // PCI BIOS
     {0xc0000, 0xc8000 - 0xc0000}, // VIDEO BIOS
     {0xc8000, 0xe0000 - 0xc8000}, // Mapped hardware and MISC
-#if defined(CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE) || defined(CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE_UNSAFE)
-    /* Fake a BIOS page. Done in one_to_one case as we don't
-     * allocate a low memory frame already */
-    {0x0, 0x1000},
-    /* Same for EBDA region */
-    {0x9f000, 0x1000},
-#endif
 };
 
 typedef struct device_notify {
@@ -592,16 +568,6 @@ void *main_continued(void *arg) {
 #endif
 
     /* Do we need to do any early reservations of guest address space? */
-#ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE
-    ZF_LOGI("Setting up early guest reservations");
-    for (i = 0; i < ARRAY_SIZE(guest_ram_regions); i++) {
-        /* try and put a device here */
-        error = vmm_map_guest_device_at(&vmm, guest_ram_regions[i].base, guest_ram_regions[i].base, guest_ram_regions[i].size);
-    }
-    /* We now run the normal loop to allocate ram regions. Because the addresses are
-     * already in the vspace no additional frames will get mapped, but it will result
-     * in ram regions being defined for the guest */
-#endif
     for (i = 0; i < ARRAY_SIZE(guest_ram_regions); i++) {
         error = vmm_alloc_guest_ram_at(&vmm, guest_ram_regions[i].base, guest_ram_regions[i].size);
         ZF_LOGF_IF(error, "Failed to alloc guest ram at %p", (void*)guest_ram_regions[i].base);
@@ -634,11 +600,7 @@ void *main_continued(void *arg) {
     /* Allocate guest ram. This is the main memory that the guest will actually get
      * told exists. Other memory may get allocated and mapped into the guest */
     int paddr_is_vaddr;
-#if defined(CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE) || defined(CONFIG_APP_CAMKES_VM_GUEST_DMA_ONE_TO_ONE_UNSAFE)
-    paddr_is_vaddr = 1;
-#else
     paddr_is_vaddr = 0;
-#endif
     // allocate guest ram in 512MiB chunks. This prevents extreme fragmentation of the
     // physical address space when a large amount of guest RAM has been reuqested.
     // An important side affect is that if the requested RAM is large, and there are

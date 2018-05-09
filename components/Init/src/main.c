@@ -28,6 +28,7 @@
 #include <vka/capops.h>
 
 #include <camkes.h>
+#include <camkes_vmm/gen_config.h>
 
 #include "vmm/vmm.h"
 #include "vmm/driver/pci_helper.h"
@@ -552,7 +553,7 @@ void *main_continued(void *arg) {
     ZF_LOGI("RTC pre init");
     rtc_pre_init();
 
-#ifdef CONFIG_APP_CAMKES_VM_GUEST_DMA_IOMMU
+#ifdef CONFIG_CAMKES_VM_GUEST_DMA_IOMMU
     /* Do early device discovery and find any relevant PCI busses that
      * need to get added */
     ZF_LOGI("PCI early device discovery");

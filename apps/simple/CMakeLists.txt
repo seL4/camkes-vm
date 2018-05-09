@@ -1,5 +1,5 @@
 #
-# Copyright 2017, Data61
+# Copyright 2018, Data61
 # Commonwealth Scientific and Industrial Research Organisation (CSIRO)
 # ABN 41 687 119 230.
 #
@@ -10,5 +10,11 @@
 # @TAG(DATA61_BSD)
 #
 
-apps-$(CONFIG_APP_CXX) += cxx
-cxx: libsel4 libmuslc libsel4platsupport libsel4muslccamkes libsel4camkes libsel4sync libsel4debug libsel4cxx libsel4bench common
+cmake_minimum_required(VERSION 3.7.2)
+
+project(simple C)
+
+DeclareCAmkESComponent(Client SOURCES components/Client/src/client.c)
+DeclareCAmkESComponent(Echo SOURCES components/Echo/src/echo.c)
+
+DeclareCAmkESRootserver(simple.camkes)

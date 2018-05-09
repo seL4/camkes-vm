@@ -10,6 +10,9 @@
  * @TAG(DATA61_BSD)
  */
 
-procedure TestCall {
-    string echo_string(in string s);
-};
+import "../../interfaces/Simple.idl4";
+
+component Echo {
+        provides Simple b;
+}
+

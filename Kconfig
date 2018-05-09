@@ -55,7 +55,7 @@ menu "Applications"
     source "apps/cma34cr_vchan/Kconfig"
     source "apps/cma34cr_ubuntu/Kconfig"
     source "apps/cma34cr_picotcp/Kconfig"
-    source "apps/cxx/Kconfig"
+    source "apps/simple/Kconfig"
 endmenu
 
 menu "VM Configuration"

@@ -10,4 +10,10 @@
  * @TAG(DATA61_GPL)
  */
 
-import "cma34cr.camkes";
+import <Ethdriver.camkes>;
+
+component Netstack {
+    uses Ethdriver ethdriver;
+    emits HasData dummy;
+    consumes HasData ethdriver_has_data;
+}

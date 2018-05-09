@@ -20,7 +20,7 @@ assembly {
                 component Echo echo;
                 component Client client;
 
-                connection seL4RPC cxx(from client.s, to echo.s);
+                connection seL4RPCCall simple(from client.a, to echo.b);
         }
 }
 

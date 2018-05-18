@@ -228,7 +228,7 @@ CONFIG_APP_CAMKES_VM_GUEST_DMA_IOMMU=y
 # CAmkES Options
 #
 CONFIG_CAMKES_DEFAULT_STACK_SIZE=16384
-CONFIG_CAMKES_DEFAULT_HEAP_SIZE=0
+CONFIG_CAMKES_DEFAULT_HEAP_SIZE=65535
 CONFIG_CAMKES_CPP=y
 CONFIG_CAMKES_IMPORT_PATH="${PWD}/projects/vm/components ${PWD}/projects/vm/interfaces ${PWD}/projects/global-components/interfaces ${PWD}/projects/global-components/components"
 CONFIG_CAMKES_DEFAULT_PRIORITY=100

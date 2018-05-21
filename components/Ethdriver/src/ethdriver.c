@@ -201,6 +201,7 @@ static void give_client_buf(client_t *client, void *cookie, unsigned int len) {
     client->rx[client->rx_head] = (pending_rx_t){cookie,len, 0};
     client->rx_head = (client->rx_head + 1) % CLIENT_RX_BUFS;
     if (client->should_notify) {
+        printf("Ethdriver give_client_buf: going to emit client notification.\n");
         client_emit(client->client_id);
         client->should_notify = 0;
     }
@@ -252,8 +253,10 @@ static struct raw_iface_callbacks ethdriver_callbacks = {
 };
 
 int client_rx(int *len) {
+    printf("Ethdriver client_rx: entering client_rx\n");
     int UNUSED err;
     if (!done_init) {
+        printf("Ethdriver client_rx: uninit, returning -1\n");
         return -1;
     }
     int ret;
@@ -268,6 +271,7 @@ int client_rx(int *len) {
     void *packet = client->dataport;
     err = ethdriver_lock();
     if (client->rx_head == client->rx_tail) {
+        printf("Ethdriver client_rx: client->rx_head == client->rx_tail, returning with -1 and notifying the client\n");
         client->should_notify = 1;
         err = ethdriver_unlock();
         return -1;
@@ -276,15 +280,19 @@ int client_rx(int *len) {
     client->rx_tail = (client->rx_tail + 1) % CLIENT_RX_BUFS;
     memcpy(packet, rx.buf, rx.len);
     *len = rx.len;
+    printf("Ethdriver client_rx: received %i bytes\n",*len);
     if (client->rx_tail == client->rx_head) {
         client->should_notify = 1;
         ret = 0;
+        printf("Ethdriver client_rx: will notify a client\n");
     } else {
         ret = 1;
     }
+
     rx_bufs[num_rx_bufs] = rx.buf;
     num_rx_bufs++;
     err = ethdriver_unlock();
+    printf("Ethdriver client_rx: returning with return value %i and error value %i\n",ret,err);
     return ret;
 }
 

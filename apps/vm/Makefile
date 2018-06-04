@@ -35,6 +35,7 @@ include PCIConfigIO/PCIConfigIO.mk
 include FileServer/FileServer.mk
 include Init/Init.mk
 include StringReverse/StringReverse.mk
+include EthAdapter/EthAdapter.mk
 include Firewall/Firewall.mk
 
 # We want to run C99

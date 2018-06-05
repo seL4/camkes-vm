@@ -563,6 +563,11 @@ fn client_rx_process_ipv4_fragment<'frame, 'r>(
     }
 }
 
+#[no_mangle]
+pub extern "C" fn pre_init() -> isize {
+  println_sel4(format!(">>> Firewall preinit"));
+  0
+}
 
 #[no_mangle]
 pub extern "C" fn run() -> isize {

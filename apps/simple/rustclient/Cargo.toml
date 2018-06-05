@@ -20,7 +20,7 @@ crate-type = ["staticlib"]
 
 [dependencies.smoltcp]
 default-features = false
-features = ["proto-ipv4", "proto-ipv6","phy-sel4",
+features = ["proto-ipv4", "proto-ipv6","alloc","fragmentation-ipv4",
   "socket-raw", "socket-icmp", "socket-udp", "socket-tcp"]
 path = "../../../projects/smoltcp"
 

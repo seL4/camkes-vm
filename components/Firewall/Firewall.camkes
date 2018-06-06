@@ -17,4 +17,5 @@ component Firewall {
     provides Ethdriver client;
     emits HasData dummy;
     consumes HasData ethdriver_has_data;
+    has mutex ethdriver_buf_crit;
 }

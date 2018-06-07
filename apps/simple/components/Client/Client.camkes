@@ -15,5 +15,6 @@ import "../../interfaces/Simple.idl4";
 component Client {
         control;
         uses Simple a;
+        has mutex m;
 }
 

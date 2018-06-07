@@ -1,16 +1,31 @@
+#![feature(alloc_system, global_allocator, allocator_api)]
+extern crate alloc_system;
+use alloc_system::System;
+
+#[global_allocator]
+static A: System = System;
+
 extern crate smoltcp;
 
 use smoltcp::{Error, Result};
 
-use smoltcp::wire::{EthernetAddress, EthernetProtocol, EthernetFrame};
+use smoltcp::wire::{EthernetAddress, EthernetFrame};
 
 use smoltcp::iface::{FragmentSet, FragmentedPacket};
 
-use smoltcp::wire::{IpProtocol, IpAddress, Ipv4Repr, Ipv4Packet, Ipv4Address};
+use smoltcp::wire::{Ipv4Packet};
 
 use smoltcp::time::Instant;
 
-use std::cell::UnsafeCell;
+use std::cell::UnsafeCell; // OK
+
+use std::rc::Rc; // OK!
+
+use std::sync::Arc; // OK!
+
+//use std::sync::Mutex; // Not ok, use spin instead
+
+use std::cell::RefCell; // OK
 
 #[allow(dead_code)]
 #[no_mangle]
@@ -583,24 +598,125 @@ pub extern "C" fn run() -> isize {
     let ethernet_addr = EthernetAddress([0x02, 0x00, 0x00, 0x00, 0x00, 0x01]);
     unsafe{ printf(format!("Ethernet addr:s {}\n\0",ethernet_addr).as_ptr() as *const i8); }
 
-    let mut fragments = unsafe {
-        match client_rx_get_fragments_set() {
+    static mut MS: i64 = 0;
+
+    {
+        let mut fragments = unsafe {
+            match client_rx_get_fragments_set() {
                     &None => None,
                     &Some(ref cell) => Some(&mut *cell.get()),
                 }
             };
 
-    let eth_frame = EthernetFrame::new_checked(& FRAG1[..]).expect("parsing eth frame error");
-    let ipv4_packet_in = Ipv4Packet::new_checked(eth_frame.payload()).expect("parsing eth frame payload error");
-    
-    static mut MS: i64 = 0;
-    unsafe {
-        MS += 1; // helper for managing too-old fragments
+        let eth_frame = EthernetFrame::new_checked(& FRAG1[..]).expect("parsing eth frame error");
+        let ipv4_packet_in = Ipv4Packet::new_checked(eth_frame.payload()).expect("parsing eth frame payload error");
+        
+        unsafe {
+            MS += 1; // helper for managing too-old fragments
+        }
+        let timestamp = unsafe { Instant::from_millis(MS) };
+        let _res = client_rx_process_ipv4_fragment(ipv4_packet_in,timestamp, &mut fragments);
     }
-    let timestamp = unsafe { Instant::from_millis(MS) };
-    let res = client_rx_process_ipv4_fragment(ipv4_packet_in,timestamp, &mut fragments);
+
+    {
+        let mut fragments = unsafe {
+            match client_rx_get_fragments_set() {
+                    &None => None,
+                    &Some(ref cell) => Some(&mut *cell.get()),
+                }
+            };
+
+        let eth_frame = EthernetFrame::new_checked(& FRAG2[..]).expect("parsing eth frame error");
+        let ipv4_packet_in = Ipv4Packet::new_checked(eth_frame.payload()).expect("parsing eth frame payload error");
+        
+        unsafe {
+            MS += 1; // helper for managing too-old fragments
+        }
+        let timestamp = unsafe { Instant::from_millis(MS) };
+        let _res = client_rx_process_ipv4_fragment(ipv4_packet_in,timestamp, &mut fragments);
+    }
+
+    let foo = Rc::new(vec![1.0, 2.0, 3.0]);
+    // The two syntaxes below are equivalent.
+    let _a = foo.clone();
+    let b = Rc::clone(&foo);
+    println_sel4(format!("foo b = {:?}",b));
+
+
+    let foo = Arc::new(vec![1.0, 2.0, 3.0]);
+    // The two syntaxes below are equivalent.
+    let _a = foo.clone();
+    let b = Arc::clone(&foo);
+    println_sel4(format!("foo b = {:?}",b));
+
+    let mutex = MyMutex::new(m_lock, m_unlock);
+    println_sel4(format!("Mutex = {:?}",mutex));
+    mutex.lock();
+    println_sel4(format!("Mutex is locked"));
+    mutex.unlock();
+    println_sel4(format!("Mutex is unlocked"));
+//    mutex.unlock();
+//    println_sel4(format!("Mutex is unlocked")); -> whis would trigger "assertion failed" error
+
+/*
+    // this triggers panic
+    let mut v = vec![1,2,3];
+    println_sel4(format!("v = {:?}",v.remove(0)));
+    println_sel4(format!("v = {:?}",v.remove(0)));
+    println_sel4(format!("v = {:?}",v.remove(0)));
+    println_sel4(format!("v = {:?}",v.remove(0)));
+    println_sel4(format!("v = {:?}",v.remove(0)));
+*/
+
+    let shared_map: Rc<RefCell<_>> = Rc::new(RefCell::new(vec![11]));
+    shared_map.borrow_mut().push(1);
+    shared_map.borrow_mut().push(2);
+    shared_map.borrow_mut().push(3);
+
+    println_sel4(format!("shared map = {:?}",shared_map));
 
     println_sel4(format!("All well in the universe"));
+
     0
 }
 
+
+#[allow(dead_code)]
+#[no_mangle]
+extern "C" {
+    fn m_lock();
+    fn m_unlock();
+}
+
+#[derive(Debug)]
+struct MyMutex {
+  lock: Option<unsafe extern "C" fn()>,
+  unlock: Option<unsafe extern "C" fn()>,
+}
+
+impl MyMutex {
+  pub fn new(l: unsafe extern "C" fn(), ul: unsafe extern "C" fn()) -> MyMutex {
+    MyMutex{ lock: Some(l), unlock: Some(ul) }
+  }
+
+  pub fn lock(&self) {
+    match self.lock {
+      Some(f) => {
+        println_sel4(format!("Locking mutex"));
+        unsafe { f() }
+      }
+      None => {        println_sel4(format!("No lock function"));},
+    }
+  }
+
+  pub fn unlock(&self) {
+    match self.unlock {
+      Some(f) => {
+        println_sel4(format!("Unlocking mutex"));
+        unsafe { f() }
+      }
+      None => { println_sel4(format!("No unlock function"));},
+    }
+  }
+
+}

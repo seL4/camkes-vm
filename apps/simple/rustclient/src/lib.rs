@@ -1,3 +1,7 @@
+#![feature(libc)]
+#![feature(lang_items)]
+
+
 #![feature(alloc_system, global_allocator, allocator_api)]
 extern crate alloc_system;
 use alloc_system::System;
@@ -26,6 +30,24 @@ use std::sync::Arc; // OK!
 //use std::sync::Mutex; // Not ok, use spin instead
 
 use std::cell::RefCell; // OK
+
+
+// for mutexes
+extern crate spin;
+
+#[macro_use]
+extern crate lazy_static;
+
+extern crate libc;
+use libc::c_void;
+
+use std::ptr;
+
+lazy_static! {
+    static ref DATA: Arc<spin::Mutex<Vec<u8>>> = Arc::new(spin::Mutex::new(vec![1,2,3]));
+    // static ref POINTER: Arc<spin::Mutex<*mut c_void>> = Arc::new(spin::Mutex::new(ptr::null())); -> pointers are not Send
+}
+
 
 #[allow(dead_code)]
 #[no_mangle]
@@ -675,8 +697,19 @@ pub extern "C" fn run() -> isize {
 
     println_sel4(format!("shared map = {:?}",shared_map));
 
-    println_sel4(format!("All well in the universe"));
 
+    {
+    let mut data = DATA.lock();
+    println_sel4(format!("data = {:?}",*data));
+    data.push(12);
+    }
+    
+    {
+    let mut data = DATA.lock();
+    println_sel4(format!("data = {:?}",*data));
+    }
+
+    println_sel4(format!("All well in the universe"));
     0
 }
 

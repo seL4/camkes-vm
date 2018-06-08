@@ -27,7 +27,7 @@ use std::rc::Rc; // OK!
 
 use std::sync::Arc; // OK!
 
-//use std::sync::Mutex; // Not ok, use spin instead
+use std::sync::Mutex; // Not ok, use spin instead
 
 use std::cell::RefCell; // OK
 
@@ -38,10 +38,6 @@ extern crate spin;
 #[macro_use]
 extern crate lazy_static;
 
-extern crate libc;
-use libc::c_void;
-
-use std::ptr;
 
 lazy_static! {
     static ref DATA: Arc<spin::Mutex<Vec<u8>>> = Arc::new(spin::Mutex::new(vec![1,2,3]));
@@ -705,9 +701,26 @@ pub extern "C" fn run() -> isize {
     }
     
     {
-    let mut data = DATA.lock();
+    let data = DATA.lock();
     println_sel4(format!("data = {:?}",*data));
     }
+
+    let mut s = vec![1,2,3];
+    let p = vec![1,2];
+    s[..].clone_from_slice(p.as_slice());
+
+/* This is how the panic message progresses in Rust:
+    >>> seL4 thread panic: rust_begin_panic()
+    >>> seL4 thread panic: begin_panic_fmt()
+    >>> seL4 thread panic: begin_panic()
+    >>> seL4 thread panic: rust_panic_with_hook()
+    >>> seL4 thread panicked at 'destination and source slices have different lengths', libcore/slice/mod.rs:695:9
+    FAULT HANDLER: data fault from client.control (ID 0x2) on address 0, pc = 0x42cc46, fsr = 0x4
+*/
+
+    // calling this will never show a useful panic message, will go directly to FAULT HANDLER
+    //let m = Mutex::new(0);
+    //m.lock();
 
     println_sel4(format!("All well in the universe"));
     0
@@ -721,6 +734,27 @@ extern "C" {
     fn m_unlock();
 }
 
+#[derive(Debug)]
+struct MyMutex {
+  inner_lock: unsafe extern "C" fn(),
+  inner_unlock: unsafe extern "C" fn(),
+}
+
+impl MyMutex {
+  pub fn new(lock: unsafe extern "C" fn(), unlock: unsafe extern "C" fn()) -> MyMutex {
+    MyMutex{ inner_lock: lock, inner_unlock: unlock }
+  }
+
+  pub fn lock(&self) {
+    unsafe { (self.inner_lock)(); }
+  }
+
+  pub fn unlock(&self) {
+    unsafe { (self.inner_unlock)(); }
+  }
+}
+
+/*
 #[derive(Debug)]
 struct MyMutex {
   lock: Option<unsafe extern "C" fn()>,
@@ -751,5 +785,5 @@ impl MyMutex {
       None => { println_sel4(format!("No unlock function"));},
     }
   }
-
 }
+*/

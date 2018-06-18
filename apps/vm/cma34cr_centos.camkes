@@ -135,6 +135,7 @@ component VM {
         firewall.ethdriver_mac = [6, 0, 0, 11, 12, 13];
         firewall.ethdriver_has_data_global_endpoint = "firewall";
         firewall.notification_pool = 5;
+        firewall.heap_size = 4194304;
 #endif
 
 #ifndef PASSTHROUGH_SATA

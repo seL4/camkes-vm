@@ -19,4 +19,5 @@ component Firewall {
     consumes HasData ethdriver_has_data;
     has mutex ethdriver_buf;
     has mutex client_buf;
+    uses PutChar putchar;
 }

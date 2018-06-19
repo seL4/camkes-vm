@@ -66,6 +66,9 @@ component VM {
         component Ethdriver82574 ethdriver;
         component HWEthDriver82574 HWEthdriver;
         component Firewall firewall;
+        connection seL4RPCCall firewall_putchar(from firewall.putchar,
+                                                to serial.processed_putchar);
+
         /* Hardware resources for the ethernet driver */
         connection seL4HardwareMMIO ethdrivermmio(from ethdriver.EthDriver, to HWEthdriver.mmio);
         connection seL4HardwareInterrupt hwethirq(from HWEthdriver.irq, to ethdriver.irq);

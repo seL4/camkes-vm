@@ -28,10 +28,10 @@
 #include <sel4utils/iommu_dma.h>
 #include <sel4platsupport/arch/io.h>
 
-#define RX_BUFS 256
+#define RX_BUFS 512
 
-#define CLIENT_RX_BUFS 128
-#define CLIENT_TX_BUFS 128
+#define CLIENT_RX_BUFS 256
+#define CLIENT_TX_BUFS 256
 
 #define BUF_SIZE 2048
 

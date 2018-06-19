@@ -41,7 +41,7 @@
 #define VIRTIO_VID 0x1af4
 #define VIRTIO_DID_START 0x1000
 
-#define QUEUE_SIZE 128
+#define QUEUE_SIZE 2048
 
 volatile Buf*__attribute__((weak)) ethdriver_buf;
 

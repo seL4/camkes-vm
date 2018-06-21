@@ -96,20 +96,6 @@ function(DeclareCAmkESVMRootServer camkes_config)
     )
 endfunction(DeclareCAmkESVMRootServer)
 
-# Function for getting the default location of the Linux guest kernel provided
-# by the vm project
-# dest_file: caller variable which is set with the kernel location
-function(GetDefaultLinuxKernelFile dest_file)
-    set(${dest_file} ${VM_PROJECT_DIR}/linux/bzimage PARENT_SCOPE)
-endfunction(GetDefaultLinuxKernelFile)
-
-# Function for getting the default location of the Linux guest rootfs provided
-# by the vm project
-# dest_file: caller variable which is set with the rootfs location
-function(GetDefaultLinuxRootfsFile dest_file)
-    set(${dest_file} ${VM_PROJECT_DIR}/linux/rootfs.cpio PARENT_SCOPE)
-endfunction(GetDefaultLinuxRootfsFile)
-
 # Function for adding a file/image to the vm file server.
 # filename_pref: The name the caller wishes to use to reference the file in the CPIO archive. This
 # corresponds with the name set in the 'kernel_image' camkes variable for a given instance vm.

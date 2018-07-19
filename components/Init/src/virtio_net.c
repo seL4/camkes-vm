@@ -87,7 +87,10 @@ static int virtio_net_io_out(void *cookie, unsigned int port_no, unsigned int si
     return ret;
 }
 
-static int emul_raw_tx(struct eth_driver *driver, unsigned int num, uintptr_t *phys, unsigned int *len, void *cookie) {
+static int emul_raw_tx(struct eth_driver *driver,
+                       unsigned int num, uintptr_t *phys, unsigned int *len,
+                       void *cookie)
+{
     size_t tot_len = 0;
     char *p = (char*)ethdriver_buf;
     /* copy to the data port */

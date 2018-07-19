@@ -28,6 +28,7 @@
 #include <ethdrivers/virtio/virtio_pci.h>
 #include <ethdrivers/virtio/virtio_net.h>
 #include <ethdrivers/virtio/virtio_ring.h>
+#include <ethdrivers/sel4vlan.h>
 
 #include "vmm/vmm.h"
 #include "vmm/driver/pci_helper.h"
@@ -73,51 +74,102 @@ static int emul_raw_tx(struct eth_driver *driver,
                        unsigned int num, uintptr_t *phys, unsigned int *len,
                        void *cookie)
 {
+    sel4vlan_t *g_vlan;
     size_t tot_len = 0;
-    char *p = (char*)ethdriver_buf;
-    /* copy to the data port */
+
+    (void)tot_len;
+
+    g_vlan = vmm_sel4vlan_get_global_inst();
+    assert(g_vlan != NULL);
+
+    /* Copy to the buffqueue */
     for (int i = 0; i < num; i++) {
-        memcpy(p + tot_len, (void*)phys[i], len[i]);
-        tot_len += len[i];
-    }
+        sel4vlan_mac802_addr_t *destaddr;
+        int err,
+            destnode_start_idx=CONFIG_SEL4VLAN_NUM_NODES,
+            destnode_n_idxs;
 
-    int err;
-    sel4vlan_node_t *destnode;
-    sel4buffqueue_buff_t *destbuff;
+        /* Initialize a convenience pointer to the dest macaddr.
+         * The dest MAC addr is the first member of an ethernet frame.
+         */
+        destaddr = (sel4vlan_mac802_addr_t *)phys[i];
 
-    destnode = sel4vlan_get_destnode_by_macaddr(&libsel4vlan, destaddr);
-    if (err == NULL) {
-        ZF_LOGE("Unreachable dest macaddr " PR_MAC802_ADDR ". Dropping frame.",
-                PR_MAC802_ADDR_ARGS(&destnode->addr));
+        /* Set up the bounds of the loop below that copies the frames into the
+         * destination Guest's buffqueue.
+         */
+        if (mac802_addr_eq_bcast(destaddr)) {
+            /* Send to all nodes on the VLAN if destaddr is bcast addr. */
+            destnode_n_idxs = g_vlan->n_connected;
+            destnode_start_idx = 0;
+        }
+        else {
+            /* Send only to the target node */
+            destnode_n_idxs = 1;
+            destnode_start_idx = sel4vlan_get_destnode_index_by_macaddr(
+                                                            g_vlan,
+                                                            destaddr);
+            if (destnode_start_idx < 0) {
+                ZF_LOGE("Unreachable dest macaddr " PR_MAC802_ADDR ". Dropping "
+                        "frame.",
+                        PR_MAC802_ADDR_ARGS(destaddr));
 
-        return ETHIF_TX_FAILED;
-    }
+                /* This function seems to be pretending to send multiple frames
+                 * at once, but in reality, it is only ever invoked with the
+                 * "num" argment being "1".
+                 *
+                 * So return error instead of "continue"-ing here.
+                 */
+                return ETHIF_TX_FAILED;
+            }
+        }
 
-    destbuff = sel4buffqueue_get_buff(&windowlib, required_n_bytes);
-    if (destbuff == NULL) {
-        ZF_LOGW("Dropping eth frame to dest " PR_MAC802_ADDR ": no buff "
-                "available.",
-                PR_MAC802_ADDR_ARGS(&destnode->addr));
+        /* Copy the frame into the buffqueue of each of the targets we decided
+         * upon.
+         */
+        for (int j=destnode_start_idx;
+             j<destnode_start_idx + destnode_n_idxs; j++) {
+            sel4vlan_node_t *destnode;
+            sel4buffqueue_buff_t *destbuff;
 
-        return ETHIF_TX_FAILED;
-    };
+            destnode = sel4vlan_get_destnode_by_index(g_vlan, j);
+            if (destnode == NULL) {
+                /* This could happen in the broadcast case if there are holes in
+                 * the array, though that would still be odd.
+                 */
+                ZF_LOGW("Found holes in node array.");
+                continue;
+            }
 
-    err = sel4windowipc_buff_write(destbuff, data, len);
-    if (err != 0) {
-        ZG_LOGE("Unknown error while writing ethframe to windowqueue for dest "
-                PR_MAC802_ADDR ".",
-                PR_MAC802_ADDR_ARGS(&destnode->addr));
+            destbuff = sel4buffqueue_allocate_buff(destnode->buffqueue, len[i]);
+            if (destbuff == NULL) {
+                ZF_LOGW("Dropping eth frame to dest " PR_MAC802_ADDR ": no buff "
+                        "available.",
+                        PR_MAC802_ADDR_ARGS(destaddr));
 
-        return ETHIF_TX_FAILED;
-    }
+                return ETHIF_TX_FAILED;
+            };
 
-    err = sel4windowipc_buff_signal(windowbuff);
-    if (err != 0) {
-        ZG_LOGE("Unknown error while signaling dest "
-                PR_MAC802_ADDR ".",
-                PR_MAC802_ADDR_ARGS(&destnode->addr));
+            err = sel4buffqueue_buff_write(destbuff,
+                                           (void *)phys[i], len[i]);
+            if (err != 0) {
+                ZF_LOGE("Unknown error while writing ethframe to windowqueue "
+                        "for dest " PR_MAC802_ADDR ".",
+                        PR_MAC802_ADDR_ARGS(destaddr));
 
-        return ETHIF_TX_FAILED;
+                return ETHIF_TX_FAILED;
+            }
+
+            err = sel4buffqueue_signal(destnode->buffqueue);
+            if (err != 0) {
+                ZF_LOGE("Unknown error while signaling dest "
+                        PR_MAC802_ADDR ".",
+                        PR_MAC802_ADDR_ARGS(destaddr));
+
+                return ETHIF_TX_FAILED;
+            }
+
+            tot_len += len[i];
+        }
     }
 
     return ETHIF_TX_COMPLETE;

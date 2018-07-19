@@ -85,9 +85,7 @@ static int emul_raw_tx(struct eth_driver *driver,
     /* Copy to the buffqueue */
     for (int i = 0; i < num; i++) {
         sel4vlan_mac802_addr_t *destaddr;
-        int err,
-            destnode_start_idx=CONFIG_SEL4VLAN_NUM_NODES,
-            destnode_n_idxs;
+        int err, destnode_start_idx, destnode_n_idxs;
 
         /* Initialize a convenience pointer to the dest macaddr.
          * The dest MAC addr is the first member of an ethernet frame.
@@ -136,7 +134,9 @@ static int emul_raw_tx(struct eth_driver *driver,
                 /* This could happen in the broadcast case if there are holes in
                  * the array, though that would still be odd.
                  */
-                ZF_LOGW("Found holes in node array.");
+                ZF_LOGW("Found holes in node array while sending to dest MAC "
+                        PR_MAC802_ADDR".",
+                        PR_MAC802_ADDR_ARGS(destaddr));
                 continue;
             }
 

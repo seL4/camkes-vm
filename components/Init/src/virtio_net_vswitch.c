@@ -69,7 +69,10 @@ int __attribute__((weak)) eth_rx_ready_reg_callback(void (*proc)(void*),void *bl
 static virtio_net_t *virtio_net = NULL;
 
 
-static int emul_raw_tx(struct eth_driver *driver, unsigned int num, uintptr_t *phys, unsigned int *len, void *cookie) {
+static int emul_raw_tx(struct eth_driver *driver,
+                       unsigned int num, uintptr_t *phys, unsigned int *len,
+                       void *cookie)
+{
     size_t tot_len = 0;
     char *p = (char*)ethdriver_buf;
     /* copy to the data port */

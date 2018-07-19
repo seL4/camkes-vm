@@ -95,7 +95,46 @@ static int emul_raw_tx(struct eth_driver *driver, unsigned int num, uintptr_t *p
         memcpy(p + tot_len, (void*)phys[i], len[i]);
         tot_len += len[i];
     }
-    ethdriver_tx(tot_len);
+
+    int err;
+    sel4vlan_node_t *destnode;
+    sel4buffqueue_buff_t *destbuff;
+
+    destnode = sel4vlan_get_destnode_by_macaddr(&libsel4vlan, destaddr);
+    if (err == NULL) {
+        ZF_LOGE("Unreachable dest macaddr " PR_MAC802_ADDR ". Dropping frame.",
+                PR_MAC802_ADDR_ARGS(&destnode->addr));
+
+        return ETHIF_TX_FAILED;
+    }
+
+    destbuff = sel4buffqueue_get_buff(&windowlib, required_n_bytes);
+    if (destbuff == NULL) {
+        ZF_LOGW("Dropping eth frame to dest " PR_MAC802_ADDR ": no buff "
+                "available.",
+                PR_MAC802_ADDR_ARGS(&destnode->addr));
+
+        return ETHIF_TX_FAILED;
+    };
+
+    err = sel4windowipc_buff_write(destbuff, data, len);
+    if (err != 0) {
+        ZG_LOGE("Unknown error while writing ethframe to windowqueue for dest "
+                PR_MAC802_ADDR ".",
+                PR_MAC802_ADDR_ARGS(&destnode->addr));
+
+        return ETHIF_TX_FAILED;
+    }
+
+    err = sel4windowipc_buff_signal(windowbuff);
+    if (err != 0) {
+        ZG_LOGE("Unknown error while signaling dest "
+                PR_MAC802_ADDR ".",
+                PR_MAC802_ADDR_ARGS(&destnode->addr));
+
+        return ETHIF_TX_FAILED;
+    }
+
     return ETHIF_TX_COMPLETE;
 }
 

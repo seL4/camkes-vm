@@ -251,6 +251,19 @@ static struct raw_iface_callbacks ethdriver_callbacks = {
     .allocate_rx_buf = eth_allocate_rx_buf
 };
 
+/** If eth frames have been received by the driver, copy a single frame from
+ * the driver's buffer (rx_bufs), into the dataport of the caller of this
+ * function.
+ *
+ * @param[out] len The size in bytes of the eth frame.
+ * @return  If there are no frames available to be consumed, returns negative.
+ *          If there was an error or the component hasn't been initialized yet,
+ *          returns negative.
+ *          If there was only one frame available to be consumed, returns 0.
+ *          If there are other frames to be consumed even after the one that
+ *          will be returned by the current invocation, returns 1 (i.e, "there
+ *          is more data.").
+ */
 int client_rx(int *len) {
     int UNUSED err;
     if (!done_init) {

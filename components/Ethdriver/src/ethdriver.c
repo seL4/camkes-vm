@@ -81,7 +81,7 @@ typedef struct client {
     /* mac address for this client */
     uint8_t mac[6];
 
-    /* id for this client */
+    /* Badge for this client */
     int client_id;
 
     /* dataport for this client */

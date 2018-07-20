@@ -234,10 +234,14 @@ void virtio_net_notify(vmm_t *vmm) {
     status = ethdriver_rx(&len);
     while (status != -1) {
         void *cookie;
-        void *emul_buf = (void*)virtio_net->emul_driver->i_cb.allocate_rx_buf(virtio_net->emul_driver->cb_cookie, len, &cookie);
+        void *emul_buf = (void*)virtio_net->emul_driver->i_cb.allocate_rx_buf(
+                                            virtio_net->emul_driver->cb_cookie,
+                                            len, &cookie);
         if (emul_buf) {
             memcpy(emul_buf, (void*)ethdriver_buf, len);
-            virtio_net->emul_driver->i_cb.rx_complete(virtio_net->emul_driver->cb_cookie, 1, &cookie, (unsigned int*)&len);
+            virtio_net->emul_driver->i_cb.rx_complete(
+                                        virtio_net->emul_driver->cb_cookie,
+                                        1, &cookie, (unsigned int*)&len);
         }
         if (status == 1) {
             status = ethdriver_rx(&len);

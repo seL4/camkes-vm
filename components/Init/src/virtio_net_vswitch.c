@@ -151,10 +151,11 @@ static int emul_raw_tx(struct eth_driver *driver,
 
             err = sel4buffqueue_buff_write(destbuff,
                                            (void *)phys[i], len[i]);
-            if (err != 0) {
+            if (err < len[i]) {
                 ZF_LOGE("Unknown error while writing ethframe to windowqueue "
-                        "for dest " PR_MAC802_ADDR ".",
-                        PR_MAC802_ADDR_ARGS(destaddr));
+                        "for dest " PR_MAC802_ADDR ": wrote %d of %d bytes.",
+                        PR_MAC802_ADDR_ARGS(destaddr),
+                        err, len[i]);
 
                 return ETHIF_TX_FAILED;
             }

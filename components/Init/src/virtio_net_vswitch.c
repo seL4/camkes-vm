@@ -183,21 +183,70 @@ static void emul_low_level_init(struct eth_driver *driver, uint8_t *mac, int *mt
 }
 
 
+#define TEMPLATE_get_self_mac_addr(foo) {}
 void virtio_net_notify(vmm_t *vmm) {
-    int len;
-    int status;
+    int err;
+    sel4vswitch_t *g_vswitch;
+    sel4vswitch_node_t *mynode;
+    sel4vswitch_mac802_addr_t myaddr;
+    sel4buffqueue_buff_t *rxdata_buff;
+    ssize_t rxdata_buff_sz;
+
+    g_vswitch = vmm_sel4vswitch_get_global_inst();
+    assert(g_vswitch != NULL);
+
+     /* First we need to know who we are. Ask the template because it knows. */
+    TEMPLATE_get_self_mac_addr(&myaddr);
+
+    mynode = sel4vswitch_get_destnode_by_macaddr(g_vswitch, &myaddr);
+    if (mynode == NULL) {
+        ZF_LOGE("Please connect this Guest (" PR_MAC802_ADDR ") to the VSwitch "
+                "before trying to use the library.",
+                PR_MAC802_ADDR_ARGS(&myaddr));
+
+        return;
+    }
+
+    /* The eth frame is already in the buffqueue. It was placed there by
+     * the sender's libvswitch instance. Check the buffqueue and pull it out.
+     */
+    rxdata_buff_sz = sel4buffqueue_get_next_work_unit(mynode->buffqueue,
+                                                      &rxdata_buff);
+
+    while (rxdata_buff_sz >= 0) {
+        void *cookie, *emul_buf;
+        int len = rxdata_buff_sz;
+
+        /* Allocate ring space to put the eth frame into. */
+        emul_buf = (void*)virtio_net->emul_driver->i_cb.allocate_rx_buf(
+                                            virtio_net->emul_driver->cb_cookie,
+                                            rxdata_buff_sz, &cookie);
+        if (emul_buf == NULL) {
+            ZF_LOGW("Dropping frame for " PR_MAC802_ADDR ": No ring mem avail.",
+                    PR_MAC802_ADDR_ARGS(&myaddr));
+            return;
+        }
+
+        // memcpy(emul_buf, (void*)ethdriver_buf, len);
+        err = sel4buffqueue_buff_read(rxdata_buff, emul_buf, rxdata_buff_sz);
+        if (err < rxdata_buff_sz) {
+            ZF_LOGW("Failed to copy all data from eth frame meant for Guest "
+                    PR_MAC802_ADDR ".",
+                    PR_MAC802_ADDR_ARGS(&myaddr));
+            return;
+        }
+
+        virtio_net->emul_driver->i_cb.rx_complete(
+                                    virtio_net->emul_driver->cb_cookie,
+                                    1, &cookie, (unsigned int*)&len);
+
+        rxdata_buff_sz = sel4buffqueue_get_next_work_unit(mynode->buffqueue,
+                                                          &rxdata_buff);
+    }
+
+#if 0
     status = ethdriver_rx(&len);
     while (status != -1) {
-        void *cookie;
-        void *emul_buf = (void*)virtio_net->emul_driver->i_cb.allocate_rx_buf(
-                                            virtio_net->emul_driver->cb_cookie,
-                                            len, &cookie);
-        if (emul_buf) {
-            memcpy(emul_buf, (void*)ethdriver_buf, len);
-            virtio_net->emul_driver->i_cb.rx_complete(
-                                        virtio_net->emul_driver->cb_cookie,
-                                        1, &cookie, (unsigned int*)&len);
-        }
         if (status == 1) {
             status = ethdriver_rx(&len);
         } else {
@@ -206,6 +255,7 @@ void virtio_net_notify(vmm_t *vmm) {
             status = -1;
         }
     }
+#endif
 }
 
 void make_virtio_net(vmm_t *vmm) {

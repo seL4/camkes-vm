@@ -28,7 +28,7 @@
 #include <ethdrivers/virtio/virtio_pci.h>
 #include <ethdrivers/virtio/virtio_net.h>
 #include <ethdrivers/virtio/virtio_ring.h>
-#include <ethdrivers/sel4vlan.h>
+#include <ethdrivers/sel4vswitch.h>
 
 #include "vmm/vmm.h"
 #include "vmm/driver/pci_helper.h"
@@ -74,37 +74,37 @@ static int emul_raw_tx(struct eth_driver *driver,
                        unsigned int num, uintptr_t *phys, unsigned int *len,
                        void *cookie)
 {
-    sel4vlan_t *g_vlan;
+    sel4vswitch_t *g_vswitch;
     size_t tot_len = 0;
 
     (void)tot_len;
 
-    g_vlan = vmm_sel4vlan_get_global_inst();
-    assert(g_vlan != NULL);
+    g_vswitch = vmm_sel4vswitch_get_global_inst();
+    assert(g_vswitch != NULL);
 
     /* Copy to the buffqueue */
     for (int i = 0; i < num; i++) {
-        sel4vlan_mac802_addr_t *destaddr;
+        sel4vswitch_mac802_addr_t *destaddr;
         int err, destnode_start_idx, destnode_n_idxs;
 
         /* Initialize a convenience pointer to the dest macaddr.
          * The dest MAC addr is the first member of an ethernet frame.
          */
-        destaddr = (sel4vlan_mac802_addr_t *)phys[i];
+        destaddr = (sel4vswitch_mac802_addr_t *)phys[i];
 
         /* Set up the bounds of the loop below that copies the frames into the
          * destination Guest's buffqueue.
          */
         if (mac802_addr_eq_bcast(destaddr)) {
             /* Send to all nodes on the VLAN if destaddr is bcast addr. */
-            destnode_n_idxs = g_vlan->n_connected;
+            destnode_n_idxs = g_vswitch->n_connected;
             destnode_start_idx = 0;
         }
         else {
             /* Send only to the target node */
             destnode_n_idxs = 1;
-            destnode_start_idx = sel4vlan_get_destnode_index_by_macaddr(
-                                                            g_vlan,
+            destnode_start_idx = sel4vswitch_get_destnode_index_by_macaddr(
+                                                            g_vswitch,
                                                             destaddr);
             if (destnode_start_idx < 0) {
                 ZF_LOGE("Unreachable dest macaddr " PR_MAC802_ADDR ". Dropping "
@@ -126,10 +126,10 @@ static int emul_raw_tx(struct eth_driver *driver,
          */
         for (int j=destnode_start_idx;
              j<destnode_start_idx + destnode_n_idxs; j++) {
-            sel4vlan_node_t *destnode;
+            sel4vswitch_node_t *destnode;
             sel4buffqueue_buff_t *destbuff;
 
-            destnode = sel4vlan_get_destnode_by_index(g_vlan, j);
+            destnode = sel4vswitch_get_destnode_by_index(g_vswitch, j);
             if (destnode == NULL) {
                 /* This could happen in the broadcast case if there are holes in
                  * the array, though that would still be odd.

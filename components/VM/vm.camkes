@@ -31,6 +31,7 @@ import <FileServerInterface.camkes>;
 import <InitConnection.idl4>;
 import <GuestMaps.idl4>;
 import <VchanInitInterface.idl4>;
+import <BuffQueues.idl4>;
 
 import "PIC.camkes";
 
@@ -47,6 +48,12 @@ import <HelloWorld/HelloWorld.camkes>;
 import <FileServer/FileServer.camkes>;
 
 import <Echo/Echo.camkes>;
+
+connector seL4BuffQueues {
+    from Procedures template "seL4BuffQueues-from.template.c";
+    to Procedure template "seL4BuffQueues-to.template.c";
+    attribute bool disable_interface_type_checking = true;
+}
 
 connector seL4UDPSend {
     from Procedure template "seL4UDPSend-from.template.c";

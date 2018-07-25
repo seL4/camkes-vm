@@ -28,7 +28,6 @@
 #include <ethdrivers/virtio/virtio_pci.h>
 #include <ethdrivers/virtio/virtio_net.h>
 #include <ethdrivers/virtio/virtio_ring.h>
-#include <ethdrivers/sel4vswitch.h>
 
 #include "vmm/vmm.h"
 #include "vmm/driver/pci_helper.h"
@@ -88,109 +87,15 @@ static int virtio_net_io_out(void *cookie, unsigned int port_no, unsigned int si
     return ret;
 }
 
-static int emul_raw_tx(struct eth_driver *driver,
-                       unsigned int num, uintptr_t *phys, unsigned int *len,
-                       void *cookie)
-{
-    sel4vswitch_t *g_vswitch;
+static int emul_raw_tx(struct eth_driver *driver, unsigned int num, uintptr_t *phys, unsigned int *len, void *cookie) {
     size_t tot_len = 0;
-
-    (void)tot_len;
-
-    g_vswitch = vmm_sel4vswitch_get_global_inst();
-    assert(g_vswitch != NULL);
-
-    /* Copy to the buffqueue */
+    char *p = (char*)ethdriver_buf;
+    /* copy to the data port */
     for (int i = 0; i < num; i++) {
-        sel4vswitch_mac802_addr_t *destaddr;
-        int err, destnode_start_idx, destnode_n_idxs;
-
-        /* Initialize a convenience pointer to the dest macaddr.
-         * The dest MAC addr is the first member of an ethernet frame.
-         */
-        destaddr = (sel4vswitch_mac802_addr_t *)phys[i];
-
-        /* Set up the bounds of the loop below that copies the frames into the
-         * destination Guest's buffqueue.
-         */
-        if (mac802_addr_eq_bcast(destaddr)) {
-            /* Send to all nodes on the VLAN if destaddr is bcast addr. */
-            destnode_n_idxs = g_vswitch->n_connected;
-            destnode_start_idx = 0;
-        }
-        else {
-            /* Send only to the target node */
-            destnode_n_idxs = 1;
-            destnode_start_idx = sel4vswitch_get_destnode_index_by_macaddr(
-                                                            g_vswitch,
-                                                            destaddr);
-            if (destnode_start_idx < 0) {
-                ZF_LOGE("Unreachable dest macaddr " PR_MAC802_ADDR ". Dropping "
-                        "frame.",
-                        PR_MAC802_ADDR_ARGS(destaddr));
-
-                /* This function seems to be pretending to send multiple frames
-                 * at once, but in reality, it is only ever invoked with the
-                 * "num" argment being "1".
-                 *
-                 * So return error instead of "continue"-ing here.
-                 */
-                return ETHIF_TX_FAILED;
-            }
-        }
-
-        /* Copy the frame into the buffqueue of each of the targets we decided
-         * upon.
-         */
-        for (int j=destnode_start_idx;
-             j<destnode_start_idx + destnode_n_idxs; j++) {
-            sel4vswitch_node_t *destnode;
-            sel4buffqueue_buff_t *destbuff;
-
-            destnode = sel4vswitch_get_destnode_by_index(g_vswitch, j);
-            if (destnode == NULL) {
-                /* This could happen in the broadcast case if there are holes in
-                 * the array, though that would still be odd.
-                 */
-                ZF_LOGW("Found holes in node array while sending to dest MAC "
-                        PR_MAC802_ADDR".",
-                        PR_MAC802_ADDR_ARGS(destaddr));
-                continue;
-            }
-
-            destbuff = sel4buffqueue_allocate_buff(destnode->buffqueue, len[i]);
-            if (destbuff == NULL) {
-                ZF_LOGW("Dropping eth frame to dest " PR_MAC802_ADDR ": no buff "
-                        "available.",
-                        PR_MAC802_ADDR_ARGS(destaddr));
-
-                return ETHIF_TX_FAILED;
-            };
-
-            err = sel4buffqueue_buff_write(destbuff,
-                                           (void *)phys[i], len[i]);
-            if (err < len[i]) {
-                ZF_LOGE("Unknown error while writing ethframe to windowqueue "
-                        "for dest " PR_MAC802_ADDR ": wrote %d of %d bytes.",
-                        PR_MAC802_ADDR_ARGS(destaddr),
-                        err, len[i]);
-
-                return ETHIF_TX_FAILED;
-            }
-
-            err = sel4buffqueue_signal(destnode->buffqueue);
-            if (err != 0) {
-                ZF_LOGE("Unknown error while signaling dest "
-                        PR_MAC802_ADDR ".",
-                        PR_MAC802_ADDR_ARGS(destaddr));
-
-                return ETHIF_TX_FAILED;
-            }
-
-            tot_len += len[i];
-        }
+        memcpy(p + tot_len, (void*)phys[i], len[i]);
+        tot_len += len[i];
     }
-
+    ethdriver_tx(tot_len);
     return ETHIF_TX_COMPLETE;
 }
 
@@ -228,70 +133,17 @@ static int emul_driver_init(struct eth_driver *driver, ps_io_ops_t io_ops, void 
     return 0;
 }
 
-#define TEMPLATE_get_self_mac_addr(foo) {}
 void virtio_net_notify(vmm_t *vmm) {
-    int err;
-    sel4vswitch_t *g_vswitch;
-    sel4vswitch_node_t *mynode;
-    sel4vswitch_mac802_addr_t myaddr;
-    sel4buffqueue_buff_t *rxdata_buff;
-    ssize_t rxdata_buff_sz;
-
-    g_vswitch = vmm_sel4vswitch_get_global_inst();
-    assert(g_vswitch != NULL);
-
-     /* First we need to know who we are. Ask the template because it knows. */
-    TEMPLATE_get_self_mac_addr(&myaddr);
-
-    mynode = sel4vswitch_get_destnode_by_macaddr(g_vswitch, &myaddr);
-    if (mynode == NULL) {
-        ZF_LOGE("Please connect this Guest (" PR_MAC802_ADDR ") to the VSwitch "
-                "before trying to use the library.",
-                PR_MAC802_ADDR_ARGS(&myaddr));
-
-        return;
-    }
-
-    /* The eth frame is already in the buffqueue. It was placed there by
-     * the sender's libvswitch instance. Check the buffqueue and pull it out.
-     */
-    rxdata_buff_sz = sel4buffqueue_get_next_work_unit(mynode->buffqueue,
-                                                      &rxdata_buff);
-
-    while (rxdata_buff_sz >= 0) {
-        void *cookie, *emul_buf;
-        int len = rxdata_buff_sz;
-
-        /* Allocate ring space to put the eth frame into. */
-        emul_buf = (void*)virtio_net->emul_driver->i_cb.allocate_rx_buf(
-                                            virtio_net->emul_driver->cb_cookie,
-                                            rxdata_buff_sz, &cookie);
-        if (emul_buf == NULL) {
-            ZF_LOGW("Dropping frame for " PR_MAC802_ADDR ": No ring mem avail.",
-                    PR_MAC802_ADDR_ARGS(&myaddr));
-            return;
-        }
-
-        // memcpy(emul_buf, (void*)ethdriver_buf, len);
-        err = sel4buffqueue_buff_read(rxdata_buff, emul_buf, rxdata_buff_sz);
-        if (err < rxdata_buff_sz) {
-            ZF_LOGW("Failed to copy all data from eth frame meant for Guest "
-                    PR_MAC802_ADDR ".",
-                    PR_MAC802_ADDR_ARGS(&myaddr));
-            return;
-        }
-
-        virtio_net->emul_driver->i_cb.rx_complete(
-                                    virtio_net->emul_driver->cb_cookie,
-                                    1, &cookie, (unsigned int*)&len);
-
-        rxdata_buff_sz = sel4buffqueue_get_next_work_unit(mynode->buffqueue,
-                                                          &rxdata_buff);
-    }
-
-#if 0
+    int len;
+    int status;
     status = ethdriver_rx(&len);
     while (status != -1) {
+        void *cookie;
+        void *emul_buf = (void*)virtio_net->emul_driver->i_cb.allocate_rx_buf(virtio_net->emul_driver->cb_cookie, len, &cookie);
+        if (emul_buf) {
+            memcpy(emul_buf, (void*)ethdriver_buf, len);
+            virtio_net->emul_driver->i_cb.rx_complete(virtio_net->emul_driver->cb_cookie, 1, &cookie, (unsigned int*)&len);
+        }
         if (status == 1) {
             status = ethdriver_rx(&len);
         } else {
@@ -300,7 +152,6 @@ void virtio_net_notify(vmm_t *vmm) {
             status = -1;
         }
     }
-#endif
 }
 
 static void* malloc_dma_alloc(void *cookie, size_t size, int align, int cached, ps_mem_flags_t flags) {

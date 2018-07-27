@@ -173,6 +173,7 @@ static int emul_raw_tx(struct eth_driver *driver,
 
                 return ETHIF_TX_COMPLETE;
             }
+            seL4_Yield();
             if(buffqueue_poll(destnode->buffqueues.send_queue) == 1) {
                 virtio_net_notify_vswitch_send(destnode);
             }
@@ -246,6 +247,7 @@ static void virtio_net_notify_vswitch_recv(sel4vswitch_node_t *node) {
 
         enqueue_res = buffqueue_enqueue_used_buff(node->buffqueues.recv_queue, available_buff, available_buff_sz);
 
+        seL4_Yield();
         dequeue_res = buffqueue_dequeue_available_buff(node->buffqueues.recv_queue,
                                                 &available_buff,
                                                 &available_buff_sz);

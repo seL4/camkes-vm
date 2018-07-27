@@ -80,6 +80,19 @@ static int virtio_net_io_out(void *cookie, unsigned int port_no, unsigned int si
     return ret;
 }
 
+static void virtio_net_notify_vswitch_send(sel4vswitch_node_t *node) {
+    void *used_buff = NULL;
+    size_t used_buff_sz = 0;
+    int dequeue_res = buffqueue_dequeue_used_buff(node->buffqueues.send_queue,
+                                                &used_buff,
+                                                &used_buff_sz);
+    if(dequeue_res) {
+        ZF_LOGE("Unable to dequeue used buff");
+        return;
+    }
+    free_camkes_buffqueue_buffer(node->buffqueues.send_queue, used_buff);
+}
+
 static int emul_raw_tx(struct eth_driver *driver,
                        unsigned int num, uintptr_t *phys, unsigned int *len,
                        void *cookie)
@@ -178,7 +191,9 @@ static int emul_raw_tx(struct eth_driver *driver,
 
                 return ETHIF_TX_COMPLETE;
             }
-
+            if(buffqueue_poll(destnode->buffqueues.send_queue) == 1) {
+                virtio_net_notify_vswitch_send(destnode);
+            }
             tot_len += len[i];
         }
     }
@@ -224,20 +239,6 @@ static void get_self_mac_addr(sel4vswitch_mac802_addr_t *self_addr) {
     for(int i = 0; i < 6; i++) {
             self_addr->bytes[i] = (uint8_t)mac_address[i];
     }
-}
-
-
-static void virtio_net_notify_vswitch_send(sel4vswitch_node_t *node) {
-    void *used_buff = NULL;
-    size_t used_buff_sz = 0;
-    int dequeue_res = buffqueue_dequeue_used_buff(node->buffqueues.send_queue,
-                                                &used_buff,
-                                                &used_buff_sz);
-    if(dequeue_res) {
-        ZF_LOGE("Unable to dequeue used buff");
-        return;
-    }
-    free_camkes_buffqueue_buffer(node->buffqueues.send_queue, used_buff);
 }
 
 static void virtio_net_notify_vswitch_recv(sel4vswitch_node_t *node) {

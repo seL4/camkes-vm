@@ -221,15 +221,14 @@ static void virtio_net_notify_vswitch_recv(sel4vswitch_node_t *node) {
      */
     void *available_buff = NULL;
     size_t available_buff_sz = 0;
-    int enqueue_res = 0;
     int dequeue_res = buffqueue_dequeue_available_buff(node->buffqueues.recv_queue,
                                                 &available_buff,
                                                 &available_buff_sz);
 
-    while (dequeue_res >= 0 && enqueue_res >= 0) {
+    while (dequeue_res >= 0) {
         void *cookie, *emul_buf;
         size_t len = available_buff_sz;
-
+        int enqueue_res = 0;
         /* Allocate ring space to put the eth frame into. */
         emul_buf = (void*)virtio_net->emul_driver->i_cb.allocate_rx_buf(
                                             virtio_net->emul_driver->cb_cookie,
@@ -237,7 +236,12 @@ static void virtio_net_notify_vswitch_recv(sel4vswitch_node_t *node) {
         if (emul_buf == NULL) {
             ZF_LOGW("Dropping frame for " PR_MAC802_ADDR ": No ring mem avail.",
                     PR_MAC802_ADDR_ARGS(&myaddr));
-            return;
+            enqueue_res = buffqueue_enqueue_used_buff(node->buffqueues.recv_queue, available_buff, available_buff_sz);
+            if(enqueue_res) {
+                ZF_LOGE("Unable to enqueue frame at " PR_MAC802_ADDR "",
+                        PR_MAC802_ADDR_ARGS(&myaddr));
+            }
+            goto vswitch_recv_signal;
         }
 
         memcpy(emul_buf, (void*)available_buff, len);
@@ -247,12 +251,16 @@ static void virtio_net_notify_vswitch_recv(sel4vswitch_node_t *node) {
                                     1, &cookie, (unsigned int*)&len);
 
         enqueue_res = buffqueue_enqueue_used_buff(node->buffqueues.recv_queue, available_buff, available_buff_sz);
-
+        if(enqueue_res) {
+            ZF_LOGE("Unable to enqueue frame at " PR_MAC802_ADDR "",
+                    PR_MAC802_ADDR_ARGS(&myaddr));
+        }
         seL4_Yield();
         dequeue_res = buffqueue_dequeue_available_buff(node->buffqueues.recv_queue,
                                                 &available_buff,
                                                 &available_buff_sz);
     }
+vswitch_recv_signal:
     err = buffqueue_signal(node->buffqueues.recv_queue);
     if(err) {
         ZF_LOGW("Failed to signal on buffqueue meant for Guest "

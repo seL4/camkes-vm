@@ -127,7 +127,7 @@ static int emul_raw_tx(struct eth_driver *driver,
                  *
                  * So return error instead of "continue"-ing here.
                  */
-                return ETHIF_TX_FAILED;
+                return ETHIF_TX_COMPLETE;
             }
         }
 
@@ -156,7 +156,7 @@ static int emul_raw_tx(struct eth_driver *driver,
                         "available.",
                         PR_MAC802_ADDR_ARGS(destaddr));
 
-                return ETHIF_TX_FAILED;
+                return ETHIF_TX_COMPLETE;
             };
 
             memcpy(alloc_buffer, (void *)phys[i], len[i]);
@@ -167,8 +167,7 @@ static int emul_raw_tx(struct eth_driver *driver,
                 ZF_LOGE("Unknown error while enqueuing available buffer for dest "
                         PR_MAC802_ADDR ".",
                         PR_MAC802_ADDR_ARGS(destaddr));
-
-                return ETHIF_TX_FAILED;
+                return ETHIF_TX_COMPLETE;
             }
 
             err = buffqueue_signal(destnode->buffqueues.send_queue);
@@ -177,7 +176,7 @@ static int emul_raw_tx(struct eth_driver *driver,
                         PR_MAC802_ADDR ".",
                         PR_MAC802_ADDR_ARGS(destaddr));
 
-                return ETHIF_TX_FAILED;
+                return ETHIF_TX_COMPLETE;
             }
 
             tot_len += len[i];

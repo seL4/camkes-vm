@@ -180,6 +180,7 @@ static int emul_raw_tx(struct eth_driver *driver,
                 ZF_LOGE("Unknown error while enqueuing available buffer for dest "
                         PR_MAC802_ADDR ".",
                         PR_MAC802_ADDR_ARGS(destaddr));
+                free_camkes_buffqueue_buffer(destnode->buffqueues.send_queue, alloc_buffer);
                 return ETHIF_TX_COMPLETE;
             }
 

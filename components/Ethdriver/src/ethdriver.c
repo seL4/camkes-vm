@@ -82,7 +82,7 @@ typedef struct client {
     uint8_t mac[6];
 
     /* Badge for this client */
-    int client_id;
+    seL4_Word client_id;
 
     /* dataport for this client */
     void *dataport;

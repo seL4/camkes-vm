@@ -75,6 +75,21 @@ static void virtio_net_notify_vswitch_send(sel4vswitch_node_t *node) {
     free_camkes_buffqueue_buffer(node->buffqueues.send_queue, used_buff);
 }
 
+/*
+ * We transmit packets to other VM's through using our virtqueue
+ * implementation. The current virtqueue implementation is limited to
+ * sending a single packet at a time and hence may drop a large number of
+ * packets when sending a multi-packet payloads. Our TX implementation
+ * is limited by the following:
+ * - Can't send payloads larger than 4K (maximum size of buffer)
+ * - Can send only one packet at once
+ *   - We yield between packet sends to give the other end a chance to
+ *   consume the virtqueue buffer. However if this does not happen we
+ *   will ultimately drop the packet.
+ * - If we can't send a packet, we will drop the packet and end the
+ *   transmission. We currently don't have a mechanism to retry the
+ *   transmission.
+ */
 static int emul_raw_tx(struct eth_driver *driver,
                        unsigned int num, uintptr_t *phys, unsigned int *len,
                        void *cookie)
@@ -174,6 +189,10 @@ static int emul_raw_tx(struct eth_driver *driver,
 
                 return ETHIF_TX_COMPLETE;
             }
+            /* This is a minor optimisation. We yield here to give the other end a chance to consume our
+             * transmited packet. When we resume at this point we then have the chance to send further
+             * packets, avoiding the need to drop them.
+             */
             seL4_Yield();
             if(buffqueue_poll(destnode->buffqueues.send_queue) == 1) {
                 virtio_net_notify_vswitch_send(destnode);
@@ -198,6 +217,16 @@ static void get_self_mac_addr(sel4vswitch_mac802_addr_t *self_addr) {
     }
 }
 
+/*
+ * We recieve packets from other VM's through using our virtqueue
+ * implementation. The current virtqueue implementation is limited to
+ * recieving a single packet at a time. Our RX implementation is
+ * limited by the following:
+ * - Can't recieve payloads larger than 4K (maximum size of buffer)
+ * - Can recive only one packet at once
+ *   - We yield between packet consumes to give the other end a
+ *   chance to send further virtqueue buffers.
+ */
 static void virtio_net_notify_vswitch_recv(sel4vswitch_node_t *node) {
     int err;
     sel4vswitch_t *g_vswitch;
@@ -255,6 +284,8 @@ static void virtio_net_notify_vswitch_recv(sel4vswitch_node_t *node) {
             ZF_LOGE("Unable to enqueue frame at " PR_MAC802_ADDR "",
                     PR_MAC802_ADDR_ARGS(&myaddr));
         }
+        /* We yield here to give the other end a chance to send more virtqueues for us to consume. This is a minor
+         * optimisation to avoid having to re-enter the event loop on our global notification object. */
         seL4_Yield();
         dequeue_res = buffqueue_dequeue_available_buff(node->buffqueues.recv_queue,
                                                 &available_buff,

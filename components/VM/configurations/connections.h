@@ -49,14 +49,14 @@
 #define __CALL_SINGLE(f, args...) __CALL_DISP_FROM0(f, __CALL_SINGLE, args)
 #define __CALL_NUM(f, args...) __CALL_DISP_FROM0(f, __CALL_NUM, args)
 
-#define VM_CONNECTION_COMPONENT_DEF_PRIV(prefix, vm_id) \
-    uses BuffQueueDrv prefix##_##vm_id##_send; \
-    uses BuffQueueDev prefix##_##vm_id##_recv;
 /*
  * This defines the send and recv queues for a
  * virtio vswitch connection with a given vm ("vm_id")
  * Typically called in the Init definition
  */
+#define VM_CONNECTION_COMPONENT_DEF_PRIV(vm_id) \
+    uses BuffQueueDrv ether_##vm_id##_send; \
+    uses BuffQueueDev ether_##vm_id##_recv;
 
 /*
  * Defines a vswitch connection

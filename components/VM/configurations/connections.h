@@ -64,7 +64,7 @@
 #define VM_CONNECTION_CONNECTION_DEF_PRIV(connection_type, connection_name, connections...) \
     connection connection_type connection_name(connections);
 
-#define VM_CONNECTION_COMPONENT_DEF(vm_id) \
+#define VM_CONNECTION_COMPONENT_DEF(vm_id...) \
     __CALL(VM_CONNECTION_COMPONENT_DEF_PRIV, vm_id)
 
 /*

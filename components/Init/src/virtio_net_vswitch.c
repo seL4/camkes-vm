@@ -29,7 +29,7 @@
 #include <ethdrivers/virtio/virtio_pci.h>
 #include <ethdrivers/virtio/virtio_net.h>
 #include <ethdrivers/virtio/virtio_ring.h>
-#include <ethdrivers/sel4vswitch.h>
+#include <vswitch.h>
 
 #include "vmm/vmm.h"
 #include "vmm/driver/pci_helper.h"
@@ -80,7 +80,7 @@ static int virtio_net_io_out(void *cookie, unsigned int port_no, unsigned int si
     return ret;
 }
 
-static void virtio_net_notify_vswitch_send(sel4vswitch_node_t *node) {
+static void virtio_net_notify_vswitch_send(vswitch_node_t *node) {
     void *used_buff = NULL;
     size_t used_buff_sz = 0;
     int dequeue_res = virtqueue_dequeue_used_buff(node->virtqueues.send_queue,
@@ -112,7 +112,7 @@ static int emul_raw_tx(struct eth_driver *driver,
                        unsigned int num, uintptr_t *phys, unsigned int *len,
                        void *cookie)
 {
-    sel4vswitch_t *g_vswitch;
+    vswitch_t *g_vswitch;
     size_t tot_len = 0;
 
     (void)tot_len;
@@ -141,7 +141,7 @@ static int emul_raw_tx(struct eth_driver *driver,
         else {
             /* Send only to the target node */
             destnode_n_idxs = 1;
-            destnode_start_idx = sel4vswitch_get_destnode_index_by_macaddr(
+            destnode_start_idx = vswitch_get_destnode_index_by_macaddr(
                                                             g_vswitch,
                                                             destaddr);
             if (destnode_start_idx < 0) {
@@ -164,10 +164,10 @@ static int emul_raw_tx(struct eth_driver *driver,
          */
         for (int j=destnode_start_idx;
              j<destnode_start_idx + destnode_n_idxs; j++) {
-            sel4vswitch_node_t *destnode;
+            vswitch_node_t *destnode;
             virtqueue_t *destbuff;
 
-            destnode = sel4vswitch_get_destnode_by_index(g_vswitch, j);
+            destnode = vswitch_get_destnode_by_index(g_vswitch, j);
             if (destnode == NULL) {
                 /* This could happen in the broadcast case if there are holes in
                  * the array, though that would still be odd.
@@ -272,9 +272,9 @@ static void get_self_mac_addr(struct ether_addr *self_addr) {
  *   - We yield between packet consumes to give the other end a
  *   chance to send further virtqueue buffers.
  */
-static void virtio_net_notify_vswitch_recv(sel4vswitch_node_t *node) {
+static void virtio_net_notify_vswitch_recv(vswitch_node_t *node) {
     int err;
-    sel4vswitch_t *g_vswitch;
+    vswitch_t *g_vswitch;
     struct ether_addr myaddr;
     virtqueue_t *rxdata_buff;
     ssize_t rxdata_buff_sz;
@@ -347,7 +347,7 @@ vswitch_recv_signal:
 
 void virtio_net_notify_vswitch(vmm_t *vmm) {
     int err;
-    sel4vswitch_t *g_vswitch;
+    vswitch_t *g_vswitch;
     g_vswitch = vmm_sel4vswitch_get_global_inst();
     assert(g_vswitch != NULL);
     for(int i=0; i < CONFIG_SEL4VSWITCH_NUM_NODES; i++) {
@@ -392,7 +392,7 @@ static void malloc_dma_cache_op(void *cookie, void *addr, size_t size, dma_cache
 static int make_vswitch_net(void) {
     int err;
 
-    sel4vswitch_t *vswitch_lib = vmm_sel4vswitch_get_global_inst();
+    vswitch_t *vswitch_lib = vmm_sel4vswitch_get_global_inst();
     int num_vswitch_entries = sizeof(vswitch_layout)/sizeof(struct mapping);
     for(int i = 0; i < num_vswitch_entries; i++) {
         struct mapping mac_mapping = vswitch_layout[i];
@@ -417,9 +417,9 @@ static int make_vswitch_net(void) {
         for(int i = 0; i < 6; i++) {
             guest_macaddr.ether_addr_octet[i] = (uint8_t)mac_mapping.mac_addr[i];
         }
-        err = seL4vswitch_connect(vswitch_lib, &guest_macaddr, send_virtqueue, recv_virtqueue);
+        err = vswitch_connect(vswitch_lib, &guest_macaddr, send_virtqueue, recv_virtqueue);
         if(err) {
-            ZF_LOGE("Unable to initialise sel4vswitch for MAC address: %x:%x:%x:%x:%x:%x",
+            ZF_LOGE("Unable to initialise vswitch for MAC address: %x:%x:%x:%x:%x:%x",
                     mac_mapping.mac_addr[0],mac_mapping.mac_addr[1],mac_mapping.mac_addr[2],
                     mac_mapping.mac_addr[3],mac_mapping.mac_addr[4],mac_mapping.mac_addr[5]);
             virtqueue_free(send_virtqueue);

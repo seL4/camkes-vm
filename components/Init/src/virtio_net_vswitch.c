@@ -122,13 +122,13 @@ static int emul_raw_tx(struct eth_driver *driver,
 
     /* Copy to the virtqueue */
     for (int i = 0; i < num; i++) {
-        sel4vswitch_mac802_addr_t *destaddr;
+        struct ether_addr *destaddr;
         int err, destnode_start_idx, destnode_n_idxs;
 
         /* Initialize a convenience pointer to the dest macaddr.
          * The dest MAC addr is the first member of an ethernet frame.
          */
-        destaddr = (sel4vswitch_mac802_addr_t *)phys[i];
+        destaddr = (struct ether_addr *)phys[i];
 
         /* Set up the bounds of the loop below that copies the frames into the
          * destination Guest's virtqueue.
@@ -256,9 +256,9 @@ static int emul_driver_init(struct eth_driver *driver, ps_io_ops_t io_ops, void 
     return 0;
 }
 
-static void get_self_mac_addr(sel4vswitch_mac802_addr_t *self_addr) {
+static void get_self_mac_addr(struct ether_addr *self_addr) {
     for(int i = 0; i < 6; i++) {
-            self_addr->bytes[i] = (uint8_t)mac_address[i];
+            self_addr->ether_addr_octet[i] = (uint8_t)mac_address[i];
     }
 }
 
@@ -275,7 +275,7 @@ static void get_self_mac_addr(sel4vswitch_mac802_addr_t *self_addr) {
 static void virtio_net_notify_vswitch_recv(sel4vswitch_node_t *node) {
     int err;
     sel4vswitch_t *g_vswitch;
-    sel4vswitch_mac802_addr_t myaddr;
+    struct ether_addr myaddr;
     virtqueue_t *rxdata_buff;
     ssize_t rxdata_buff_sz;
 
@@ -413,9 +413,9 @@ static int make_vswitch_net(void) {
             virtqueue_free(send_virtqueue);
             continue;
         }
-        sel4vswitch_mac802_addr_t guest_macaddr;
+        struct ether_addr guest_macaddr;
         for(int i = 0; i < 6; i++) {
-            guest_macaddr.bytes[i] = (uint8_t)mac_mapping.mac_addr[i];
+            guest_macaddr.ether_addr_octet[i] = (uint8_t)mac_mapping.mac_addr[i];
         }
         err = seL4vswitch_connect(vswitch_lib, &guest_macaddr, send_virtqueue, recv_virtqueue);
         if(err) {

@@ -54,7 +54,7 @@ function(DeclareCAmkESVM init_component)
     DeclareCAmkESComponent(${init_component}
         SOURCES ${base_sources} ${VM_COMP_EXTRA_SOURCES}
         INCLUDES ${VM_PROJECT_DIR}/components/Init/src ${VM_PROJECT_DIR}/components/VM/configurations ${VM_COMP_EXTRA_INCLUDES}
-        LIBS sel4allocman sel4vmm camkes_vmm_Config ${VM_COMP_EXTRA_LIBS}
+        LIBS sel4allocman sel4vmm camkes_vmm_Config virtqueue vswitch ${VM_COMP_EXTRA_LIBS}
         LD_FLAGS ${VM_COMP_EXTRA_LD_FLAGS}
         C_FLAGS  ${VM_COMP_EXTRA_C_FLAGS}
     )

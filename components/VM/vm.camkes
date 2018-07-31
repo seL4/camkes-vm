@@ -31,7 +31,7 @@ import <FileServerInterface.camkes>;
 import <InitConnection.idl4>;
 import <GuestMaps.idl4>;
 import <VchanInitInterface.idl4>;
-import <BuffQueues.idl4>;
+import <VirtQueues.idl4>;
 
 import "PIC.camkes";
 
@@ -49,9 +49,9 @@ import <FileServer/FileServer.camkes>;
 
 import <Echo/Echo.camkes>;
 
-connector seL4BuffQueues {
-    from Procedures template "seL4BuffQueues-from.template.c";
-    to Procedure template "seL4BuffQueues-to.template.c";
+connector seL4VirtQueues {
+    from Procedures template "seL4VirtQueues-from.template.c";
+    to Procedure template "seL4VirtQueues-to.template.c";
     attribute bool disable_interface_type_checking = true;
 }
 

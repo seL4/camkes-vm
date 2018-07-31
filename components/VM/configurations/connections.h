@@ -55,8 +55,8 @@
  * Typically called in the Init definition
  */
 #define VM_CONNECTION_COMPONENT_DEF_PRIV(vm_id) \
-    uses BuffQueueDrv ether_##vm_id##_send; \
-    uses BuffQueueDev ether_##vm_id##_recv;
+    uses VirtQueueDrv ether_##vm_id##_send; \
+    uses VirtQueueDev ether_##vm_id##_recv;
 
 /*
  * Defines a vswitch connection

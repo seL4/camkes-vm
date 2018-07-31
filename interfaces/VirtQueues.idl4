@@ -13,14 +13,14 @@
 /*
  * The procedures for the Queue Driver role
  */
-procedure BuffQueueDrv {}
+procedure VirtQueueDrv {}
 
 /*
  * The procedures for the Queue Device role
  */
-procedure BuffQueueDev {}
+procedure VirtQueueDev {}
 
 /*
  * The procedures for the Queue Init role
  */
-procedure BuffQueue {}
+procedure VirtQueue {}

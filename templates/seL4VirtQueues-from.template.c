@@ -13,8 +13,8 @@
 #include <sel4/sel4.h>
 #include <camkes/dataport.h>
 #include <camkes.h>
-#include <camkes/buffqueue_template.h>
-#include <buffqueue.h>
+#include <camkes/virtqueue_template.h>
+#include <virtqueue.h>
 #include <ethdrivers/sel4vswitch.h>
 
 /*- set suffix = "_buf" -*/
@@ -27,7 +27,7 @@
 
 /*- set interface_name =  me.interface.type.name -*/
 
-/*- if interface_name == "BuffQueueDrv" -*/
+/*- if interface_name == "VirtQueueDrv" -*/
     /*- set end_string = "drv" -*/
     /*- set other_end_string = "dev" -*/
 /*- else -*/
@@ -76,9 +76,9 @@ void /*? me.interface.name ?*/_notify(void) {
 
 //This is called by camkes runtime during init.
 void /*? me.interface.name ?*/__init() {
-/*- if interface_name == "BuffQueueDrv" -*/
-    camkes_register_buffqueue_channel(/*? queue_id ?*/, /*? me.interface.name ?*/_get_size(), /*? me.interface.name ?*/_buf,  /*? me.interface.name ?*/_notify, BUFFQUEUE_DRIVER);
+/*- if interface_name == "VirtQueueDrv" -*/
+    camkes_register_virtqueue_channel(/*? queue_id ?*/, /*? me.interface.name ?*/_get_size(), /*? me.interface.name ?*/_buf,  /*? me.interface.name ?*/_notify, VIRTQUEUE_DRIVER);
 /*- else -*/
-    camkes_register_buffqueue_channel(/*? queue_id ?*/, /*? me.interface.name ?*/_get_size(), /*? me.interface.name ?*/_buf,  /*? me.interface.name ?*/_notify, BUFFQUEUE_DEVICE);
+    camkes_register_virtqueue_channel(/*? queue_id ?*/, /*? me.interface.name ?*/_get_size(), /*? me.interface.name ?*/_buf,  /*? me.interface.name ?*/_notify, VIRTQUEUE_DEVICE);
 /*- endif -*/
 }

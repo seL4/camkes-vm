@@ -34,6 +34,9 @@
 #define __CALL_NUM3(f,p,a,b,c) f(p, a, 0) f(p, b, 1) f(p, c, 2)
 #define __CALL_NUM4(f,p,a,b,c,d) f(p, a, 0) f(p, b, 1) f(p, c, 2) f(p, d, 3)
 
+/*
+ * Call macro utils
+ */
 #define __CALL_NARGS_X(a,b,c,d,e,f,g,h,n,...) n
 #define __CALL_NARGS_FROM0(...) __CALL_NARGS_X(__VA_ARGS__,7,6,5,4,3,2,1,0,)
 #define __CALL_NARGS_FROM1(...) __CALL_NARGS_X(__VA_ARGS__,8,7,6,5,4,3,2,1,)
@@ -49,7 +52,15 @@
 #define VM_CONNECTION_COMPONENT_DEF_PRIV(prefix, vm_id) \
     uses BuffQueueDrv prefix##_##vm_id##_send; \
     uses BuffQueueDev prefix##_##vm_id##_recv;
+/*
+ * This defines the send and recv queues for a
+ * virtio vswitch connection with a given vm ("vm_id")
+ * Typically called in the Init definition
+ */
 
+/*
+ * Defines a vswitch connection
+ */
 #define VM_CONNECTION_CONNECTION_DEF_PRIV(connection_type, connection_name, connections...) \
     connection connection_type connection_name(connections);
 
@@ -65,12 +76,14 @@
 #define VM_CONNECTION_CONNECTION_EXPAND_VM(base_id, vm_ids...) \
     __CALL_SINGLE(EXPAND_NAME, base_id, vm_ids)
 
-// *_id is used for calling buffqueue_register
-// *_attributes is used for shared memory connector.
-//    currently each chan gets its own shared memory region,
-//    keyed by base_id##target_id on send side and target_id##base_id on receive side
-// *_global_endpoint refers to the notification object of the other vm
-// *_badge refers to the badge that the other vm will receive on its notification object
+/*
+*_id is used for calling buffqueue_register
+ *_attributes is used for shared memory connector.
+    currently each chan gets its own shared memory region,
+    keyed by base_id##target_id on send side and target_id##base_id on receive side
+ *_global_endpoint refers to the notification object of the other vm
+ *_badge refers to the badge that the other vm will receive on its notification object
+*/
 #define BASE_BADGE 134217728
 #define BADGE_NUMBER 1
 #define CONNECTION_BADGE (BASE_BADGE | (1 << BADGE_NUMBER))

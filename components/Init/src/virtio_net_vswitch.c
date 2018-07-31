@@ -45,8 +45,6 @@
 
 #define QUEUE_SIZE 128
 
-volatile Buf*__attribute__((weak)) ethdriver_buf;
-
 vswitch_t g_vswitch;
 
 void __attribute__((weak)) ethdriver_mac_vswitch(uint8_t *b1, uint8_t *b2, uint8_t *b3, uint8_t *b4, uint8_t *b5, uint8_t *b6) {

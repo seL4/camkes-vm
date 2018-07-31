@@ -85,7 +85,7 @@
  *_badge refers to the badge that the other vm will receive on its notification object
 */
 #define BASE_BADGE 134217728
-#define BADGE_NUMBER 1
+#define BADGE_NUMBER 19
 #define CONNECTION_BADGE (BASE_BADGE | (1 << BADGE_NUMBER))
 
 /*

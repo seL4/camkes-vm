@@ -48,6 +48,8 @@
 
 volatile Buf*__attribute__((weak)) ethdriver_buf;
 
+vswitch_t g_vswitch;
+
 void __attribute__((weak)) ethdriver_mac_vswitch(uint8_t *b1, uint8_t *b2, uint8_t *b3, uint8_t *b4, uint8_t *b5, uint8_t *b6) {
     *b1 = (uint8_t)mac_address[0]; *b2 = (uint8_t)mac_address[1]; *b3 = (uint8_t)mac_address[2];
     *b4 = (uint8_t)mac_address[3]; *b5 = (uint8_t)mac_address[4]; *b6 = (uint8_t)mac_address[5];
@@ -94,13 +96,9 @@ static int emul_raw_tx(struct eth_driver *driver,
                        unsigned int num, uintptr_t *phys, unsigned int *len,
                        void *cookie)
 {
-    vswitch_t *g_vswitch;
     size_t tot_len = 0;
 
     (void)tot_len;
-
-    g_vswitch = vmm_sel4vswitch_get_global_inst();
-    assert(g_vswitch != NULL);
 
     /* Copy to the virtqueue */
     for (int i = 0; i < num; i++) {
@@ -117,14 +115,14 @@ static int emul_raw_tx(struct eth_driver *driver,
          */
         if (mac802_addr_eq_bcast(destaddr)) {
             /* Send to all nodes on the VLAN if destaddr is bcast addr. */
-            destnode_n_idxs = g_vswitch->n_connected;
+            destnode_n_idxs = g_vswitch.n_connected;
             destnode_start_idx = 0;
         }
         else {
             /* Send only to the target node */
             destnode_n_idxs = 1;
             destnode_start_idx = vswitch_get_destnode_index_by_macaddr(
-                                                            g_vswitch,
+                                                            &g_vswitch,
                                                             destaddr);
             if (destnode_start_idx < 0) {
                 ZF_LOGE("Unreachable dest macaddr " PR_MAC802_ADDR ". Dropping "
@@ -149,7 +147,7 @@ static int emul_raw_tx(struct eth_driver *driver,
             vswitch_node_t *destnode;
             virtqueue_t *destbuff;
 
-            destnode = vswitch_get_destnode_by_index(g_vswitch, j);
+            destnode = vswitch_get_destnode_by_index(&g_vswitch, j);
             if (destnode == NULL) {
                 /* This could happen in the broadcast case if there are holes in
                  * the array, though that would still be odd.
@@ -229,7 +227,6 @@ static void get_self_mac_addr(struct ether_addr *self_addr) {
  */
 static void virtio_net_notify_vswitch_recv(vswitch_node_t *node) {
     int err;
-    vswitch_t *g_vswitch;
     struct ether_addr myaddr;
     virtqueue_t *rxdata_buff;
     ssize_t rxdata_buff_sz;
@@ -302,18 +299,15 @@ vswitch_recv_signal:
 
 void virtio_net_notify_vswitch(vmm_t *vmm) {
     int err;
-    vswitch_t *g_vswitch;
-    g_vswitch = vmm_sel4vswitch_get_global_inst();
-    assert(g_vswitch != NULL);
     for(int i=0; i < CONFIG_SEL4VSWITCH_NUM_NODES; i++) {
-        if(g_vswitch->nodes[i].virtqueues.send_queue != NULL) {
-            if(virtqueue_poll(g_vswitch->nodes[i].virtqueues.send_queue) == 1) {
-                virtio_net_notify_vswitch_send(&g_vswitch->nodes[i]);
+        if(g_vswitch.nodes[i].virtqueues.send_queue != NULL) {
+            if(virtqueue_poll(g_vswitch.nodes[i].virtqueues.send_queue) == 1) {
+                virtio_net_notify_vswitch_send(&g_vswitch.nodes[i]);
             }
         }
-        if(g_vswitch->nodes[i].virtqueues.recv_queue != NULL) {
-            if(virtqueue_poll(g_vswitch->nodes[i].virtqueues.recv_queue) == 1) {
-                virtio_net_notify_vswitch_recv(&g_vswitch->nodes[i]);
+        if(g_vswitch.nodes[i].virtqueues.recv_queue != NULL) {
+            if(virtqueue_poll(g_vswitch.nodes[i].virtqueues.recv_queue) == 1) {
+                virtio_net_notify_vswitch_recv(&g_vswitch.nodes[i]);
             }
         }
     }
@@ -321,8 +315,11 @@ void virtio_net_notify_vswitch(vmm_t *vmm) {
 
 static int make_vswitch_net(void) {
     int err;
-
-    vswitch_t *vswitch_lib = vmm_sel4vswitch_get_global_inst();
+    err = vswitch_init(&g_vswitch);
+    if(err) {
+        ZF_LOGE("Unable to initialise vswitch library");
+        return -1;
+    }
     int num_vswitch_entries = sizeof(vswitch_layout)/sizeof(struct mapping);
     for(int i = 0; i < num_vswitch_entries; i++) {
         struct mapping mac_mapping = vswitch_layout[i];
@@ -347,7 +344,7 @@ static int make_vswitch_net(void) {
         for(int i = 0; i < 6; i++) {
             guest_macaddr.ether_addr_octet[i] = (uint8_t)mac_mapping.mac_addr[i];
         }
-        err = vswitch_connect(vswitch_lib, &guest_macaddr, send_virtqueue, recv_virtqueue);
+        err = vswitch_connect(&g_vswitch, &guest_macaddr, send_virtqueue, recv_virtqueue);
         if(err) {
             ZF_LOGE("Unable to initialise vswitch for MAC address: %x:%x:%x:%x:%x:%x",
                     mac_mapping.mac_addr[0],mac_mapping.mac_addr[1],mac_mapping.mac_addr[2],

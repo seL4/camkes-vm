@@ -11,6 +11,14 @@
  */
 
 /*
+ * This file contains macros to try and hide the boilerplate required to use crossvm connections.
+ *
+ * The following macros are private and used to implement the public macros at the end of this file.
+ *
+ * See the end of the file for a description of this _macro api_.
+ */
+
+/*
  * Calls macro f with each argument e.g. a,b,c,..
  */
 #define __CALL1(f,a) f(a)
@@ -54,27 +62,22 @@
  * virtio vswitch connection with a given vm ("vm_id")
  * Typically called in the Init definition
  */
-#define VM_CONNECTION_COMPONENT_DEF_PRIV(vm_id) \
+#define PRIVATE_COMPONENT_DECL_ADD_INTERFACE_END(vm_id) \
     uses VirtQueueDrv ether_##vm_id##_send; \
     uses VirtQueueDev ether_##vm_id##_recv;
 
-/*
- * Defines a vswitch connection
- */
-#define VM_CONNECTION_CONNECTION_DEF_PRIV(connection_type, connection_name, connections...) \
-    connection connection_type connection_name(connections);
+#define PRIVATE_COMPONENT_DECL(base_id, vm_id...) \
+    __CALL(PRIVATE_COMPONENT_DECL_ADD_INTERFACE_END, vm_id)
 
-#define VM_CONNECTION_COMPONENT_DEF(vm_id...) \
-    __CALL(VM_CONNECTION_COMPONENT_DEF_PRIV, vm_id)
 
 /*
  * Expands the from ends of a connection between base_id vm and target vm
  */
-#define EXPAND_NAME(base_id, target_id) \
+#define PRIVATE_CONNECTION_ADD_INTERFACE_END(base_id, target_id) \
     from vm##base_id.ether_##target_id##_send, from vm##base_id.ether_##target_id##_recv,
 
-#define VM_CONNECTION_CONNECTION_EXPAND_VM(base_id, vm_ids...) \
-    __CALL_SINGLE(EXPAND_NAME, base_id, vm_ids)
+#define PRIVATE_CONNECTION_PERVM_ADD_INTERFACES(base_id, vm_ids...) \
+    __CALL_SINGLE(PRIVATE_CONNECTION_ADD_INTERFACE_END, base_id, vm_ids)
 
 /*
 *_id is used for calling buffqueue_register
@@ -90,8 +93,9 @@
 
 /*
  * Expands the config attributes of a VMs send and recv queue
+ * Called once per connection per vm
  */
-#define ADD_CONFIG(base_id, target_id, idx) \
+#define PRIVATE_CONFIG_PER_CONNECTION(base_id, target_id, idx) \
     vm##base_id.ether_##target_id##_send_id = idx *2; \
     vm##base_id.ether_##target_id##_send_attributes = VAR_STRINGIZE(base_id##target_id); \
     vm##base_id.ether_##target_id##_send_global_endpoint = VAR_STRINGIZE(vm##target_id); \
@@ -101,20 +105,61 @@
     vm##base_id.ether_##target_id##_recv_global_endpoint = VAR_STRINGIZE(vm##target_id); \
     vm##base_id.ether_##target_id##_recv_badge = CONNECTION_BADGE; \
 
-#define VM_CONNECTION_CONFIG_EXPAND_VM(base_id, vm_ids...) \
-    __CALL_NUM(ADD_CONFIG, base_id, vm_ids)
+// Add macaddress to virtqueue mapping. Called per connection per vm
+#define PRIVATE_ADD_MACADDR_MAPPING(base_id, vm_id, idx) \
+    {"mac_addr": VM##vm_id##_MACADDRESS, "send_id": idx*2, "recv_id":idx*2+1},
 
-#define ADD_TOPOLOGY(base_id, target_id) \
+// Expand config section, called once per vm
+#define PRIVATE_CONFIG_EXPAND_PERVM(base_id, vm_ids...) \
+    __CALL_NUM(PRIVATE_CONFIG_PER_CONNECTION, base_id, vm_ids) \
+    vm##base_id.mac_address = VM##base_id##_MACADDRESS; \
+    vm##base_id.vswitch_layout = [__CALL_NUM(PRIVATE_ADD_MACADDR_MAPPING, base_id, vm_ids)]; \
+
+
+// Create a single virtqueue drv/dev pair.
+#define PRIVATE_ADD_TOPOLOGY(base_id, target_id) \
     { "drv" : VAR_STRINGIZE(vm##base_id.ether_##target_id##_send) , "dev" : VAR_STRINGIZE(vm##target_id.ether_##base_id##_recv)},
 
-#define VM_CONNECTION_CONFIG_TOPOLOGY_EXPAND_VM(base_id, vm_ids...) \
-    __CALL_SINGLE(ADD_TOPOLOGY, base_id, vm_ids)
+// Connect the virtqueue ends together within the single connection instance.
+#define PRIVATE_CONFIG_EXPAND_TOPOLOGY(base_id, vm_ids...) \
+    __CALL_SINGLE(PRIVATE_ADD_TOPOLOGY, base_id, vm_ids)
+
+
+
+/** PUBLIC FUNCTIONS
+ * Types:
+ * vm_id: A unique vm identifier. VMs should be numbered from 0.
+ * f(base_id, vm_ids...) a varargs macro that is called with vm_id arguments.
+ * topology(f): A macro that takes a function f, and calls it N times with each VM in the base_id param,
+                and the vms it connects to in the following parameters.
+                eg: #define topology_all(f) f(0,1,2) f(1,0,2) f(2,0,1)
+                describes a topology where 3 vms are each connected to each other.
+ * VM##vm_id##_##topology(f) A macro that calls f only for vm_id.
+                eg: #define VM0_topology_all(f) f(0,1,2)
+   Note it is possible/encouraged to define topology(f) in terms of VM##vm_id##_##topology(f)
+   eg: #define topology_all(f) VM0_topology_all(f) VM1_topology_all(f) VM2_topology_all(f)
+ * to_end: A component instance.interface that has been defined as: provides VirtQueue
+ * VM##vm_id##_##MACADDRESS: The macaddress of vm_id. This will become the macaddress of the created VirtioNet device
+ *
+ * Functions:
+ * VM_CONNECTION_COMPONENT_DEF(vm_id, topology): Defines interfaces for vm_id and topology.
+ * VM_CONNECTION_CONNECT_VMS(to_end, topology): Creates connection between all instances of the given topology.
+ * VM_CONNECTION_CONFIG(to_end, topology): Applies configuration for cross vm connection.
+ * VM_CONNECTION_INIT_HANDLER: Add init handler to vmm to create the cross_vm virtio_net device
+ *
+ */
+#define VM_CONNECTION_COMPONENT_DEF(vm_id, topology) \
+    VM##vm_id##_##topology(PRIVATE_COMPONENT_DECL)
+
+/*
+ * Defines a vswitch connection
+ */
+#define VM_CONNECTION_CONNECT_VMS(to_end, topology) \
+    connection seL4VirtQueues topology##_conn(to to_end, topology(PRIVATE_CONNECTION_PERVM_ADD_INTERFACES));
+
+#define VM_CONNECTION_CONFIG(to_end, topology) \
+    topology(PRIVATE_CONFIG_EXPAND_PERVM) \
+    to_end##_topology = [topology(PRIVATE_CONFIG_EXPAND_TOPOLOGY)];
 
 #define VM_CONNECTION_INIT_HANDLER \
     {"init":"make_virtio_net_vswitch", "badge":CONNECTION_BADGE, "irq":"virtio_net_notify_vswitch"}
-
-#define ADD_MACADDR_MAPPINGS(base_id, macaddr, idx) \
-    {"mac_addr": macaddr, "send_id": idx*2, "recv_id":idx*2+1},
-
-#define VM_CONNECTION_VSWITCH_MACADDR_MAPPINGS(mac_addrs...) \
-    [__CALL_NUM(ADD_MACADDR_MAPPINGS, 0, mac_addrs)]

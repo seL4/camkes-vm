@@ -74,6 +74,8 @@
     attribute int iospace_domain; \
     attribute int guest_ram_mb; \
     attribute int cnode_size_bits = 21; \
+    attribute mapping vswitch_layout[] = []; \
+    attribute int mac_address[] = []; \
     /**/
 
 /* VM and per VM componenents */

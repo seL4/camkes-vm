@@ -19,3 +19,9 @@ import <PutChar.idl4>;
 import <Ethdriver.camkes>;
 import <VchanInterface.idl4>;
 import <FileServerInterface.camkes>;
+
+struct mapping {
+       int mac_addr[];
+       int send_id;
+       int recv_id;
+};

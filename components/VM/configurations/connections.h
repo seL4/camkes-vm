@@ -109,3 +109,12 @@
 
 #define VM_CONNECTION_CONFIG_TOPOLOGY_EXPAND_VM(base_id, vm_ids...) \
     __CALL_SINGLE(ADD_TOPOLOGY, base_id, vm_ids)
+
+#define VM_CONNECTION_INIT_HANDLER \
+    {"init":"make_virtio_net_vswitch", "badge":CONNECTION_BADGE, "irq":"virtio_net_notify_vswitch"}
+
+#define ADD_MACADDR_MAPPINGS(base_id, macaddr, idx) \
+    {"mac_addr": macaddr, "send_id": idx*2, "recv_id":idx*2+1},
+
+#define VM_CONNECTION_VSWITCH_MACADDR_MAPPINGS(mac_addrs...) \
+    [__CALL_NUM(ADD_MACADDR_MAPPINGS, 0, mac_addrs)]

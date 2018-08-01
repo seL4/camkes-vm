@@ -48,11 +48,6 @@
 
 vswitch_t g_vswitch;
 
-void __attribute__((weak)) ethdriver_mac_vswitch(uint8_t *b1, uint8_t *b2, uint8_t *b3, uint8_t *b4, uint8_t *b5, uint8_t *b6) {
-    *b1 = (uint8_t)mac_address[0]; *b2 = (uint8_t)mac_address[1]; *b3 = (uint8_t)mac_address[2];
-    *b4 = (uint8_t)mac_address[3]; *b5 = (uint8_t)mac_address[4]; *b6 = (uint8_t)mac_address[5];
-}
-
 int __attribute__((weak)) eth_rx_ready_reg_callback_vswitch(void (*proc)(void*),void *blah) {
     ZF_LOGE("should not be here");
     return 0;
@@ -202,15 +197,23 @@ static int emul_raw_tx(struct eth_driver *driver,
 
 
 static void emul_low_level_init(struct eth_driver *driver, uint8_t *mac, int *mtu) {
-    ethdriver_mac_vswitch(&mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
+    struct ether_addr res;
+    struct ether_addr *resp;
+    resp = ether_aton_r (mac_address, &res);
+    if (resp == NULL) {
+        ZF_LOGF("Failed to get MAC address");
+    }
+    memcpy(mac, res.ether_addr_octet, ETH_ALEN);
     *mtu = 1500;
 }
 
 
 static void get_self_mac_addr(struct ether_addr *self_addr) {
-    for(int i = 0; i < 6; i++) {
-            self_addr->ether_addr_octet[i] = (uint8_t)mac_address[i];
+    struct ether_addr * res = ether_aton_r (mac_address, self_addr);
+    if (res == NULL) {
+        ZF_LOGF("Failed to get MAC address");
     }
+
 }
 
 /*
@@ -325,28 +328,24 @@ static int make_vswitch_net(void) {
         virtqueue_t *recv_virtqueue;
         err = init_camkes_virtqueue(&send_virtqueue, mac_mapping.send_id);
         if(err) {
-            ZF_LOGE("Unable to initialise send virtqueue for %x:%x:%x:%x:%x:%x",
-                    mac_mapping.mac_addr[0],mac_mapping.mac_addr[1],mac_mapping.mac_addr[2],
-                    mac_mapping.mac_addr[3],mac_mapping.mac_addr[4],mac_mapping.mac_addr[5]);
+            ZF_LOGE("Unable to initialise send virtqueue for %s", mac_mapping.mac_addr);
             continue;
         }
         err = init_camkes_virtqueue(&recv_virtqueue, mac_mapping.recv_id);
         if(err) {
-            ZF_LOGE("Unable to initialise recv virtqueue for %x:%x:%x:%x:%x:%x",
-                    mac_mapping.mac_addr[0],mac_mapping.mac_addr[1],mac_mapping.mac_addr[2],
-                    mac_mapping.mac_addr[3],mac_mapping.mac_addr[4],mac_mapping.mac_addr[5]);
+            ZF_LOGE("Unable to initialise recv virtqueue for %s", mac_mapping.mac_addr);
             virtqueue_free(send_virtqueue);
             continue;
         }
         struct ether_addr guest_macaddr;
-        for(int i = 0; i < 6; i++) {
-            guest_macaddr.ether_addr_octet[i] = (uint8_t)mac_mapping.mac_addr[i];
+        struct ether_addr *res = ether_aton_r (mac_mapping.mac_addr, &guest_macaddr);
+        if (res == NULL) {
+            ZF_LOGF("Failed to get MAC address");
         }
+
         err = vswitch_connect(&g_vswitch, &guest_macaddr, send_virtqueue, recv_virtqueue);
         if(err) {
-            ZF_LOGE("Unable to initialise vswitch for MAC address: %x:%x:%x:%x:%x:%x",
-                    mac_mapping.mac_addr[0],mac_mapping.mac_addr[1],mac_mapping.mac_addr[2],
-                    mac_mapping.mac_addr[3],mac_mapping.mac_addr[4],mac_mapping.mac_addr[5]);
+            ZF_LOGE("Unable to initialise vswitch for MAC address: %s", mac_mapping.mac_addr);
             virtqueue_free(send_virtqueue);
             virtqueue_free(recv_virtqueue);
         }

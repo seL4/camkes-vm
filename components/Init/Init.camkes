@@ -21,7 +21,7 @@ import <VchanInterface.idl4>;
 import <FileServerInterface.camkes>;
 
 struct mapping {
-       int mac_addr[];
+       string mac_addr;
        int send_id;
        int recv_id;
 };

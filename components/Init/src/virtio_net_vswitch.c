@@ -172,7 +172,7 @@ static int emul_raw_tx(struct eth_driver *driver,
                 return ETHIF_TX_COMPLETE;
             }
 
-            err = virtqueue_signal(destnode->virtqueues.send_queue);
+            err = virtqueue_signal_drv(destnode->virtqueues.send_queue);
             if (err != 0) {
                 ZF_LOGE("Unknown error while signaling dest "
                         PR_MAC802_ADDR ".",
@@ -185,7 +185,7 @@ static int emul_raw_tx(struct eth_driver *driver,
              * packets, avoiding the need to drop them.
              */
             seL4_Yield();
-            if(virtqueue_poll(destnode->virtqueues.send_queue) == 1) {
+            if(virtqueue_poll_drv(destnode->virtqueues.send_queue) == 1) {
                 virtio_net_notify_vswitch_send(destnode);
             }
             tot_len += len[i];
@@ -290,7 +290,7 @@ static void virtio_net_notify_vswitch_recv(vswitch_node_t *node) {
                                                 &available_buff_sz);
     }
 vswitch_recv_signal:
-    err = virtqueue_signal(node->virtqueues.recv_queue);
+    err = virtqueue_signal_dev(node->virtqueues.recv_queue);
     if(err) {
         ZF_LOGW("Failed to signal on virtqueue meant for Guest "
                 PR_MAC802_ADDR ".",
@@ -302,12 +302,12 @@ void virtio_net_notify_vswitch(vmm_t *vmm) {
     int err;
     for(int i=0; i < CONFIG_SEL4VSWITCH_NUM_NODES; i++) {
         if(g_vswitch.nodes[i].virtqueues.send_queue != NULL) {
-            if(virtqueue_poll(g_vswitch.nodes[i].virtqueues.send_queue) == 1) {
+            if(virtqueue_poll_drv(g_vswitch.nodes[i].virtqueues.send_queue) == 1) {
                 virtio_net_notify_vswitch_send(&g_vswitch.nodes[i]);
             }
         }
         if(g_vswitch.nodes[i].virtqueues.recv_queue != NULL) {
-            if(virtqueue_poll(g_vswitch.nodes[i].virtqueues.recv_queue) == 1) {
+            if(virtqueue_poll_dev(g_vswitch.nodes[i].virtqueues.recv_queue) == 1) {
                 virtio_net_notify_vswitch_recv(&g_vswitch.nodes[i]);
             }
         }
@@ -324,17 +324,17 @@ static int make_vswitch_net(void) {
     int num_vswitch_entries = sizeof(vswitch_layout)/sizeof(struct mapping);
     for(int i = 0; i < num_vswitch_entries; i++) {
         struct mapping mac_mapping = vswitch_layout[i];
-        virtqueue_t *send_virtqueue;
-        virtqueue_t *recv_virtqueue;
-        err = init_camkes_virtqueue(&send_virtqueue, mac_mapping.send_id);
+        virtqueue_driver_t *send_virtqueue;
+        virtqueue_device_t *recv_virtqueue;
+        err = init_camkes_virtqueue_drv(&send_virtqueue, mac_mapping.send_id);
         if(err) {
             ZF_LOGE("Unable to initialise send virtqueue for %s", mac_mapping.mac_addr);
             continue;
         }
-        err = init_camkes_virtqueue(&recv_virtqueue, mac_mapping.recv_id);
+        err = init_camkes_virtqueue_dev(&recv_virtqueue, mac_mapping.recv_id);
         if(err) {
             ZF_LOGE("Unable to initialise recv virtqueue for %s", mac_mapping.mac_addr);
-            virtqueue_free(send_virtqueue);
+            free_camkes_virtqueue_drv(send_virtqueue);
             continue;
         }
         struct ether_addr guest_macaddr;
@@ -346,8 +346,8 @@ static int make_vswitch_net(void) {
         err = vswitch_connect(&g_vswitch, &guest_macaddr, send_virtqueue, recv_virtqueue);
         if(err) {
             ZF_LOGE("Unable to initialise vswitch for MAC address: %s", mac_mapping.mac_addr);
-            virtqueue_free(send_virtqueue);
-            virtqueue_free(recv_virtqueue);
+            free_camkes_virtqueue_drv(send_virtqueue);
+            free_camkes_virtqueue_dev(recv_virtqueue);
         }
     }
 }

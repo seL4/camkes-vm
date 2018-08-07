@@ -43,11 +43,6 @@
 #include "i8259.h"
 #include "virtio_net.h"
 
-#define VIRTIO_VID 0x1af4
-#define VIRTIO_DID_START 0x1000
-
-#define QUEUE_SIZE 128
-
 vswitch_t g_vswitch;
 
 int __attribute__((weak)) eth_rx_ready_reg_callback_vswitch(void (*proc)(void*),void *blah) {

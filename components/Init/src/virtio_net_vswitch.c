@@ -14,6 +14,8 @@
 #include <stdint.h>
 #include <string.h>
 #include <autoconf.h>
+#include <netinet/ether.h>
+
 
 #include <sel4platsupport/arch/io.h>
 #include <sel4utils/vspace.h>
@@ -58,7 +60,7 @@ static virtio_net_t *virtio_net = NULL;
 
 
 static void virtio_net_notify_vswitch_send(vswitch_node_t *node) {
-    void *used_buff = NULL;
+    volatile void *used_buff = NULL;
     size_t used_buff_sz = 0;
     int dequeue_res = virtqueue_dequeue_used_buff(node->virtqueues.send_queue,
                                                 &used_buff,
@@ -150,7 +152,7 @@ static int emul_raw_tx(struct eth_driver *driver,
                         PR_MAC802_ADDR_ARGS(destaddr));
                 continue;
             }
-            void *alloc_buffer = NULL;
+            volatile void *alloc_buffer = NULL;
             int err = alloc_camkes_virtqueue_buffer(destnode->virtqueues.send_queue, &alloc_buffer, len[i]);
             if (err) {
                 ZF_LOGW("Dropping eth frame to dest " PR_MAC802_ADDR ": no buff "
@@ -160,7 +162,7 @@ static int emul_raw_tx(struct eth_driver *driver,
                 return ETHIF_TX_COMPLETE;
             };
 
-            memcpy(alloc_buffer, (void *)phys[i], len[i]);
+            memcpy((void *)alloc_buffer, (void *)phys[i], len[i]);
 
             err = virtqueue_enqueue_available_buff(destnode->virtqueues.send_queue,
                     alloc_buffer, len[i]);
@@ -246,7 +248,7 @@ static void virtio_net_notify_vswitch_recv(vswitch_node_t *node) {
     /* The eth frame is already in the virtqueue. It was placed there by
      * the sender's libvswitch instance. Check the virtqueue and pull it out.
      */
-    void *available_buff = NULL;
+    volatile void *available_buff = NULL;
     size_t available_buff_sz = 0;
     int dequeue_res = virtqueue_dequeue_available_buff(node->virtqueues.recv_queue,
                                                 &available_buff,

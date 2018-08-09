@@ -57,7 +57,7 @@ static virtio_net_t *virtio_net = NULL;
 static void virtio_net_notify_vswitch_send(vswitch_node_t *node) {
     volatile void *used_buff = NULL;
     size_t used_buff_sz = 0;
-    int dequeue_res = virtqueue_dequeue_used_buff(node->virtqueues.send_queue,
+    int dequeue_res = virtqueue_driver_dequeue(node->virtqueues.send_queue,
                                                 &used_buff,
                                                 &used_buff_sz);
     if(dequeue_res) {
@@ -159,7 +159,7 @@ static int emul_raw_tx(struct eth_driver *driver,
 
             memcpy((void *)alloc_buffer, (void *)phys[i], len[i]);
 
-            err = virtqueue_enqueue_available_buff(destnode->virtqueues.send_queue,
+            err = virtqueue_driver_enqueue(destnode->virtqueues.send_queue,
                     alloc_buffer, len[i]);
             if(err != 0) {
                 ZF_LOGE("Unknown error while enqueuing available buffer for dest "
@@ -169,7 +169,7 @@ static int emul_raw_tx(struct eth_driver *driver,
                 return ETHIF_TX_COMPLETE;
             }
 
-            err = virtqueue_signal_drv(destnode->virtqueues.send_queue);
+            err = virtqueue_driver_signal(destnode->virtqueues.send_queue);
             if (err != 0) {
                 ZF_LOGE("Unknown error while signaling dest "
                         PR_MAC802_ADDR ".",
@@ -182,7 +182,7 @@ static int emul_raw_tx(struct eth_driver *driver,
              * packets, avoiding the need to drop them.
              */
             seL4_Yield();
-            if(virtqueue_poll_drv(destnode->virtqueues.send_queue) == 1) {
+            if(virtqueue_driver_poll(destnode->virtqueues.send_queue) == 1) {
                 virtio_net_notify_vswitch_send(destnode);
             }
             tot_len += len[i];
@@ -245,7 +245,7 @@ static void virtio_net_notify_vswitch_recv(vswitch_node_t *node) {
      */
     volatile void *available_buff = NULL;
     size_t available_buff_sz = 0;
-    int dequeue_res = virtqueue_dequeue_available_buff(node->virtqueues.recv_queue,
+    int dequeue_res = virtqueue_device_dequeue(node->virtqueues.recv_queue,
                                                 &available_buff,
                                                 &available_buff_sz);
 
@@ -260,7 +260,7 @@ static void virtio_net_notify_vswitch_recv(vswitch_node_t *node) {
         if (emul_buf == NULL) {
             ZF_LOGW("Dropping frame for " PR_MAC802_ADDR ": No ring mem avail.",
                     PR_MAC802_ADDR_ARGS(&myaddr));
-            enqueue_res = virtqueue_enqueue_used_buff(node->virtqueues.recv_queue, available_buff, available_buff_sz);
+            enqueue_res = virtqueue_device_enqueue(node->virtqueues.recv_queue, available_buff, available_buff_sz);
             if(enqueue_res) {
                 ZF_LOGE("Unable to enqueue frame at " PR_MAC802_ADDR "",
                         PR_MAC802_ADDR_ARGS(&myaddr));
@@ -274,7 +274,7 @@ static void virtio_net_notify_vswitch_recv(vswitch_node_t *node) {
                                     virtio_net->emul_driver->cb_cookie,
                                     1, &cookie, (unsigned int*)&len);
 
-        enqueue_res = virtqueue_enqueue_used_buff(node->virtqueues.recv_queue, available_buff, available_buff_sz);
+        enqueue_res = virtqueue_device_enqueue(node->virtqueues.recv_queue, available_buff, available_buff_sz);
         if(enqueue_res) {
             ZF_LOGE("Unable to enqueue frame at " PR_MAC802_ADDR "",
                     PR_MAC802_ADDR_ARGS(&myaddr));
@@ -282,12 +282,12 @@ static void virtio_net_notify_vswitch_recv(vswitch_node_t *node) {
         /* We yield here to give the other end a chance to send more virtqueues for us to consume. This is a minor
          * optimisation to avoid having to re-enter the event loop on our global notification object. */
         seL4_Yield();
-        dequeue_res = virtqueue_dequeue_available_buff(node->virtqueues.recv_queue,
+        dequeue_res = virtqueue_device_dequeue(node->virtqueues.recv_queue,
                                                 &available_buff,
                                                 &available_buff_sz);
     }
 vswitch_recv_signal:
-    err = virtqueue_signal_dev(node->virtqueues.recv_queue);
+    err = virtqueue_device_signal(node->virtqueues.recv_queue);
     if(err) {
         ZF_LOGW("Failed to signal on virtqueue meant for Guest "
                 PR_MAC802_ADDR ".",
@@ -297,14 +297,14 @@ vswitch_recv_signal:
 
 void virtio_net_notify_vswitch(vmm_t *vmm) {
     int err;
-    for(int i=0; i < CONFIG_SEL4VSWITCH_NUM_NODES; i++) {
+    for(int i=0; i < VSWITCH_NUM_NODES; i++) {
         if(g_vswitch.nodes[i].virtqueues.send_queue != NULL) {
-            if(virtqueue_poll_drv(g_vswitch.nodes[i].virtqueues.send_queue) == 1) {
+            if(virtqueue_driver_poll(g_vswitch.nodes[i].virtqueues.send_queue) == 1) {
                 virtio_net_notify_vswitch_send(&g_vswitch.nodes[i]);
             }
         }
         if(g_vswitch.nodes[i].virtqueues.recv_queue != NULL) {
-            if(virtqueue_poll_dev(g_vswitch.nodes[i].virtqueues.recv_queue) == 1) {
+            if(virtqueue_device_poll(g_vswitch.nodes[i].virtqueues.recv_queue) == 1) {
                 virtio_net_notify_vswitch_recv(&g_vswitch.nodes[i]);
             }
         }

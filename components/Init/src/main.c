@@ -74,8 +74,14 @@ int cross_vm_consumes_events_init(vmm_t *vmm, vspace_t *vspace, seL4_Word irq_ba
 int cross_vm_consumes_event_irq_num(void) WEAK;
 int cross_vm_emits_events_init(vmm_t *vmm) WEAK;
 
-static seL4_CPtr simple_ioport_wrapper(void *data, uint16_t start_port, uint16_t end_port) {
-    return ioports_get_ioport(start_port, end_port);
+static seL4_Error simple_ioport_wrapper(void *data, uint16_t start_port, uint16_t end_port,
+                                        seL4_Word root, seL4_Word dest, seL4_Word depth) {
+    seL4_CPtr cap = ioports_get_ioport(start_port, end_port);
+    if (cap == seL4_CapNull){
+        return seL4_FailedLookup;
+    }
+    return seL4_CNode_Copy(root, dest, depth, root, cap, CONFIG_WORD_SIZE, seL4_AllRights);
+
 }
 
 static seL4_Error simple_frame_cap_wrapper(void *data, void *paddr, int size_bits, cspacepath_t *path) {

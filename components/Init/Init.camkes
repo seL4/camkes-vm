@@ -20,7 +20,7 @@ import <Ethdriver.camkes>;
 import <VchanInterface.idl4>;
 import <FileServerInterface.camkes>;
 
-struct mapping {
+struct vswitch_mapping {
        string mac_addr;
        int send_id;
        int recv_id;

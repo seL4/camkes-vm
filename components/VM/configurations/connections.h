@@ -112,7 +112,7 @@
 // Expand config section, called once per vm
 #define PRIVATE_CONFIG_EXPAND_PERVM(base_id, vm_ids...) \
     __CALL_NUM(PRIVATE_CONFIG_PER_CONNECTION, base_id, vm_ids) \
-    vm##base_id.mac_address = VM##base_id##_MACADDRESS; \
+    vm##base_id.vswitch_mac_address = VM##base_id##_MACADDRESS; \
     vm##base_id.vswitch_layout = [__CALL_NUM(PRIVATE_ADD_MACADDR_MAPPING, base_id, vm_ids)]; \
 
 

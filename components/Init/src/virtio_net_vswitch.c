@@ -196,7 +196,7 @@ static int emul_raw_tx(struct eth_driver *driver,
 static void emul_low_level_init(struct eth_driver *driver, uint8_t *mac, int *mtu) {
     struct ether_addr res;
     struct ether_addr *resp;
-    resp = ether_aton_r (mac_address, &res);
+    resp = ether_aton_r (vswitch_mac_address, &res);
     if (resp == NULL) {
         ZF_LOGF("Failed to get MAC address");
     }
@@ -206,7 +206,7 @@ static void emul_low_level_init(struct eth_driver *driver, uint8_t *mac, int *mt
 
 
 static void get_self_mac_addr(struct ether_addr *self_addr) {
-    struct ether_addr * res = ether_aton_r (mac_address, self_addr);
+    struct ether_addr * res = ether_aton_r (vswitch_mac_address, self_addr);
     if (res == NULL) {
         ZF_LOGF("Failed to get MAC address");
     }
@@ -318,9 +318,9 @@ static int make_vswitch_net(void) {
         ZF_LOGE("Unable to initialise vswitch library");
         return -1;
     }
-    int num_vswitch_entries = sizeof(vswitch_layout)/sizeof(struct mapping);
+    int num_vswitch_entries = sizeof(vswitch_layout)/sizeof(struct vswitch_mapping);
     for(int i = 0; i < num_vswitch_entries; i++) {
-        struct mapping mac_mapping = vswitch_layout[i];
+        struct vswitch_mapping mac_mapping = vswitch_layout[i];
         virtqueue_driver_t *send_virtqueue;
         virtqueue_device_t *recv_virtqueue;
         err = camkes_virtqueue_driver_init(&send_virtqueue, mac_mapping.send_id);

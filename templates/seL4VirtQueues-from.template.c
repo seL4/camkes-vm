@@ -77,8 +77,8 @@ void /*? me.interface.name ?*/_notify(void) {
 //This is called by camkes runtime during init.
 void /*? me.interface.name ?*/__init() {
 /*- if interface_name == "VirtQueueDrv" -*/
-    camkes_register_virtqueue_channel(/*? queue_id ?*/, /*? me.interface.name ?*/_get_size(), /*? me.interface.name ?*/_buf,  /*? me.interface.name ?*/_notify, VIRTQUEUE_DRIVER);
+    camkes_virtqueue_channel_register(/*? queue_id ?*/, /*? me.interface.name ?*/_get_size(), /*? me.interface.name ?*/_buf,  /*? me.interface.name ?*/_notify, VIRTQUEUE_DRIVER);
 /*- else -*/
-    camkes_register_virtqueue_channel(/*? queue_id ?*/, /*? me.interface.name ?*/_get_size(), /*? me.interface.name ?*/_buf,  /*? me.interface.name ?*/_notify, VIRTQUEUE_DEVICE);
+    camkes_virtqueue_channel_register(/*? queue_id ?*/, /*? me.interface.name ?*/_get_size(), /*? me.interface.name ?*/_buf,  /*? me.interface.name ?*/_notify, VIRTQUEUE_DEVICE);
 /*- endif -*/
 }

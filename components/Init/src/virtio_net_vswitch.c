@@ -64,7 +64,7 @@ static void virtio_net_notify_vswitch_send(vswitch_node_t *node) {
         ZF_LOGE("Unable to dequeue used buff");
         return;
     }
-    free_camkes_virtqueue_buffer(node->virtqueues.send_queue, used_buff);
+    camkes_virtqueue_buffer_free(node->virtqueues.send_queue, used_buff);
 }
 
 /*
@@ -148,7 +148,7 @@ static int emul_raw_tx(struct eth_driver *driver,
                 continue;
             }
             volatile void *alloc_buffer = NULL;
-            int err = alloc_camkes_virtqueue_buffer(destnode->virtqueues.send_queue, &alloc_buffer, len[i]);
+            int err = camkes_virtqueue_buffer_alloc(destnode->virtqueues.send_queue, &alloc_buffer, len[i]);
             if (err) {
                 ZF_LOGW("Dropping eth frame to dest " PR_MAC802_ADDR ": no buff "
                         "available.",
@@ -165,7 +165,7 @@ static int emul_raw_tx(struct eth_driver *driver,
                 ZF_LOGE("Unknown error while enqueuing available buffer for dest "
                         PR_MAC802_ADDR ".",
                         PR_MAC802_ADDR_ARGS(destaddr));
-                free_camkes_virtqueue_buffer(destnode->virtqueues.send_queue, alloc_buffer);
+                camkes_virtqueue_buffer_free(destnode->virtqueues.send_queue, alloc_buffer);
                 return ETHIF_TX_COMPLETE;
             }
 
@@ -323,15 +323,15 @@ static int make_vswitch_net(void) {
         struct mapping mac_mapping = vswitch_layout[i];
         virtqueue_driver_t *send_virtqueue;
         virtqueue_device_t *recv_virtqueue;
-        err = init_camkes_virtqueue_drv(&send_virtqueue, mac_mapping.send_id);
+        err = camkes_virtqueue_driver_init(&send_virtqueue, mac_mapping.send_id);
         if(err) {
             ZF_LOGE("Unable to initialise send virtqueue for %s", mac_mapping.mac_addr);
             continue;
         }
-        err = init_camkes_virtqueue_dev(&recv_virtqueue, mac_mapping.recv_id);
+        err = camkes_virtqueue_device_init(&recv_virtqueue, mac_mapping.recv_id);
         if(err) {
             ZF_LOGE("Unable to initialise recv virtqueue for %s", mac_mapping.mac_addr);
-            free_camkes_virtqueue_drv(send_virtqueue);
+            camkes_virtqueue_driver_free(send_virtqueue);
             continue;
         }
         struct ether_addr guest_macaddr;
@@ -343,8 +343,8 @@ static int make_vswitch_net(void) {
         err = vswitch_connect(&g_vswitch, &guest_macaddr, send_virtqueue, recv_virtqueue);
         if(err) {
             ZF_LOGE("Unable to initialise vswitch for MAC address: %s", mac_mapping.mac_addr);
-            free_camkes_virtqueue_drv(send_virtqueue);
-            free_camkes_virtqueue_dev(recv_virtqueue);
+            camkes_virtqueue_driver_free(send_virtqueue);
+            camkes_virtqueue_device_free(recv_virtqueue);
         }
     }
 }

@@ -79,21 +79,19 @@
 #define PRIVATE_CONNECTION_PERVM_ADD_INTERFACES(base_id, vm_ids...) \
     __CALL_SINGLE(PRIVATE_CONNECTION_ADD_INTERFACE_END, base_id, vm_ids)
 
-/*
-*_id is used for calling buffqueue_register
- *_attributes is used for shared memory connector.
-    currently each chan gets its own shared memory region,
-    keyed by base_id##target_id on send side and target_id##base_id on receive side
- *_global_endpoint refers to the notification object of the other vm
- *_badge refers to the badge that the other vm will receive on its notification object
-*/
 #define BASE_BADGE 134217728
 #define BADGE_NUMBER 19
 #define CONNECTION_BADGE (BASE_BADGE | (1 << BADGE_NUMBER))
 
-/*
+/**
  * Expands the config attributes of a VMs send and recv queue
  * Called once per connection per vm
+ *_id is used for calling buffqueue_register
+ *_attributes is used for shared memory connector.
+ *  currently each chan gets its own shared memory region,
+ *  keyed by base_id##target_id on send side and target_id##base_id on receive side
+ *_global_endpoint refers to the notification object of the other vm
+ *_badge refers to the badge that the other vm will receive on its notification object
  */
 #define PRIVATE_CONFIG_PER_CONNECTION(base_id, target_id, idx) \
     vm##base_id.ether_##target_id##_send_id = idx *2; \

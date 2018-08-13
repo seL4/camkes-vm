@@ -355,6 +355,6 @@ void make_virtio_net_vswitch(vmm_t *vmm) {
     backend.low_level_init = emul_low_level_init;
 
     make_vswitch_net();
-    virtio_net = common_make_virtio_net(vmm, 0x9000, backend);
+    virtio_net = common_make_virtio_net(vmm, 0x9040, backend);
     assert(virtio_net);
 }

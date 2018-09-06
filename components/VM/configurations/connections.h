@@ -62,22 +62,22 @@
  * virtio vswitch connection with a given vm ("vm_id")
  * Typically called in the Init definition
  */
-#define PRIVATE_COMPONENT_DECL_ADD_INTERFACE_END(vm_id) \
+#define __COMPONENT_DECL_ADD_INTERFACE_END(vm_id) \
     uses VirtQueueDrv ether_##vm_id##_send; \
     uses VirtQueueDev ether_##vm_id##_recv;
 
-#define PRIVATE_COMPONENT_DECL(base_id, vm_id...) \
-    __CALL(PRIVATE_COMPONENT_DECL_ADD_INTERFACE_END, vm_id)
+#define __COMPONENT_DECL(base_id, vm_id...) \
+    __CALL(__COMPONENT_DECL_ADD_INTERFACE_END, vm_id)
 
 
 /*
  * Expands the from ends of a connection between base_id vm and target vm
  */
-#define PRIVATE_CONNECTION_ADD_INTERFACE_END(base_id, target_id) \
+#define __CONNECTION_ADD_INTERFACE_END(base_id, target_id) \
     from vm##base_id.ether_##target_id##_send, from vm##base_id.ether_##target_id##_recv,
 
-#define PRIVATE_CONNECTION_PERVM_ADD_INTERFACES(base_id, vm_ids...) \
-    __CALL_SINGLE(PRIVATE_CONNECTION_ADD_INTERFACE_END, base_id, vm_ids)
+#define __CONNECTION_PERVM_ADD_INTERFACES(base_id, vm_ids...) \
+    __CALL_SINGLE(__CONNECTION_ADD_INTERFACE_END, base_id, vm_ids)
 
 #define BASE_BADGE 134217728
 #define BADGE_NUMBER 19
@@ -93,7 +93,7 @@
  *_global_endpoint refers to the notification object of the other vm
  *_badge refers to the badge that the other vm will receive on its notification object
  */
-#define PRIVATE_CONFIG_PER_CONNECTION(base_id, target_id, idx) \
+#define __CONFIG_PER_CONNECTION(base_id, target_id, idx) \
     vm##base_id.ether_##target_id##_send_id = idx *2; \
     vm##base_id.ether_##target_id##_send_attributes = VAR_STRINGIZE(base_id##target_id); \
     vm##base_id.ether_##target_id##_send_global_endpoint = VAR_STRINGIZE(vm##target_id); \
@@ -104,23 +104,23 @@
     vm##base_id.ether_##target_id##_recv_badge = CONNECTION_BADGE; \
 
 // Add macaddress to virtqueue mapping. Called per connection per vm
-#define PRIVATE_ADD_MACADDR_MAPPING(base_id, vm_id, idx) \
+#define __ADD_MACADDR_MAPPING(base_id, vm_id, idx) \
     {"mac_addr": VM##vm_id##_MACADDRESS, "send_id": idx*2, "recv_id":idx*2+1},
 
 // Expand config section, called once per vm
-#define PRIVATE_CONFIG_EXPAND_PERVM(base_id, vm_ids...) \
-    __CALL_NUM(PRIVATE_CONFIG_PER_CONNECTION, base_id, vm_ids) \
+#define __CONFIG_EXPAND_PERVM(base_id, vm_ids...) \
+    __CALL_NUM(__CONFIG_PER_CONNECTION, base_id, vm_ids) \
     vm##base_id.vswitch_mac_address = VM##base_id##_MACADDRESS; \
-    vm##base_id.vswitch_layout = [__CALL_NUM(PRIVATE_ADD_MACADDR_MAPPING, base_id, vm_ids)]; \
+    vm##base_id.vswitch_layout = [__CALL_NUM(__ADD_MACADDR_MAPPING, base_id, vm_ids)]; \
 
 
 // Create a single virtqueue drv/dev pair.
-#define PRIVATE_ADD_TOPOLOGY(base_id, target_id) \
+#define __ADD_TOPOLOGY(base_id, target_id) \
     { "drv" : VAR_STRINGIZE(vm##base_id.ether_##target_id##_send) , "dev" : VAR_STRINGIZE(vm##target_id.ether_##base_id##_recv)},
 
 // Connect the virtqueue ends together within the single connection instance.
-#define PRIVATE_CONFIG_EXPAND_TOPOLOGY(base_id, vm_ids...) \
-    __CALL_SINGLE(PRIVATE_ADD_TOPOLOGY, base_id, vm_ids)
+#define __CONFIG_EXPAND_TOPOLOGY(base_id, vm_ids...) \
+    __CALL_SINGLE(__ADD_TOPOLOGY, base_id, vm_ids)
 
 
 
@@ -147,17 +147,17 @@
  *
  */
 #define VM_CONNECTION_COMPONENT_DEF(vm_id, topology) \
-    VM##vm_id##_##topology(PRIVATE_COMPONENT_DECL)
+    VM##vm_id##_##topology(__COMPONENT_DECL)
 
 /*
  * Defines a vswitch connection
  */
 #define VM_CONNECTION_CONNECT_VMS(to_end, topology) \
-    connection seL4VirtQueues topology##_conn(to to_end, topology(PRIVATE_CONNECTION_PERVM_ADD_INTERFACES));
+    connection seL4VirtQueues topology##_conn(to to_end, topology(__CONNECTION_PERVM_ADD_INTERFACES));
 
 #define VM_CONNECTION_CONFIG(to_end, topology) \
-    topology(PRIVATE_CONFIG_EXPAND_PERVM) \
-    to_end##_topology = [topology(PRIVATE_CONFIG_EXPAND_TOPOLOGY)];
+    topology(__CONFIG_EXPAND_PERVM) \
+    to_end##_topology = [topology(__CONFIG_EXPAND_TOPOLOGY)];
 
 #define VM_CONNECTION_INIT_HANDLER \
     {"init":"make_virtio_net_vswitch", "badge":CONNECTION_BADGE, "irq":"virtio_net_notify_vswitch"}

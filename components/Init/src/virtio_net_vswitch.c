@@ -43,15 +43,7 @@
 #include "i8259.h"
 #include "virtio_net.h"
 
-vswitch_t g_vswitch;
-
-int __attribute__((weak)) eth_rx_ready_reg_callback_vswitch(void (*proc)(void*), void *blah)
-{
-    ZF_LOGE("should not be here");
-    return 0;
-}
-
-
+static vswitch_t g_vswitch;
 static virtio_net_t *virtio_net = NULL;
 
 
@@ -88,10 +80,6 @@ static int emul_raw_tx(struct eth_driver *driver,
                        unsigned int num, uintptr_t *phys, unsigned int *len,
                        void *cookie)
 {
-    size_t tot_len = 0;
-
-    (void)tot_len;
-
     /* Copy to the virtqueue */
     for (int i = 0; i < num; i++) {
         struct ether_addr *destaddr;
@@ -186,13 +174,11 @@ static int emul_raw_tx(struct eth_driver *driver,
             if (virtqueue_driver_poll(destnode->virtqueues.send_queue) == 1) {
                 virtio_net_notify_vswitch_send(destnode);
             }
-            tot_len += len[i];
         }
     }
 
     return ETHIF_TX_COMPLETE;
 }
-
 
 static void emul_low_level_init(struct eth_driver *driver, uint8_t *mac, int *mtu)
 {
@@ -269,7 +255,7 @@ static void virtio_net_notify_vswitch_recv(vswitch_node_t *node)
                 ZF_LOGE("Unable to enqueue frame at " PR_MAC802_ADDR "",
                         PR_MAC802_ADDR_ARGS(&myaddr));
             }
-            goto vswitch_recv_signal;
+            break;
         }
 
         memcpy(emul_buf, (void*)available_buff, len);
@@ -290,7 +276,6 @@ static void virtio_net_notify_vswitch_recv(vswitch_node_t *node)
                                                &available_buff,
                                                &available_buff_sz);
     }
-vswitch_recv_signal:
     err = virtqueue_device_signal(node->virtqueues.recv_queue);
     if (err) {
         ZF_LOGW("Failed to signal on virtqueue meant for Guest "
@@ -301,7 +286,6 @@ vswitch_recv_signal:
 
 void virtio_net_notify_vswitch(vmm_t *vmm)
 {
-    int err;
     for (int i = 0; i < VSWITCH_NUM_NODES; i++) {
         if (g_vswitch.nodes[i].virtqueues.send_queue != NULL) {
             if (virtqueue_driver_poll(g_vswitch.nodes[i].virtqueues.send_queue) == 1) {
@@ -324,7 +308,7 @@ static int make_vswitch_net(void)
         ZF_LOGE("Unable to initialise vswitch library");
         return -1;
     }
-    int num_vswitch_entries = sizeof(vswitch_layout) / sizeof(struct vswitch_mapping);
+    int num_vswitch_entries = ARRAY_SIZE(vswitch_layout);
     for (int i = 0; i < num_vswitch_entries; i++) {
         struct vswitch_mapping mac_mapping = vswitch_layout[i];
         virtqueue_driver_t *send_virtqueue;

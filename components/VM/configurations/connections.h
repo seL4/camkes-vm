@@ -79,7 +79,10 @@
 #define __CONNECTION_PERVM_ADD_INTERFACES(base_id, vm_ids...) \
     __CALL_SINGLE(__CONNECTION_ADD_INTERFACE_END, base_id, vm_ids)
 
-#define BASE_BADGE 134217728
+/* All the async sources on the VMM's endpoint use the high bit,
+ * BIT(27), to indicate an async event has occured. The low bit of
+ * CONNECTION_BADGE, BIT(19), identifies it as a virtqueue async event */
+#define BASE_BADGE 134217728 /* BIT(27) */
 #define BADGE_NUMBER 19
 #define CONNECTION_BADGE (BASE_BADGE | (1 << BADGE_NUMBER))
 

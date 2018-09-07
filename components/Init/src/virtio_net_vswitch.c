@@ -28,9 +28,6 @@
 #include <camkes/dataport.h>
 #include <camkes/virtqueue.h>
 
-#include <ethdrivers/virtio/virtio_pci.h>
-#include <ethdrivers/virtio/virtio_net.h>
-#include <ethdrivers/virtio/virtio_ring.h>
 #include <vswitch.h>
 
 #include "vmm/vmm.h"
@@ -40,7 +37,6 @@
 #include "vmm/platform/guest_vspace.h"
 
 #include "vm.h"
-#include "i8259.h"
 #include "virtio_net.h"
 
 static vswitch_t g_vswitch;

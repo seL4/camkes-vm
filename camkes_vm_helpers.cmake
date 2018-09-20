@@ -148,7 +148,7 @@ function(DecompressLinuxKernel decompress_target decompressed_kernel_image compr
     get_filename_component(kernel_basename ${compressed_kernel_image} NAME)
     # Extract vmlinux from bzimage
     add_custom_command(OUTPUT decomp/${kernel_basename}
-        COMMAND bash -c "${CMAKE_SOURCE_DIR}/projects/vm/tools/elf/extract-vmlinux ${compressed_kernel_image} > decomp/${kernel_basename}"
+        COMMAND bash -c "${VM_PROJECT_DIR}/tools/elf/extract-vmlinux ${compressed_kernel_image} > decomp/${kernel_basename}"
         VERBATIM
         DEPENDS ${compressed_kernel_image} ${DECOMPRESS_KERNEL_DEPENDS}
     )

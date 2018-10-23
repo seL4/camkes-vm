@@ -30,3 +30,6 @@ set(CapDLLoaderMaxObjects 900000 CACHE STRING "" FORCE)
 set(CAmkESDefaultHeapSize 0 CACHE STRING "" FORCE)
 # We need to pre-process our specs
 set(CAmkESCPP ON CACHE BOOL "" FORCE)
+
+# Set release/verification configuration
+ApplyCommonReleaseVerificationSettings(${RELEASE} FALSE)

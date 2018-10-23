@@ -17,9 +17,6 @@ if(NOT TARGET vm_fserver_config)
     add_custom_target(vm_fserver_config)
 endif()
 
-# Set release/verification configuration
-ApplyCommonReleaseVerificationSettings(${RELEASE} FALSE)
-
 # Function for declaring a CAmkESVM. This is called for each Init component in the applications
 # camkes config.
 # init_component: is the name of CamkESVM Init component described in the .camkes config

@@ -48,6 +48,8 @@
 #define BRK_VIRTUAL_SIZE 400000000
 #define ALLOCMAN_VIRTUAL_SIZE 400000000
 
+extern void *fs_buf;
+
 reservation_t muslc_brk_reservation;
 void *muslc_brk_reservation_start;
 vspace_t  *muslc_this_vspace;
@@ -514,7 +516,7 @@ void *main_continued(void *arg) {
 
     /* install custom open/close/read implementations to redirect I/O from the VMM to
      * our file server */
-    install_fileserver();
+    install_fileserver(FILE_SERVER_INTERFACE(fs));
 
     /* Construct a new VM */
     platform_callbacks_t callbacks = (platform_callbacks_t) {

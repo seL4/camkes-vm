@@ -94,15 +94,15 @@ function(AddToFileServer filename_pref file_dest)
     endif()
     # Create a copy of the file in the binary directory to the callers
     # preferred name
-    add_custom_command(OUTPUT ${filename_pref}
-        COMMAND ${CMAKE_COMMAND} -E copy "${file_dest}" "${CMAKE_CURRENT_BINARY_DIR}/${filename_pref}"
+    add_custom_command(OUTPUT file_server/${filename_pref}
+        COMMAND ${CMAKE_COMMAND} -E copy "${file_dest}" "${CMAKE_CURRENT_BINARY_DIR}/file_server/${filename_pref}"
         VERBATIM
         DEPENDS ${file_dest} ${CAMKES_FILESERVER_DEPENDS}
     )
     #Create custom target for copy command
-    add_custom_target(copy_${filename_pref} DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/${filename_pref}")
+    add_custom_target(copy_${filename_pref} DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/file_server/${filename_pref}")
     # Store the rootfs file location. Used when building the CPIO at a later stage
-    set_property(TARGET vm_fserver_config APPEND PROPERTY FILES "${CMAKE_CURRENT_BINARY_DIR}/${filename_pref}")
+    set_property(TARGET vm_fserver_config APPEND PROPERTY FILES "${CMAKE_CURRENT_BINARY_DIR}/file_server/${filename_pref}")
     # Append soft link dependency
     set_property(TARGET vm_fserver_config APPEND PROPERTY DEPS "copy_${filename_pref}")
 endfunction(AddToFileServer)

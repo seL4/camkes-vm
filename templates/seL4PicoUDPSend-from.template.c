@@ -18,7 +18,7 @@
 
 /*? macros.show_includes(me.instance.type.includes) ?*/
 
-/*- set ep = alloc('ep', seL4_EndpointObject, write=True, grant=True) -*/
+/*- set ep = alloc('ep', seL4_EndpointObject, write=True, grantreply=True) -*/
 /*- set badge = configuration[me.instance.name].get('%s_attributes' % me.interface.name) -*/
 /*- if badge is not none -*/
     /*- set badge = badge.strip('"') -*/

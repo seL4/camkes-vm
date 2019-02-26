@@ -1,0 +1,21 @@
+/*
+ * Copyright 2019, Data61
+ * Commonwealth Scientific and Industrial Research Organisation (CSIRO)
+ * ABN 41 687 119 230.
+ *
+ * This software may be distributed and modified according to the terms of
+ * the GNU General Public License version 2. Note that NO WARRANTY is provided.
+ * See "LICENSE_GPLv2.txt" for details.
+ *
+ * @TAG(DATA61_GPL)
+ */
+
+procedure PicoRecv {
+    int read(in int socket_fd, in int len, in int buffer_offset);
+    int recv(in int socket_fd, in int len, in int buffer_offset);
+    /* 
+     * src_addr will be returned in network order, (1.2.3.4 -> 0x04030201), 
+     * remote_port in non-network order (port 9000 -> (uint16_t) 9000)
+     */
+    int recvfrom(in int socket_fd, in int len, in int buffer_offset, out uint32_t src_addr, out uint16_t remote_port);
+};

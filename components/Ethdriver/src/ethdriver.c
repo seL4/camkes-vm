@@ -52,14 +52,19 @@ static seL4_CPtr (*original_vspace_get_cap)(vspace_t*, void*);
 
 void camkes_make_simple(simple_t *simple);
 
-typedef struct rx_frame {
+typedef struct eth_buf {
     void *buf;
+    uintptr_t phys;
+} eth_buf_t;
+
+typedef struct rx_frame {
+    eth_buf_t *buf; // Clients share a pool of RX frames
     int len;
     int client;
 } rx_frame_t;
 
 typedef struct tx_frame {
-    void *buf;
+    eth_buf_t buf; // Each client has a pool of TX frames
     int len;
     int client;
 } tx_frame_t;
@@ -92,7 +97,8 @@ static int num_clients = 0;
 static client_t *clients = NULL;
 
 static int num_rx_bufs;
-static void *rx_bufs[RX_BUFS];
+static eth_buf_t rx_bufs[RX_BUFS];
+static eth_buf_t *rx_buf_pool[RX_BUFS];
 
 static int done_init = 0;
 
@@ -150,9 +156,8 @@ static uintptr_t eth_allocate_rx_buf(void *iface, size_t buf_size, void **cookie
         return 0;
     }
     num_rx_bufs--;
-    void *buf = rx_bufs[num_rx_bufs];
-    *cookie = buf;
-    return (uintptr_t)buf;
+    *cookie = rx_buf_pool[num_rx_bufs];
+    return rx_buf_pool[num_rx_bufs]->phys;
 }
 
 static client_t *detect_client(void *buf, unsigned int len) {
@@ -197,8 +202,8 @@ static int is_multicast(void *buf, unsigned int len) {
     return 0;
 }
 
-static void give_client_buf(client_t *client, void *cookie, unsigned int len) {
-    client->pending_rx[client->pending_rx_head] = (rx_frame_t){cookie, len, 0};
+static void give_client_buf(client_t *client, eth_buf_t *buf, unsigned int len) {
+    client->pending_rx[client->pending_rx_head] = (rx_frame_t){buf, len, 0};
     client->pending_rx_head = (client->pending_rx_head + 1) % CLIENT_RX_BUFS;
     if (client->should_notify) {
         client_emit(client->client_id);
@@ -211,19 +216,21 @@ static void eth_rx_complete(void *iface, unsigned int num_bufs, void **cookies, 
     if (num_bufs != 1) {
         goto error;
     }
-    client_t *client = detect_client(cookies[0], lens[0]);
+    eth_buf_t *curr_buf = cookies[0];
+    client_t *client = detect_client(curr_buf->buf, lens[0]);
     if (!client) {
-        if (is_broadcast(cookies[0], lens[0]) || is_multicast(cookies[0], lens[0])) {
+        if (is_broadcast(curr_buf->buf, lens[0]) || is_multicast(curr_buf->buf, lens[0])) {
             /* in a broadcast duplicate this buffer for every other client, we will fallthrough
              * to give the buffer to client 0 at the end */
             for (int i = 1; i < num_clients; i++) {
                 client = &clients[i];
                 if ((client->pending_rx_head + 1) % CLIENT_RX_BUFS != client->pending_rx_tail) {
                     void *cookie;
-                    void *buf = (void*)eth_allocate_rx_buf(iface, lens[0], &cookie);
-                    if (buf) {
-                        memcpy(buf, cookies[0], lens[0]);
-                        give_client_buf(client, cookie, lens[0]);
+                    uintptr_t phys = eth_allocate_rx_buf(iface, lens[0], &cookie);
+                    eth_buf_t *new_buf = cookie;
+                    if (phys) {
+                        memcpy(new_buf->buf, curr_buf->buf, lens[0]);
+                        give_client_buf(client, new_buf, lens[0]);
                     }
                 }
             }
@@ -235,12 +242,13 @@ static void eth_rx_complete(void *iface, unsigned int num_bufs, void **cookies, 
     if ((client->pending_rx_head + 1) % CLIENT_RX_BUFS == client->pending_rx_tail) {
         goto error;
     }
-    give_client_buf(client, cookies[0], lens[0]);
+    give_client_buf(client, curr_buf, lens[0]);
     return;
 error:
     /* abort and put all the bufs back */
     for (int i = 0; i < num_bufs; i++) {
-        rx_bufs[num_rx_bufs] = cookies[i];
+        eth_buf_t *returned_buf = cookies[i];
+        rx_buf_pool[num_rx_bufs] = returned_buf;
         num_rx_bufs++;
     }
 }
@@ -287,7 +295,7 @@ int client_rx(int *len) {
     }
     rx_frame_t rx = client->pending_rx[client->pending_rx_tail];
     client->pending_rx_tail = (client->pending_rx_tail + 1) % CLIENT_RX_BUFS;
-    memcpy(packet, rx.buf, rx.len);
+    memcpy(packet, rx.buf->buf, rx.len);
     *len = rx.len;
     if (client->pending_rx_tail == client->pending_rx_head) {
         client->should_notify = 1;
@@ -295,7 +303,7 @@ int client_rx(int *len) {
     } else {
         ret = 1;
     }
-    rx_bufs[num_rx_bufs] = rx.buf;
+    rx_buf_pool[num_rx_bufs] = rx.buf;
     num_rx_bufs++;
     err = ethdriver_unlock();
     return ret;
@@ -328,10 +336,10 @@ int client_tx(int len) {
         client->num_tx --;
         tx_frame_t *tx_buf = client->pending_tx[client->num_tx];
         /* copy the packet over */
-        memcpy(tx_buf->buf, packet, len);
-        memcpy(tx_buf->buf + 6, client->mac, 6);
+        memcpy(tx_buf->buf.buf, packet, len);
+        memcpy(tx_buf->buf.buf + 6, client->mac, 6);
         /* queue up transmit */
-        err = eth_driver.i_fn.raw_tx(&eth_driver, 1, (uintptr_t*)&(tx_buf->buf), (unsigned int*)&len, tx_buf);
+        err = eth_driver.i_fn.raw_tx(&eth_driver, 1, (uintptr_t*)&(tx_buf->buf.phys), (unsigned int*)&len, tx_buf);
         if (err != ETHIF_TX_ENQUEUED){
             /* Free the internal tx buffer in case tx fails. Up to the client to retry the trasmission */
             client->num_tx++; 
@@ -442,8 +450,8 @@ void post_init(void) {
         void *buf = ps_dma_alloc(&ioops.dma_manager, BUF_SIZE, 4, 1, PS_MEM_NORMAL);
         assert(buf);
         uintptr_t phys = ps_dma_pin(&ioops.dma_manager, buf, BUF_SIZE);
-        assert(phys == (uintptr_t)buf);
-        rx_bufs[num_rx_bufs] = buf;
+        rx_bufs[num_rx_bufs] = (eth_buf_t) { .buf = buf, .phys = phys };
+        rx_buf_pool[num_rx_bufs] = &(rx_bufs[num_rx_bufs]);
         num_rx_bufs++;
     }
     num_clients = client_num_badges();
@@ -457,9 +465,9 @@ void post_init(void) {
             void *buf = ps_dma_alloc(&ioops.dma_manager, BUF_SIZE, 4, 1, PS_MEM_NORMAL);
             assert(buf);
             uintptr_t phys = ps_dma_pin(&ioops.dma_manager, buf, BUF_SIZE);
-            assert(phys == (uintptr_t)buf);
             tx_frame_t *tx_buf = &clients[client].tx_mem[clients[client].num_tx];
-            *tx_buf = (tx_frame_t){.buf = buf, .len = BUF_SIZE, .client = client};
+            *tx_buf = (tx_frame_t){.len = BUF_SIZE, .client = client};
+            tx_buf->buf = (eth_buf_t) { .buf = buf, .phys = phys };
             clients[client].pending_tx[clients[client].num_tx] = tx_buf;
             clients[client].num_tx++;
         }

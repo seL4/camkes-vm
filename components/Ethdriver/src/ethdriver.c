@@ -75,12 +75,31 @@ typedef struct client {
      * the last packet */
     int should_notify;
 
+    /* keeps track of the head of the queue */
     int pending_rx_head;
+    /* keeps track of the tail of the queue */
     int pending_rx_tail;
+    /*
+     * this is a cyclic queue of RX buffers pending to be read by a client,
+     * the head represents the first buffer in the queue, and the tail the last
+     */
     rx_frame_t pending_rx[CLIENT_RX_BUFS];
 
+    /* keeps track of how many TX buffers are in use */
     int num_tx;
+    /* the allocated TX buffers for the client */
     tx_frame_t tx_mem[CLIENT_TX_BUFS];
+    /* 
+     * this represents the pool of buffers that can be used for TX,
+     * this array is a sliding array in that num_tx acts a pointer to
+     * separate between buffers that are in use and buffers that are
+     * not in use. E.g. 'o' = free, 'x' = in use
+     *  -------------------------------------
+     *  | o | o | o | o | o | o | x | x | x |
+     *  -------------------------------------
+     *                          ^
+     *                        num_tx
+     */
     tx_frame_t *pending_tx[CLIENT_TX_BUFS];
 
     /* mac address for this client */

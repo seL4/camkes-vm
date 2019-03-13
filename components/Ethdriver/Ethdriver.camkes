@@ -13,13 +13,12 @@
 import <Ethdriver.camkes>;
 
 component Ethdriver82574 {
-    include "EthType.h";
     has mutex ethdriver;
 
     provides Ethdriver client;
 
     consumes IRQ irq;
-    dataport EthDriver82574MMIO_t EthDriver;
+    dataport Buf(0x20000) EthDriver;
 
     attribute int iospace_id;
     /* format for bdf is "BUS:DEV.fun" where BUS and DEV are hex and FUN is decimal */
@@ -27,13 +26,12 @@ component Ethdriver82574 {
 }
 
 component Ethdriver82580 {
-    include "EthType.h";
     has mutex ethdriver;
 
     provides Ethdriver client;
 
     consumes IRQ irq;
-    dataport EthDriver82580MMIO_t EthDriver;
+    dataport Buf(0x80000) EthDriver;
 
     attribute int iospace_id;
     /* format for bdf is "BUS:DEV.fun" where BUS and DEV are hex and FUN is decimal */
@@ -44,11 +42,11 @@ component Ethdriver82580 {
 component HWEthDriver82574 {
     hardware;
     emits IRQ irq;
-    dataport EthDriver82574MMIO_t mmio;
+    dataport Buf(0x20000) mmio;
 };
 
 component HWEthDriver82580 {
     hardware;
     emits IRQ irq;
-    dataport EthDriver82580MMIO_t mmio;
+    dataport Buf(0x80000) mmio;
 };

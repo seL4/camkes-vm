@@ -626,8 +626,10 @@ void *main_continued(void *arg)
 
     pci_io_ops = make_pci_io_ops();
 
-    ZF_LOGI("PCI scan");
-    libpci_scan(pci_io_ops);
+    if (pci_devices_num_devices() > 0) {
+        ZF_LOGI("PCI scan");
+        libpci_scan(pci_io_ops);
+    }
 
     /* install custom open/close/read implementations to redirect I/O from the VMM to
      * our file server */

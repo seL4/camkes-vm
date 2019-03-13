@@ -1,5 +1,5 @@
 /*
- * Copyright 2017, Data61
+ * Copyright 2019, Data61
  * Commonwealth Scientific and Industrial Research Organisation (CSIRO)
  * ABN 41 687 119 230.
  *
@@ -9,6 +9,8 @@
  *
  * @TAG(DATA61_GPL)
  */
+
+#include <plat/eth_devices.h>
 
 import <Ethdriver.camkes>;
 
@@ -49,4 +51,30 @@ component HWEthDriver82580 {
     hardware;
     emits IRQ irq;
     dataport Buf(0x80000) mmio;
+};
+
+/* This is a macro used to define the hardware CAmkES component for each ARM platform */
+HARDWARE_ETHERNET_COMPONENT
+
+component EthdriverARMPlat {
+    has mutex ethdriver;
+
+    provides Ethdriver client;
+
+    /* 
+     * These two attributes are set according to whatever configuration you want.
+     * The MAC address should match the board's Ethernet device's MAC address.
+     */
+    attribute int mac[];
+    attribute int promiscuous_mode;
+
+    HARDWARE_ETHERNET_INTERFACES
+
+    composition {
+        HARDWARE_ETHERNET_COMPOSITION
+    }
+
+    configuration {
+        HARDWARE_ETHERNET_CONFIG
+    }
 };

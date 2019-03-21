@@ -1,0 +1,44 @@
+/*
+ * Copyright 2019, Dornerworks
+ *
+ * SPDX-License-Identifier: GPL-2.0-only
+ */
+import <Sataserver.idl4>;
+import <PutChar.idl4>;
+
+#include <plat/sata.h>
+
+#ifdef SATADRIVER_AHCI_ENABLE
+component HWSata {
+    hardware;
+    HARDWARE_SATA_PROVIDES_INTERFACES
+};
+#endif
+
+component Sataserver {
+    has mutex sataserver_mux;
+    provides SataserverInterface client;
+    attribute int iospace_id;
+    /* format for bdf is "BUS:DEV.fun,BUS:DEV.fun,..." where BUS and DEV are hex and FUN is decimal */
+    attribute string pci_bdfs;
+    /* Some controllers have an odd quirk where they use multiple PCI ports. Should match number of
+     * ports set in the pci_bdfs string. See https://bugzilla.kernel.org/show_bug.cgi?id=42679
+     * for description of why this is needed
+     */
+    attribute int num_bdfs;
+    attribute int drive;
+
+    uses PutChar putchar;
+
+#ifdef SATADRIVER_AHCI_ENABLE
+    HARDWARE_SATA_INTERFACES
+
+    /* Connect the hardware Sata to the Sata component */
+    composition {
+        HARDWARE_SATA_COMPOSITION
+    }
+    configuration {
+        HARDWARE_SATA_CONFIG
+    }
+#endif
+}

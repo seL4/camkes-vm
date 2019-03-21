@@ -9,6 +9,7 @@ import <RTC.idl4>;
 import <GetChar.idl4>;
 import <PutChar.idl4>;
 import <Ethdriver.idl4>;
+import <Sataserver.idl4>;
 import <FileServerInterface.camkes>;
 
 struct vswitch_mapping {

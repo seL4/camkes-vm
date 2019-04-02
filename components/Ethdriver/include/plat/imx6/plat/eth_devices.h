@@ -11,62 +11,34 @@
  */
 #pragma once
 
-#define HARDWARE_ETHERNET_COMPONENT                                     \
-    component HWEthDriverIMX6 {                                         \
-        hardware;                                                       \
-        emits IRQ irq;                                                  \
-        dataport Buf(16384) mmio;                                       \
-        dataport Buf(16384) ocotp;                                      \
-        dataport Buf(16384) iomux;                                      \
-        dataport Buf(16384) ccm;                                        \
-        dataport Buf(4096) analog;                                      \
-        dataport Buf(16384) gpio3;                                      \
-        dataport Buf(16384) gpio6;                                      \
-    }
+#define HARDWARE_ETHERNET_COMPONENT
 
-#define HARDWARE_ETHERNET_INTERFACES                                    \
-    dataport Buf(16384) EthDriver;                                      \
-    dataport Buf(16384) ocotp;                                          \
-    dataport Buf(16384) iomux;                                          \
-    dataport Buf(16384) ccm;                                            \
-    dataport Buf(4096) analog;                                          \
-    dataport Buf(16384) gpio3;                                          \
-    dataport Buf(16384) gpio6;                                          \
-    consumes IRQ irq;        
+#define HARDWARE_ETHERNET_INTERFACES                                                \
+    consumes Dummy EthDriver;                                                       \
+    consumes Dummy ocotp;                                                           \
+    consumes Dummy iomux;                                                           \
+    consumes Dummy ccm;                                                             \
+    consumes Dummy analog;                                                          \
+    consumes Dummy gpio3;                                                           \
+    consumes Dummy gpio6;                                                           \
+    emits Dummy dummy_source;
 
-#define HARDWARE_ETHERNET_COMPOSITION                                   \
-    component HWEthDriverIMX6 hwethdriver;                              \
-    connection seL4HardwareMMIO ethdrivermmio(from EthDriver,           \
-                                              to hwethdriver.mmio);     \
-    connection seL4HardwareMMIO ocotpmmio(from ocotp,                   \
-                                          to hwethdriver.ocotp);        \
-    connection seL4HardwareMMIO iomuxmmio(from iomux,                   \
-                                          to hwethdriver.iomux);        \
-    connection seL4HardwareMMIO ccmmmio(from ccm,                       \
-                                        to hwethdriver.ccm);            \
-    connection seL4HardwareMMIO analogmmio(from analog,                 \
-                                           to hwethdriver.analog);      \
-    connection seL4HardwareMMIO gpio3mmio(from gpio3,                   \
-                                          to hwethdriver.gpio3);        \
-    connection seL4HardwareMMIO gpio6mmio(from gpio6,                   \
-                                          to hwethdriver.gpio6);        \
-    connection seL4HardwareInterrupt hwethirq(from hwethdriver.irq,     \
-                                              to irq);                  
+#define HARDWARE_ETHERNET_COMPOSITION                                               \
+    connection seL4DTBHardware ethernet_conn(from dummy_source, to EthDriver);      \
+    connection seL4DTBHardware ocotp_conn(from dummy_source, to ocotp);             \
+    connection seL4DTBHardware iomux_conn(from dummy_source, to iomux);             \
+    connection seL4DTBHardware ccm_conn(from dummy_source, to ccm);                 \
+    connection seL4DTBHardware analog_conn(from dummy_source, to analog);           \
+    connection seL4DTBHardware gpio3_conn(from dummy_source, to gpio3);             \
+    connection seL4DTBHardware gpio6_conn(from dummy_source, to gpio6);
 
-#define HARDWARE_ETHERNET_CONFIG                                        \
-    hwethdriver.mmio_paddr = 0x02188000;                                \
-    hwethdriver.mmio_size = 0x4000;                                     \
-    hwethdriver.ocotp_paddr = 0x021bc000;                               \
-    hwethdriver.ocotp_size = 0x4000;                                    \
-    hwethdriver.iomux_paddr = 0x020e0000;                               \
-    hwethdriver.iomux_size = 0x4000;                                    \
-    hwethdriver.ccm_paddr = 0x020c4000;                                 \
-    hwethdriver.ccm_size = 0x4000;                                      \
-    hwethdriver.analog_paddr = 0x020c8000;                              \
-    hwethdriver.analog_size = 0x1000;                                   \
-    hwethdriver.gpio3_paddr = 0x020a4000;                               \
-    hwethdriver.gpio3_size = 0x4000;                                    \
-    hwethdriver.gpio6_paddr = 0x020b0000;                               \
-    hwethdriver.gpio6_size = 0x4000;                                    \
-    hwethdriver.irq_irq_number = 150;
+#define HARDWARE_ETHERNET_CONFIG                                                    \
+    EthDriver.dtb = dtb({ "path" : "/soc/aips-bus@2100000/ethernet@2188000" });     \
+    EthDriver.generate_interrupts = 1;                                              \
+    ocotp.dtb = dtb({ "path" : "/soc/aips-bus@2100000/ocotp@21bc000" });            \
+    iomux.dtb = dtb({ "path" : "/soc/aips-bus@2000000/iomuxc@20e0000" });           \
+    ccm.dtb = dtb({ "path" : "/soc/aips-bus@2000000/ccm@20c4000" });                \
+    analog.dtb = dtb({ "path" : "/soc/aips-bus@2000000/anatop@20c8000" });          \
+    gpio3.dtb = dtb({ "path" : "/soc/aips-bus@2000000/gpio@20a4000" });             \
+    gpio6.dtb = dtb({ "path" : "/soc/aips-bus@2000000/gpio@20b0000" });
 

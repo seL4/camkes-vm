@@ -11,31 +11,21 @@
  */
 #pragma once
 
-#define HARDWARE_ETHERNET_COMPONENT                                     \
-    component HWEthDriverZYNQ7000 {                                     \
-        hardware;                                                       \
-        emits IRQ irq;                                                  \
-        dataport Buf(4096) mmio;                                        \
-        dataport Buf(4096) slcr;                                        \
-    }
+#define HARDWARE_ETHERNET_COMPONENT
 
 #define HARDWARE_ETHERNET_INTERFACES                                    \
-    dataport Buf(4096) EthDriver;                                       \
-    dataport Buf(4096) slcr;                                            \
-    consumes IRQ irq;
+    consumes Dummy EthDriver;                                           \
+    consumes Dummy slcr;                                                \
+    emits Dummy dummy_source;
 
 #define HARDWARE_ETHERNET_COMPOSITION                                   \
-    component HWEthDriverZYNQ7000 hwethdriver;                          \
-    connection seL4HardwareMMIO ethdrivermmio(from EthDriver,           \
-                                              to hwethdriver.mmio);     \
-    connection seL4HardwareMMIO slcrmmio(from slcr,                     \
-                                         to hwethdriver.slcr);          \
-    connection seL4HardwareInterrupt hwethirq(from hwethdriver.irq,     \
-                                              to irq);                  
+    connection seL4DTBHardware ethdriver_conn(from dummy_source,        \
+                                             to EthDriver);             \
+    connection seL4DTBHardware slcr_conn(from dummy_source,             \
+                                         to slcr);
 
 #define HARDWARE_ETHERNET_CONFIG                                        \
-    hwethdriver.mmio_paddr = 0xe000b000;                                \
-    hwethdriver.mmio_size = 0x1000;                                     \
-    hwethdriver.slcr_paddr = 0xf8000000;                                \
-    hwethdriver.slcr_size = 0x1000;                                     \
-    hwethdriver.irq_irq_number = 54;                                    
+    EthDriver.dtb = dtb({ "path" : "/amba/ethernet@e000b000" });        \
+    EthDriver.generate_interrupts = 1;                                  \
+    slcr.dtb = dtb({ "path" : "/amba/slcr@f8000000" });
+

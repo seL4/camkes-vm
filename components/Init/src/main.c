@@ -537,7 +537,7 @@ void *main_continued(void *arg) {
 
     ZF_LOGI("Init guest");
     /* Early init of guest. We populate everything later */
-    error = vmm_init_guest(&vmm, CONFIG_CAMKES_DEFAULT_PRIORITY);
+    error = vmm_init_guest(&vmm, 0);
     ZF_LOGF_IF(error, "Guest init failed");
 
     /* Initialize the init device badges and notification functions */

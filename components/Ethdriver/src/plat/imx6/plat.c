@@ -43,7 +43,13 @@ int ethif_init(struct eth_driver *eth_driver, ps_io_ops_t *io_ops) {
         }
     }
 
-    return ethif_imx6_init(eth_driver, *io_ops, (void *) &eth_config);
+    int error = ethif_imx6_init(eth_driver, *io_ops, (void *) &eth_config);
+    if (error) {
+        return error;
+    }
+
+    ps_irq_t irq = { .type = PS_INTERRUPT, .irq = { .number = IMX6_INTERRUPT_ENET }};
+    return EthDriver_irq_acknowledge(&irq);
 }
 
 void EthDriver_irq_handle(ps_irq_t *irq) {

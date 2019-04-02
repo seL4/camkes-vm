@@ -49,7 +49,13 @@ int ethif_init(struct eth_driver *eth_driver, ps_io_ops_t *io_ops) {
         }
     }
 
-    return ethif_zynq7000_init(eth_driver, *io_ops, (void *) &eth_config);
+    int error = ethif_zynq7000_init(eth_driver, *io_ops, (void *) &eth_config);
+    if (error) {
+        return error;
+    }
+
+    ps_irq_t irq = { .type = PS_INTERRUPT, .irq = { .number = ZYNQ7000_INTERRUPT_ETH0 }};
+    return EthDriver_irq_acknowledge(&irq);
 }
 
 void EthDriver_irq_handle(ps_irq_t *irq) {

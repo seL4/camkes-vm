@@ -467,6 +467,6 @@ void post_init(void) {
     ZF_LOGF_IF(error, "Failed to initialise the ethernet device");
     
     done_init = 1;
-    error = irq_acknowledge();
+
     error = ethdriver_unlock();
 }

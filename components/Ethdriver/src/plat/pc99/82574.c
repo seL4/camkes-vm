@@ -37,5 +37,10 @@ int ethif_init(struct eth_driver *eth_driver, ps_io_ops_t *io_ops) {
         .bar0 = (void*)EthDriver
     };
 
-    return ethif_e82574_init(eth_driver, *io_ops, &eth_config);
+    int error = ethif_e82574_init(eth_driver, *io_ops, &eth_config);
+    if (error) {
+        return error;
+    }
+
+    return irq_acknowledge();
 }

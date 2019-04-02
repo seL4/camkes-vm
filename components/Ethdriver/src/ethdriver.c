@@ -27,6 +27,7 @@
 #include <ethdrivers/intel.h>
 #include <sel4utils/sel4_zf_logif.h>
 
+#include "ethdriver.h"
 #include "plat.h"
 
 #define RX_BUFS 256
@@ -390,12 +391,31 @@ void client_mac(uint8_t *b1, uint8_t *b2, uint8_t *b3, uint8_t *b4, uint8_t *b5,
     error = ethdriver_unlock();
 }
 
-void irq_handle() {
-    int UNUSED error;
+void eth_irq_handle(irq_ack_fn irq_acknowledge, ps_irq_t *irq) {
+    int error;
+
     error = ethdriver_lock();
-    eth_driver.i_fn.raw_handleIRQ(&eth_driver, 0);
-    error = irq_acknowledge();
+    ZF_LOGF_IF(error, "Failed to obtain lock for Ethdriver");
+
+    if (irq && irq->type == PS_INTERRUPT) {
+        /* 
+         * Sabre, ZYNQ doesn't care about the number being passed in, 
+         * however Beaglebone does
+         */
+        eth_driver.i_fn.raw_handleIRQ(&eth_driver, irq->irq.number);
+    } else {
+        /* 
+         * Other platforms which use different interrupt types 
+         * do not care about the interrupt number at the moment
+         */
+        eth_driver.i_fn.raw_handleIRQ(&eth_driver, 0);
+    }
+
+    error = irq_acknowledge(irq);
+    ZF_LOGF_IF(error, "Failed to acknowledge IRQ");
+
     error = ethdriver_unlock();
+    ZF_LOGF_IF(error, "Failed to release lock for Ethdriver");
 }
 
 void post_init(void) {

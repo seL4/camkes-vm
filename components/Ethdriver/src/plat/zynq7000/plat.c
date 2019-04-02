@@ -17,10 +17,13 @@
 #include <ethdrivers/zynq7000.h>
 #include <platsupport/io.h>
 #include <platsupport/clock.h>
+#include <platsupport/irq.h>
 #include <vka/vka.h>
 #include <simple/simple.h>
 #include <allocman/vka.h>
 #include <sel4utils/vspace.h>
+
+extern void *EthDriver_0;
 
 int ethif_preinit(vka_t *vka, simple_t *camkes_simple, vspace_t *vspace,
                   ps_io_ops_t *io_ops) {
@@ -36,7 +39,7 @@ int ethif_preinit(vka_t *vka, simple_t *camkes_simple, vspace_t *vspace,
 
 int ethif_init(struct eth_driver *eth_driver, ps_io_ops_t *io_ops) {
     struct arm_eth_plat_config eth_config = (struct arm_eth_plat_config) {
-        .buffer_addr = (void *) EthDriver,
+        .buffer_addr = (void *) EthDriver_0,
         .prom_mode = (uint8_t) promiscuous_mode
     };
 
@@ -47,4 +50,8 @@ int ethif_init(struct eth_driver *eth_driver, ps_io_ops_t *io_ops) {
     }
 
     return ethif_zynq7000_init(eth_driver, *io_ops, (void *) &eth_config);
+}
+
+void EthDriver_irq_handle(ps_irq_t *irq) {
+    eth_irq_handle(EthDriver_irq_acknowledge, irq);
 }

@@ -26,18 +26,20 @@
 extern void *EthDriver_0;
 
 int ethif_preinit(vka_t *vka, simple_t *camkes_simple, vspace_t *vspace,
-                  ps_io_ops_t *io_ops) {
+                  ps_io_ops_t *io_ops)
+{
     int ret = camkes_io_ops(io_ops);
     if (ret) {
         return ret;
     }
-    // This may reinitialise the clocks, timeserver might not like this, 
+    // This may reinitialise the clocks, timeserver might not like this,
     // but zynq7000/uboot/zynq_gem.c requires access to the SLCR registers
     // to configure some clocks related to the Ethernet device.
     return clock_sys_init(io_ops, &io_ops->clock_sys);
 }
 
-int ethif_init(struct eth_driver *eth_driver, ps_io_ops_t *io_ops) {
+int ethif_init(struct eth_driver *eth_driver, ps_io_ops_t *io_ops)
+{
     struct arm_eth_plat_config eth_config = (struct arm_eth_plat_config) {
         .buffer_addr = (void *) EthDriver_0,
         .prom_mode = (uint8_t) promiscuous_mode
@@ -58,6 +60,7 @@ int ethif_init(struct eth_driver *eth_driver, ps_io_ops_t *io_ops) {
     return EthDriver_irq_acknowledge(&irq);
 }
 
-void EthDriver_irq_handle(ps_irq_t *irq) {
+void EthDriver_irq_handle(ps_irq_t *irq)
+{
     eth_irq_handle(EthDriver_irq_acknowledge, irq);
 }

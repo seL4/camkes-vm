@@ -21,36 +21,36 @@ CAmkESAddCPPInclude("${CMAKE_CURRENT_LIST_DIR}/include/plat/${KernelPlatform}/")
 set(ETHDRIVER_LIBS sel4utils sel4vka sel4allocman sel4vspace sel4simple sel4platsupport ethdrivers)
 
 DeclareCAmkESComponent(
-    Ethdriver82574 
-    SOURCES 
-        src/ethdriver.c 
-        src/plat/${KernelPlatform}/common.c 
-        src/plat/${KernelPlatform}/82574.c 
-    INCLUDES 
-        include 
-    LIBS 
-        "${ETHDRIVER_LIBS}"
+    Ethdriver82574
+    SOURCES
+    src/ethdriver.c
+    src/plat/${KernelPlatform}/common.c
+    src/plat/${KernelPlatform}/82574.c
+    INCLUDES
+    include
+    LIBS
+    "${ETHDRIVER_LIBS}"
 )
 
 DeclareCAmkESComponent(
-    Ethdriver82580 
-    SOURCES 
-        src/ethdriver.c 
-        src/plat/${KernelPlatform}/common.c 
-        src/plat/${KernelPlatform}/82580.c
-    INCLUDES 
-        include 
-    LIBS 
-        "${ETHDRIVER_LIBS}"
+    Ethdriver82580
+    SOURCES
+    src/ethdriver.c
+    src/plat/${KernelPlatform}/common.c
+    src/plat/${KernelPlatform}/82580.c
+    INCLUDES
+    include
+    LIBS
+    "${ETHDRIVER_LIBS}"
 )
 
 DeclareCAmkESComponent(
     EthdriverARMPlat
     SOURCES
-        src/ethdriver.c
-        src/plat/${KernelPlatform}/plat.c
+    src/ethdriver.c
+    src/plat/${KernelPlatform}/plat.c
     INCLUDES
-        include
+    include
     LIBS
-        "${ETHDRIVER_LIBS}"
+    "${ETHDRIVER_LIBS}"
 )

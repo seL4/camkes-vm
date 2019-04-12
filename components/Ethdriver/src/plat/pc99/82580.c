@@ -22,7 +22,8 @@
 int pc99_eth_setup(vka_t *vka, simple_t *camkes_simple, vspace_t *vspace, ps_io_ops_t *io_ops);
 
 int ethif_preinit(vka_t *vka, simple_t *camkes_simple, vspace_t *vspace,
-                  ps_io_ops_t *io_ops) {
+                  ps_io_ops_t *io_ops)
+{
     int error = pc99_eth_setup(vka, camkes_simple, vspace, io_ops);
     if (error) {
         return error;
@@ -31,10 +32,11 @@ int ethif_preinit(vka_t *vka, simple_t *camkes_simple, vspace_t *vspace,
     return 0;
 }
 
-int ethif_init(struct eth_driver *eth_driver, ps_io_ops_t *io_ops) {
+int ethif_init(struct eth_driver *eth_driver, ps_io_ops_t *io_ops)
+{
     ethif_intel_config_t eth_config = (ethif_intel_config_t) {
         /* Ethdriver component dataport */
-        .bar0 = (void*)EthDriver
+        .bar0 = (void *)EthDriver
     };
 
     int error = ethif_e82580_init(eth_driver, *io_ops, &eth_config);

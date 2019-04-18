@@ -14,8 +14,13 @@ cmake_minimum_required(VERSION 3.8.2)
 
 set(configure_string "")
 
-config_option(CAmkESVMGuestDMAIommu CAMKES_VM_GUEST_DMA_IOMMU "Enable DMA through the IOMMU"
-    DEFAULT ON)
+config_option(
+    CAmkESVMGuestDMAIommu
+    CAMKES_VM_GUEST_DMA_IOMMU
+    "Enable DMA through the IOMMU"
+    DEFAULT
+    ON
+)
 
 # Create VMM configuration library
 add_config_library(camkes_vmm "${configure_string}")

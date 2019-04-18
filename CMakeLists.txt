@@ -27,7 +27,6 @@ CAmkESAddTemplatesPath(templates)
 
 # Add VM Components and Libraries
 add_subdirectory(components/Echo)
-add_subdirectory(components/Ethdriver)
 add_subdirectory(components/Firewall)
 add_subdirectory(components/HelloWorld)
 add_subdirectory(components/StringReverse)

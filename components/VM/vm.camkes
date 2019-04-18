@@ -108,11 +108,6 @@ connector seL4VMPCIDevices {
     to hardware Procedure;
 }
 
-connector seL4Ethdriver {
-    from Procedures template "seL4Ethdriver-from.template.c" with 0 threads;
-    to Procedure template "seL4Ethdriver-to.template.c";
-}
-
 connector seL4MultiSharedData {
     from Dataport template "seL4MultiSharedData-from.template.c";
     to Dataport template "seL4MultiSharedData-to.template.c";

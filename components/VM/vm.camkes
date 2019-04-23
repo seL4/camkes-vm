@@ -20,7 +20,7 @@ import <InterruptGenerator.idl4>;
 import <PCIConfig.idl4>;
 import <Timer.idl4>;
 import <RTC.idl4>;
-import <Ethdriver.camkes>;
+import <Ethdriver.idl4>;
 import <VchanInterface.idl4>;
 import <ExtraRAM.idl4>;
 import <ExcludeGuestPAddr.idl4>;

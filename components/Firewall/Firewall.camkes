@@ -10,7 +10,7 @@
  * @TAG(DATA61_GPL)
  */
 
-import <Ethdriver.camkes>;
+import <Ethdriver.idl4>;
 
 component Firewall {
     uses Ethdriver ethdriver;

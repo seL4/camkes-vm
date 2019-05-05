@@ -15,7 +15,8 @@
 #include <sel4/sel4.h>
 #include <camkes_consumes_event.h>
 #include <camkes_mutex.h>
-#include <vmm/vmm.h>
+#include <sel4vm/guest_vm.h>
+#include <sel4vm/vmm.h>
 #include <vspace/vspace.h>
 
 int cross_vm_consumes_events_init_common(vmm_t *vmm, vspace_t *vspace,

@@ -19,13 +19,13 @@
 
 #include <camkes.h>
 
-#include "vmm/vmm.h"
-#include "vmm/vchan_copy.h"
-#include "vmm/vchan_sharemem.h"
+#include "sel4vm/vmm.h"
+#include "sel4vm/vchan_copy.h"
+#include "sel4vm/vchan_sharemem.h"
 #include "vm.h"
-#include "vmm/debug.h"
+#include "sel4vm/debug.h"
 
-#include "vmm/vmm_manager.h"
+#include "sel4vm/vmm_manager.h"
 
 /*
     State needed to represent a vchan instance in the vmm

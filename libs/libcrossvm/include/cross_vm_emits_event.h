@@ -13,6 +13,7 @@
 #pragma once
 
 #include <camkes_emits_event.h>
-#include <vmm/vmm.h>
+#include <sel4vm/guest_vm.h>
+#include <sel4vm/vmm.h>
 
 int cross_vm_emits_events_init_common(vmm_t *vmm, camkes_emit_fn *events, int n);

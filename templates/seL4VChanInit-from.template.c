@@ -10,8 +10,9 @@
  * @TAG(DATA61_BSD)
  */
 
-#include <vmm/vmm.h>
-#include <vmm/vchan_component.h>
+#include <sel4vm/guest_vm.h>
+#include <sel4vm/vmm.h>
+#include <sel4vm/vchan_component.h>
 
 /*- set domain = configuration[me.instance.name].get("%s_domain" % me.interface.name) -*/
 /*- set shared_mem = configuration[me.instance.name].get("%s_dataport" % me.interface.name).strip('"') -*/

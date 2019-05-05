@@ -12,7 +12,7 @@
 
 procedure VchanInterface {
 
-    include <vmm/vchan_copy.h>;
+    include <sel4vm/vchan_copy.h>;
     int new_connection(in vchan_connect_t con);
     int rem_connection(in vchan_connect_t con);
     intptr_t get_buf(in vchan_ctrl_t args, in int cmd);

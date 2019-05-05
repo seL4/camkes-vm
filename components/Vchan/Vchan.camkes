@@ -16,7 +16,7 @@ import <VchanInterface.idl4>;
 import <VchanInitInterface.idl4>;
 
 component Vchan {
-    include "vmm/vchan_sharemem.h";
+    include "sel4vm/vchan_sharemem.h";
     dataport vchan_headers_t share_mem;
 
     provides VchanInterface vchan_com;

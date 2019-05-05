@@ -30,15 +30,18 @@
 
 #include <camkes.h>
 
-#include "vmm/vmm.h"
-#include "vmm/driver/pci_helper.h"
-#include "vmm/platform/ioports.h"
-#include "vmm/platform/boot.h"
-#include "vmm/platform/boot_guest.h"
-#include "vmm/platform/guest_vspace.h"
-#include "vmm/vchan_component.h"
+#include <sel4vm/guest_vm.h>
+#include <sel4vm/boot.h>
 
-#include "vmm/vmm_manager.h"
+#include "sel4vm/vmm.h"
+#include "sel4vm/driver/pci_helper.h"
+#include "sel4vm/platform/ioports.h"
+#include "sel4vm/platform/boot_guest.h"
+#include "sel4vm/platform/guest_vspace.h"
+#include "sel4vm/vchan_component.h"
+#include <sel4vm/vmcall.h>
+
+#include "sel4vm/vmm_manager.h"
 #include "vm.h"
 #include "i8259.h"
 #include "timers.h"

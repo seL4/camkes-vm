@@ -13,6 +13,7 @@
 #pragma once
 
 #include <dataport_caps.h>
-#include <vmm/vmm.h>
+#include <sel4vm/guest_vm.h>
+#include <sel4vm/vmm.h>
 
 int cross_vm_dataports_init_common(vmm_t *vmm, dataport_caps_handle_t **d, int n);

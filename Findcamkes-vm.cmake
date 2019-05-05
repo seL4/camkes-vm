@@ -20,8 +20,10 @@ macro(camkes_x86_vm_setup_x86_vm_environment)
     find_package(camkes-tool REQUIRED)
     find_package(global-components REQUIRED)
     find_package(camkes-vm REQUIRED)
+    find_package(sel4_projects_libs REQUIRED)
     camkes_tool_setup_camkes_build_environment()
     global_components_import_project()
+    sel4_projects_libs_import_libraries()
     # Add project
     add_subdirectory(${CAMKES_VM_DIR} camkes-vm)
 

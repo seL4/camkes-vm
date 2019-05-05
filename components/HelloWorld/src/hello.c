@@ -27,11 +27,11 @@
 #include <camkes.h>
 
 #include "vm.h"
-#include "vmm/vmm_manager.h"
-#include "vmm/vchan_component.h"
-#include "vmm/vchan_copy.h"
-#include "vmm/vchan_sharemem.h"
-#include "vmm/debug.h"
+#include "sel4vm/vmm_manager.h"
+#include "sel4vm/vchan_component.h"
+#include "sel4vm/vchan_copy.h"
+#include "sel4vm/vchan_sharemem.h"
+#include "sel4vm/debug.h"
 
 #include <camkes/dataport.h>
 

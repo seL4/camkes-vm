@@ -12,7 +12,8 @@
 
 #include "camkes_emits_event.h"
 #include "cross_vm_shared/cross_vm_shared_guest_to_vmm_event.h"
-#include <vmm/vmm.h>
+#include <sel4vm/guest_vm.h>
+#include <sel4vm/vmm.h>
 #include <utils/zf_log.h>
 
 static camkes_emit_fn *events;

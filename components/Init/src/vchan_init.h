@@ -13,7 +13,8 @@
 #ifndef VM_INIT_VCHAN_INIT_H
 #define VM_INIT_VCHAN_INIT_H
 
-#include <vmm/vmm.h>
+#include <sel4vm/guest_vm.h>
+#include <sel4vm/vmm.h>
 
 void vchan_interrupt(vmm_t *vmm);
 

@@ -29,11 +29,12 @@
 #include <ethdrivers/virtio/virtio_net.h>
 #include <ethdrivers/virtio/virtio_ring.h>
 
-#include "vmm/vmm.h"
-#include "vmm/driver/pci_helper.h"
-#include "vmm/driver/virtio_emul.h"
-#include "vmm/platform/ioports.h"
-#include "vmm/platform/guest_vspace.h"
+#include <sel4vm/guest_vm.h>
+#include "sel4vm/vmm.h"
+#include "sel4vm/driver/pci_helper.h"
+#include "sel4vm/driver/virtio_emul.h"
+#include "sel4vm/platform/ioports.h"
+#include "sel4vm/platform/guest_vspace.h"
 
 #include "vm.h"
 #include "i8259.h"

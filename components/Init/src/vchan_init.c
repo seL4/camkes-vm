@@ -19,13 +19,14 @@
 #include <simple/simple.h>
 #include <camkes/dataport.h>
 
-#include "vmm/debug.h"
-#include "vmm/vmm.h"
-#include "vmm/platform/guest_vspace.h"
-#include "vmm/vmm_manager.h"
-#include "vmm/vchan_copy.h"
-#include "vmm/vchan_component.h"
-#include "vmm/vmcall.h"
+#include <sel4vm/guest_vm.h>
+#include "sel4vm/debug.h"
+#include "sel4vm/vmm.h"
+#include "sel4vm/platform/guest_vspace.h"
+#include "sel4vm/vmm_manager.h"
+#include "sel4vm/vchan_copy.h"
+#include "sel4vm/vchan_component.h"
+#include "sel4vm/vmcall.h"
 #include "vm.h"
 
 #include "i8259.h"

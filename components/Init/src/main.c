@@ -556,18 +556,11 @@ void *main_continued(void *arg)
     };
 
     ZF_LOGI("VMM init");
-    error = vmm_init(&vmm, allocman, camkes_simple, vka, vspace, callbacks);
+    error = vm_init(&vm, &vka, &camkes_simple, allocman, vspace, callbacks,
+            0, NULL, "X86 VM", NULL);
     ZF_LOGF_IF(error, "VMM init failed");
-
-    /* First we initialize any host information */
-    ZF_LOGI("VMM init host");
-    error = vmm_init_host(&vmm);
-    ZF_LOGF_IF(error, "VMM init host failed");
-
-    ZF_LOGI("Init guest");
-    /* Early init of guest. We populate everything later */
-    error = vmm_init_guest(&vmm, 0);
-    ZF_LOGF_IF(error, "Guest init failed");
+    vm_vcpu_t *vcpu_0;
+    error = vm_create_vcpu(&vm, NULL, &vcpu_0, 0);
 
     /* Initialize the init device badges and notification functions */
     ZF_LOGI("Init device badges and notification functions");

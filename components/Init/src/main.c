@@ -73,12 +73,12 @@ static simple_t camkes_simple;
 static vka_t vka;
 static vspace_t vspace;
 static sel4utils_alloc_data_t vspace_data;
-static vmm_t vmm;
+static vm_t vm;
 
-int cross_vm_dataports_init(vmm_t *vmm) WEAK;
-int cross_vm_consumes_events_init(vmm_t *vmm, vspace_t *vspace, seL4_Word irq_badge) WEAK;
+int cross_vm_dataports_init(vm_t *vm) WEAK;
+int cross_vm_consumes_events_init(vm_t *vm, vspace_t *vspace, seL4_Word irq_badge) WEAK;
 int cross_vm_consumes_event_irq_num(void) WEAK;
-int cross_vm_emits_events_init(vmm_t *vmm) WEAK;
+int cross_vm_emits_events_init(vm_t *vm) WEAK;
 
 static seL4_Error simple_ioport_wrapper(void *data, uint16_t start_port, uint16_t end_port,
                                         seL4_Word root, seL4_Word dest, seL4_Word depth)
@@ -226,7 +226,7 @@ typedef struct device_notify {
     uint32_t badge;
     /* the function (as described by the user in the configuration) to call
      * when the message has been received. */
-    void (*func)(vmm_t *vmm);
+    void (*func)(vm_t *vm);
 } device_notify_t;
 
 /* Wrappers for passing PCI config space calls to camkes */
@@ -461,7 +461,7 @@ static int handle_async_event(seL4_Word badge)
             uint32_t device_badge = device_notify_list[i].badge;
             if ((badge & device_badge) == device_badge) {
                 ZF_LOGF_IF(device_notify_list[i].func == NULL, "Undefined notify func");
-                device_notify_list[i].func(&vmm);
+                device_notify_list[i].func(&vm);
             }
         }
     }
@@ -502,8 +502,7 @@ static void init_irqs()
     }
 }
 
-int fake_vchan_handler(vmm_vcpu_t *vcpu)
-{
+int fake_vchan_handler(vm_vcpu_t *vcpu) {
     return 0;
 }
 
@@ -524,7 +523,7 @@ void init_con_irq_init(void)
     for (i = 0; i < irqs; i++) {
         init_cons_has_interrupt(i, &badge, &fun);
         device_notify_list[i].badge = badge;
-        device_notify_list[i].func = (void (*)(vmm_t *))fun;
+        device_notify_list[i].func = (void (*)(vm_t*))fun;
     }
 }
 
@@ -549,7 +548,7 @@ void *main_continued(void *arg)
     install_fileserver(FILE_SERVER_INTERFACE(fs));
 
     /* Construct a new VM */
-    platform_callbacks_t callbacks = (platform_callbacks_t) {
+    vm_plat_callbacks_t callbacks = (vm_plat_callbacks_t) {
         .get_interrupt = i8259_get_interrupt,
         .has_interrupt = i8259_has_interrupt,
         .do_async = handle_async_event,
@@ -601,20 +600,20 @@ void *main_continued(void *arg)
         uint8_t fun;
         seL4_CPtr iospace_cap;
         pci_devices_get_device(i, &bus, &dev, &fun, &iospace_cap);
-        error = vmm_guest_vspace_add_iospace(&vmm.host_vspace, &vmm.guest_mem.vspace, iospace_cap);
+        error = vmm_guest_vspace_add_iospace(&vm.mem.vmm_vspace, &vm.mem.vm_vspace, iospace_cap);
         ZF_LOGF_IF(error, "failed to add iospace to vspace");
     }
 #endif
 
     /* Do we need to do any early reservations of guest address space? */
     for (i = 0; i < ARRAY_SIZE(guest_ram_regions); i++) {
-        error = vmm_alloc_guest_ram_at(&vmm, guest_ram_regions[i].base, guest_ram_regions[i].size);
-        ZF_LOGF_IF(error, "Failed to alloc guest ram at %p", (void *)guest_ram_regions[i].base);
+        error = vmm_alloc_guest_ram_at(&vm, guest_ram_regions[i].base, guest_ram_regions[i].size);
+        ZF_LOGF_IF(error, "Failed to alloc guest ram at %p", (void*)guest_ram_regions[i].base);
     }
 
     for (i = 0; i < ARRAY_SIZE(guest_fake_devices); i++) {
-        error = vmm_alloc_guest_device_at(&vmm, guest_fake_devices[i].base, guest_fake_devices[i].size);
-        ZF_LOGF_IF(error, "Failed to alloc guest device at %p", (void *)guest_fake_devices[i].base);
+        error = vmm_alloc_guest_device_at(&vm, guest_fake_devices[i].base, guest_fake_devices[i].size);
+        ZF_LOGF_IF(error, "Failed to alloc guest device at %p", (void*)guest_fake_devices[i].base);
     }
 
     /* Add in the device mappings specified by the guest. */
@@ -630,7 +629,7 @@ void *main_continued(void *arg)
         uintptr_t base;
         size_t bytes;
         exclude_paddr_get_region(i, &base, &bytes);
-        reservation_t res = vspace_reserve_range_at(&vmm.guest_mem.vspace, (void *)base, bytes, seL4_AllRights, 1);
+        reservation_t res = vspace_reserve_range_at(&vm.mem.vm_vspace, (void*)base, bytes, seL4_AllRights, 1);
         if (!res.res) {
             ZF_LOGF("Failed to reserve guest physical address range %p - %p\n", (void *)base, (void *)(base + bytes));
         }
@@ -648,7 +647,7 @@ void *main_continued(void *arg)
     size_t remaining = MiB_TO_BYTES(guest_ram_mb);
     while (remaining > 0) {
         size_t allocate = MIN(remaining, MiB_TO_BYTES(512));
-        error = vmm_alloc_guest_ram(&vmm, allocate, paddr_is_vaddr);
+        error = vmm_alloc_guest_ram(&vm, allocate, paddr_is_vaddr);
         ZF_LOGF_IF(error, "Failed to allocate %lu bytes of guest ram. Already allocated %lu.",
                    (long)allocate, (long)(MiB_TO_BYTES(guest_ram_mb) - remaining));
         remaining -= allocate;
@@ -687,7 +686,7 @@ void *main_continued(void *arg)
         }
         /* Allocate resources */
         vmm_pci_bar_t bars[6];
-        int num_bars = vmm_pci_helper_map_bars(&vmm, &device->cfg, bars);
+        int num_bars = vmm_pci_helper_map_bars(&vm, &device->cfg, bars);
         assert(num_bars >= 0);
         vmm_pci_entry_t entry = vmm_pci_create_passthrough((vmm_pci_address_t) {
             bus, dev, fun
@@ -697,27 +696,25 @@ void *main_continued(void *arg)
         }
         entry = vmm_pci_create_irq_emulation(entry, irq);
         entry = vmm_pci_no_msi_cap_emulation(entry);
-        error = vmm_pci_add_entry(&vmm.pci, entry, NULL);
+        error = vmm_pci_add_entry(&vm.arch.pci, entry, NULL);
         assert(!error);
     }
 
     /* Initialize any extra init devices */
     ZF_LOGI("Init extra devices");
     for (i = 0; i < init_cons_num_connections(); i++) {
-        void (*proc)(vmm_t *) = (void (*)(vmm_t *))init_cons_init_function(i);
-        proc(&vmm);
+        void (*proc)(vm_t*) = (void (*)(vm_t*))init_cons_init_function(i);
+        proc(&vm);
     }
 
     /* Add any IO ports */
     ZF_LOGI("Adding IO ports");
     for (i = 0; i < ARRAY_SIZE(ioport_handlers); i++) {
         if (ioport_handlers[i].port_in) {
-            error = vmm_io_port_add_handler(&vmm.io_port, ioport_handlers[i].start_port, ioport_handlers[i].end_port, NULL,
-                                            ioport_handlers[i].port_in, ioport_handlers[i].port_out, ioport_handlers[i].desc);
+            error = vmm_io_port_add_handler(&vm.arch.io_port, ioport_handlers[i].start_port, ioport_handlers[i].end_port, NULL, ioport_handlers[i].port_in, ioport_handlers[i].port_out, ioport_handlers[i].desc);
             assert(!error);
         } else {
-            error = vmm_io_port_add_passthrough(&vmm.io_port, ioport_handlers[i].start_port, ioport_handlers[i].end_port,
-                                                ioport_handlers[i].desc);
+            error = vmm_io_port_add_passthrough(&vm.arch.io_port, ioport_handlers[i].start_port, ioport_handlers[i].end_port, ioport_handlers[i].desc);
             assert(!error);
         }
     }
@@ -727,60 +724,58 @@ void *main_continued(void *arg)
         const char *desc;
         seL4_CPtr cap;
         desc = ioports_get_nonpci_ioport(i, &cap, &start, &end);
-        error = vmm_io_port_add_passthrough(&vmm.io_port, start, end, desc);
+        error = vmm_io_port_add_passthrough(&vm.arch.io_port, start, end, desc);
         assert(!error);
     }
     /* config start and end encomposes both addr and data ports */
-    error = vmm_io_port_add_handler(&vmm.io_port, X86_IO_PCI_CONFIG_START, X86_IO_PCI_CONFIG_END, &vmm.pci,
-                                    vmm_pci_io_port_in, vmm_pci_io_port_out, "PCI Configuration Space");
+    error = vmm_io_port_add_handler(&vm.arch.io_port, X86_IO_PCI_CONFIG_START, X86_IO_PCI_CONFIG_END, &vm.arch.pci, vmm_pci_io_port_in, vmm_pci_io_port_out, "PCI Configuration Space");
     assert(!error);
 
     /* Load in an elf file. Hard code alignment to 4M */
     /* TODO: use proper libc file handles with the CPIO file system */
     ZF_LOGI("Elf loading");
-    error = vmm_load_guest_elf(&vmm, kernel_image, BIT(PAGE_BITS_4M));
+    error = vmm_load_guest_elf(&vm, kernel_image, BIT(PAGE_BITS_4M));
     ZF_LOGF_IF(error, "Failed to load guest elf file");
 
     /* Relocate the elf */
     ZF_LOGI("Relocate elf");
-    vmm_plat_guest_elf_relocate(&vmm, kernel_relocs);
+    vmm_plat_guest_elf_relocate(&vm, kernel_relocs);
 
     /* Add a boot module */
     if (have_initrd) {
-        error = vmm_guest_load_boot_module(&vmm, initrd_image);
+        error = vmm_guest_load_boot_module(&vm, initrd_image);
         ZF_LOGF_IF(error, "Failed to load boot module");
     }
 
-    vmm_plat_init_guest_boot_structure(&vmm, kernel_cmdline);
+    vmm_plat_init_guest_boot_structure(&vm, kernel_cmdline);
 
-    error = reg_new_handler(&vmm, &vchan_handler, VMM_MANAGER_TOKEN);
+    error = reg_new_handler(&vm, &vchan_handler, VMM_MANAGER_TOKEN);
     ZF_LOGF_IF(error, "Failed register vchan_handler");
 
     if (cross_vm_dataports_init) {
-        error = cross_vm_dataports_init(&vmm);
+        error = cross_vm_dataports_init(&vm);
         ZF_LOGF_IF(error, "cross vm dataports init failed");
     }
 
     if (cross_vm_emits_events_init) {
-        error = cross_vm_emits_events_init(&vmm);
+        error = cross_vm_emits_events_init(&vm);
         assert(!error);
     }
 
     if (cross_vm_consumes_events_init && cross_vm_consumes_event_irq_num) {
-        error = cross_vm_consumes_events_init(&vmm, &vspace,
-                                              irq_badges[cross_vm_consumes_event_irq_num()]);
+        error = cross_vm_consumes_events_init(&vm, &vspace,
+            irq_badges[cross_vm_consumes_event_irq_num()]);
 
         assert(!error);
     }
 
     /* Final VMM setup now that everything is defined and loaded */
     ZF_LOGI("Finalising VMM");
-    error = vmm_finalize(&vmm);
+    error = vmm_finalize(&vm);
     ZF_LOGF_IF(error, "Failed to finalise VMM");
 
-//    vmm_exit_init();
     /* Now go run the event loop */
-    vmm_run(&vmm);
+    vmm_run(&vm);
 
     return NULL;
 }

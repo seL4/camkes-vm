@@ -29,7 +29,7 @@ void /*? prefix ?*/_ping(void);
 
 void vchan_init_camkes(camkes_vchan_con_t vchan);
 
-void /*? me.interface.name ?*/_init(vmm_t *vmm) {
+void /*? me.interface.name ?*/_init(vm_t *vm) {
     camkes_vchan_con_t vchan_camkes_component = {
         .connect = /*? prefix ?*/_new_connection,
         .disconnect = /*? prefix ?*/_rem_connection,

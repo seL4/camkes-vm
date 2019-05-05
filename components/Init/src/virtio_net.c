@@ -89,7 +89,7 @@ static void emul_low_level_init(struct eth_driver *driver, uint8_t *mac, int *mt
 }
 
 
-void virtio_net_notify(vmm_t *vmm) {
+void virtio_net_notify(vm_t *vm) {
     int len;
     int status;
     status = ethdriver_rx(&len);
@@ -110,12 +110,12 @@ void virtio_net_notify(vmm_t *vmm) {
     }
 }
 
-void make_virtio_net(vmm_t *vmm) {
+void make_virtio_net(vm_t *vm) {
     /* drain any existing packets */
     struct raw_iface_funcs backend = virtio_net_default_backend();
     backend.raw_tx = emul_raw_tx;
     backend.low_level_init = emul_low_level_init;
-    virtio_net = common_make_virtio_net(vmm, 0x9000, backend);
+    virtio_net = common_make_virtio_net(vm, 0x9000, backend);
     assert(virtio_net);
     int len;
     while (ethdriver_rx(&len) != -1);

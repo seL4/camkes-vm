@@ -16,6 +16,6 @@
 #include <sel4vm/guest_vm.h>
 #include <sel4vm/vmm.h>
 
-void vchan_interrupt(vmm_t *vmm);
+void vchan_interrupt(vm_t *vm);
 
 #endif

@@ -223,7 +223,7 @@ static void virtio_net_notify_vswitch_recv(vswitch_node_t *node)
     node->virtqueues.recv_queue->notify();
 }
 
-void virtio_net_notify_vswitch(vmm_t *vmm)
+void virtio_net_notify_vswitch(vm_t *vm)
 {
     for (int i = 0; i < VSWITCH_NUM_NODES; i++) {
         if (g_vswitch.nodes[i].virtqueues.send_queue && VQ_DRV_POLL(g_vswitch.nodes[i].virtqueues.send_queue)) {
@@ -268,13 +268,13 @@ static int make_vswitch_net(void)
     }
 }
 
-void make_virtio_net_vswitch(vmm_t *vmm)
+void make_virtio_net_vswitch(vm_t *vm)
 {
     struct raw_iface_funcs backend = virtio_net_default_backend();
     backend.raw_tx = emul_raw_tx;
     backend.low_level_init = emul_low_level_init;
 
     make_vswitch_net();
-    virtio_net = common_make_virtio_net(vmm, 0x9040, backend);
+    virtio_net = common_make_virtio_net(vm, 0x9040, backend);
     assert(virtio_net);
 }

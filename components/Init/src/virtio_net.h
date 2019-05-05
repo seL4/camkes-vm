@@ -13,8 +13,8 @@
 #ifndef VM_INIT_VIRTIO_NET_H
 #define VM_INIT_VIRTIO_NET_H
 
-void make_virtio_net(vmm_t *vmm);
-void virtio_net_notify(vmm_t *vmm);
+void make_virtio_net(vm_t *vm);
+void virtio_net_notify(vm_t *vm);
 
 typedef struct virtio_net {
     unsigned int iobase;
@@ -34,7 +34,7 @@ typedef struct virtio_net {
  *  virtio_net_default_backend for default methods.
  * @return pointer to an initialised virtio_net_t, NULL if error.
  */
-virtio_net_t *common_make_virtio_net(vmm_t *vmm, unsigned int iobase, struct raw_iface_funcs backend);
+virtio_net_t *common_make_virtio_net(vm_t *vm, unsigned int iobase, struct raw_iface_funcs backend);
 
 /**
  * @return a struct with a default virtio_net backend. It is the responsibility of the caller to

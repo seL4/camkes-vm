@@ -42,13 +42,13 @@ static int emit_event(int id) {
     return 0;
 }
 
-static int event_vmcall_handler(vmm_vcpu_t *vcpu) {
+static int event_vmcall_handler(vm_vcpu_t *vcpu) {
 
-    int cmd = vmm_read_user_context(&vcpu->guest_state, USER_CONTEXT_EBX);
+    int cmd = vmm_read_user_context(&vcpu->arch.guest_state, USER_CONTEXT_EBX);
 
     switch (cmd) {
     case EVENT_CMD_EMIT: {
-        int id = vmm_read_user_context(&vcpu->guest_state, USER_CONTEXT_ECX);
+        int id = vmm_read_user_context(&vcpu->arch.guest_state, USER_CONTEXT_ECX);
         return emit_event(id);
     }
     default: {
@@ -60,8 +60,8 @@ static int event_vmcall_handler(vmm_vcpu_t *vcpu) {
     return 0;
 }
 
-int cross_vm_emits_events_init_common(vmm_t *vmm,  camkes_emit_fn *e, int n) {
+int cross_vm_emits_events_init_common(vm_t *vm,  camkes_emit_fn *e, int n) {
     events = e;
     num_events = n;
-    return reg_new_handler(vmm, event_vmcall_handler, EVENT_VMCALL_GUEST_TO_VMM_HANDLER_TOKEN);
+    return reg_new_handler(vm, event_vmcall_handler, EVENT_VMCALL_GUEST_TO_VMM_HANDLER_TOKEN);
 }

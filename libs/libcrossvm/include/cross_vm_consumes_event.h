@@ -19,7 +19,7 @@
 #include <sel4vm/vmm.h>
 #include <vspace/vspace.h>
 
-int cross_vm_consumes_events_init_common(vmm_t *vmm, vspace_t *vspace,
+int cross_vm_consumes_events_init_common(vm_t *vm, vspace_t *vspace,
                                          camkes_mutex_t *mutex,
                                          camkes_consumes_event_t *events,
                                          int n, seL4_Word irq_badge);

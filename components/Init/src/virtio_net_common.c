@@ -156,14 +156,14 @@ static vmm_pci_entry_t vmm_virtio_net_pci_bar(unsigned int iobase) {
 
 }
 
-virtio_net_t *common_make_virtio_net(vmm_t *vmm, unsigned int iobase, struct raw_iface_funcs backend) {
+virtio_net_t *common_make_virtio_net(vm_t *vm, unsigned int iobase, struct raw_iface_funcs backend) {
     vmm_pci_entry_t entry = vmm_virtio_net_pci_bar(iobase);
-    vmm_pci_add_entry(&vmm->pci, entry, NULL);
+    vmm_pci_add_entry(&vm->arch.pci, entry, NULL);
     virtio_net_t *net = malloc(sizeof(*net));
     assert(net);
     memset(net, 0, sizeof(*net));
     net->iobase = iobase;
-    vmm_io_port_add_handler(&vmm->io_port, iobase, iobase + MASK(6), net, virtio_net_io_in, virtio_net_io_out, "VIRTIO PCI NET");
+    vmm_io_port_add_handler(&vm->arch.io_port, iobase, iobase + MASK(6), net, virtio_net_io_in, virtio_net_io_out, "VIRTIO PCI NET");
 
     ps_io_ops_t ioops;
 	ioops.dma_manager = (ps_dma_man_t) {
@@ -176,7 +176,7 @@ virtio_net_t *common_make_virtio_net(vmm_t *vmm, unsigned int iobase, struct raw
     };
 
     net->emul_driver_funcs = backend;
-    net->emul = ethif_virtio_emul_init(ioops, QUEUE_SIZE, &vmm->guest_mem.vspace, emul_driver_init, net);
+    net->emul = ethif_virtio_emul_init(ioops, QUEUE_SIZE, &vm->mem.vm_vspace, emul_driver_init, net);
     assert(net->emul);
     return net;
 }

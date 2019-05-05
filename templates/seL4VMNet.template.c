@@ -237,7 +237,7 @@ static void malloc_dma_unpin(void *cookie, void *addr, size_t size) {
 static void malloc_dma_cache_op(void *cookie, void *addr, size_t size, dma_cache_op_t op) {
 }
 
-void /*? interface.name ?*/_init(vmm_t *vmm) {
+void /*? interface.name ?*/_init(vm_t *vm) {
     vmm_pci_device_def_t *pci_config = malloc(sizeof(*pci_config));
     assert(pci_config);
     memset(pci_config, 0, sizeof(*pci_config));
@@ -261,7 +261,7 @@ void /*? interface.name ?*/_init(vmm_t *vmm) {
         .size_bits = 6
     }};
     entry = vmm_pci_create_bar_emulation(entry, 1, bars);
-    vmm_pci_add_entry(&vmm->pci, entry, NULL);
+    vmm_pci_add_entry(&vm->pci, entry, NULL);
     vmnet_t *net = malloc(sizeof(*net));
     assert(net);
     vmnet = net;
@@ -285,6 +285,6 @@ void /*? interface.name ?*/_init(vmm_t *vmm) {
         .dma_unpin_fn = malloc_dma_unpin,
         .dma_cache_op_fn = malloc_dma_cache_op
     };
-    net->emul = ethif_virtio_emul_init(ioops, QUEUE_SIZE, &vmm->guest_mem.vspace, emul_driver_init, net);
+    net->emul = ethif_virtio_emul_init(ioops, QUEUE_SIZE, &vm->mem.vm_vspace, emul_driver_init, net);
     assert(net->emul);
 }

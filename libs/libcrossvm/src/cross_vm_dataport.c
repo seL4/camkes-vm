@@ -19,7 +19,7 @@ static dataport_caps_handle_t **dataports;
 static unsigned int num_dataports;
 
 static int dataport_map_guest(dataport_caps_handle_t *dataport, void *guest_paddr, size_t size,
-                              guest_memory_t *guest_memory) {
+                              vm_mem_t *guest_memory) {
 
     size_t host_size = dataport_get_size(dataport);
     if (size != host_size) {
@@ -27,7 +27,7 @@ static int dataport_map_guest(dataport_caps_handle_t *dataport, void *guest_padd
         return -1;
     }
 
-    vspace_t *guest_vspace = &guest_memory->vspace;
+    vspace_t *guest_vspace = &guest_memory->vm_vspace;
     unsigned int num_frames = dataport_get_num_frame_caps(dataport);
     seL4_CPtr *frames = dataport_get_frame_caps(dataport);
 
@@ -50,10 +50,10 @@ static int dataport_map_guest(dataport_caps_handle_t *dataport, void *guest_padd
     return 0;
 }
 
-static int dataport_vmcall_handler(vmm_vcpu_t *vcpu) {
+static int dataport_vmcall_handler(vm_vcpu_t *vcpu) {
     int error;
-    int cmd = vmm_read_user_context(&vcpu->guest_state, USER_CONTEXT_EBX);
-    unsigned int dataport_id = vmm_read_user_context(&vcpu->guest_state, USER_CONTEXT_ECX);
+    int cmd = vmm_read_user_context(&vcpu->arch.guest_state, USER_CONTEXT_EBX);
+    unsigned int dataport_id = vmm_read_user_context(&vcpu->arch.guest_state, USER_CONTEXT_ECX);
 
     if (dataport_id == 0) {
         ZF_LOGE("Illegal dataport id 0");
@@ -69,9 +69,9 @@ static int dataport_vmcall_handler(vmm_vcpu_t *vcpu) {
 
     switch (cmd) {
     case DATAPORT_CMD_SHARE: {
-        void *guest_paddr = (void*)(uintptr_t)vmm_read_user_context(&vcpu->guest_state, USER_CONTEXT_EDX);
-        size_t size = (size_t)vmm_read_user_context(&vcpu->guest_state, USER_CONTEXT_ESI);
-        error = dataport_map_guest(dataport, guest_paddr, size, &vcpu->vmm->guest_mem);
+        void *guest_paddr = (void*)(uintptr_t)vmm_read_user_context(&vcpu->arch.guest_state, USER_CONTEXT_EDX);
+        size_t size = (size_t)vmm_read_user_context(&vcpu->arch.guest_state, USER_CONTEXT_ESI);
+        error = dataport_map_guest(dataport, guest_paddr, size, &vcpu->vm->mem);
         if (error) {
             ZF_LOGE("Failed to map dataport into guest");
             return error;
@@ -87,8 +87,8 @@ static int dataport_vmcall_handler(vmm_vcpu_t *vcpu) {
     return 0;
 }
 
-int cross_vm_dataports_init_common(vmm_t *vmm, dataport_caps_handle_t **d, int n) {
+int cross_vm_dataports_init_common(vm_t *vmm, dataport_caps_handle_t **d, int n) {
     dataports = d;
     num_dataports = n;
-    return reg_new_handler(vmm, &dataport_vmcall_handler, DATAPORT_VMCALL_HANDLER_TOKEN);
+    return reg_new_handler(vm, &dataport_vmcall_handler, DATAPORT_VMCALL_HANDLER_TOKEN);
 }

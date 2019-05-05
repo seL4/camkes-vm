@@ -24,9 +24,9 @@
 /*- set cons = lambda('x: [] if x is None else x')(cons) -*/
 
 /*- for con in cons -*/
-    void /*? con['init'].strip('"') ?*/(vmm_t *vmm);
+    void /*? con['init'].strip('"') ?*/(vm_t *vm);
     /*- if con['irq'] is not none -*/
-        void /*? con['irq'].strip('"') ?*/(vmm_t *vmm);
+        void /*? con['irq'].strip('"') ?*/(vm_t *vm);
     /*- endif -*/
 /*- endfor -*/
 

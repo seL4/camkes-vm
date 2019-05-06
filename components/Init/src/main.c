@@ -32,12 +32,12 @@
 
 #include <sel4vm/guest_vm.h>
 #include <sel4vm/boot.h>
+#include <sel4vm/guest_vspace.h>
 
 #include "sel4vm/vmm.h"
 #include "sel4vm/driver/pci_helper.h"
 #include "sel4vm/platform/ioports.h"
 #include "sel4vm/platform/boot_guest.h"
-#include "sel4vm/platform/guest_vspace.h"
 #include "sel4vm/vchan_component.h"
 #include <sel4vm/vmcall.h>
 
@@ -595,7 +595,7 @@ void *main_continued(void *arg)
         uint8_t fun;
         seL4_CPtr iospace_cap;
         pci_devices_get_device(i, &bus, &dev, &fun, &iospace_cap);
-        error = vmm_guest_vspace_add_iospace(&vm.mem.vmm_vspace, &vm.mem.vm_vspace, iospace_cap);
+        error = vm_guest_vspace_add_iospace(&vm.mem.vmm_vspace, &vm.mem.vm_vspace, iospace_cap);
         ZF_LOGF_IF(error, "failed to add iospace to vspace");
     }
 #endif

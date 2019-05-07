@@ -33,6 +33,8 @@
 #include <sel4vm/guest_vm.h>
 #include <sel4vm/boot.h>
 #include <sel4vm/guest_memory.h>
+#include <sel4vm/guest_memory_util.h>
+#include <sel4vm/guest_ram.h>
 #include <sel4vm/guest_iospace.h>
 
 #include "sel4vm/vmm.h"
@@ -74,6 +76,7 @@ static simple_t camkes_simple;
 static vka_t vka;
 static vspace_t vspace;
 static sel4utils_alloc_data_t vspace_data;
+struct ps_io_ops io_ops;
 static vm_t vm;
 
 int cross_vm_dataports_init(vm_t *vm) WEAK;
@@ -221,6 +224,11 @@ static memory_range_t guest_fake_devices[] = {
     {0xe0000, 0x10000}, // PCI BIOS
     {0xc0000, 0xc8000 - 0xc0000}, // VIDEO BIOS
     {0xc8000, 0xe0000 - 0xc8000}, // Mapped hardware and MISC
+};
+
+/* Memory areas we reserve for anonymous allocations */
+static memory_range_t free_anonymous_regions[] = {
+    {0x10001000, 0xC0000000 - 0x10001000},
 };
 
 typedef struct device_notify {
@@ -533,20 +541,23 @@ void *main_continued(void *arg)
     int error;
     int i;
     int have_initrd = 0;
-    ps_io_port_ops_t ioops;
+    ps_io_port_ops_t pci_io_ops;
 
     rtc_time_date_t time_date = system_rtc_time_date();
     ZF_LOGI("Starting VM %s at: %04d:%02d:%02d %02d:%02d:%02d\n", get_instance_name(), time_date.year, time_date.month,
             time_date.day, time_date.hour, time_date.minute, time_date.second);
 
-    ioops = make_pci_io_ops();
+    pci_io_ops = make_pci_io_ops();
 
     ZF_LOGI("PCI scan");
-    libpci_scan(ioops);
+    libpci_scan(pci_io_ops);
 
     /* install custom open/close/read implementations to redirect I/O from the VMM to
      * our file server */
     install_fileserver(FILE_SERVER_INTERFACE(fs));
+
+    error = ps_new_stdlib_malloc_ops(&io_ops.malloc_ops);
+    ZF_LOGF_IF(error, "malloc ops init failed");
 
     /* Construct a new VM */
     vm_plat_callbacks_t callbacks = (vm_plat_callbacks_t) {
@@ -558,7 +569,7 @@ void *main_continued(void *arg)
 
     ZF_LOGI("VMM init");
     error = vm_init(&vm, &vka, &camkes_simple, allocman, vspace, callbacks,
-            0, NULL, "X86 VM", NULL);
+            0, &io_ops, "X86 VM", NULL);
     ZF_LOGF_IF(error, "VMM init failed");
 
     vm_vcpu_t *vm_vcpu;
@@ -603,13 +614,16 @@ void *main_continued(void *arg)
 
     /* Do we need to do any early reservations of guest address space? */
     for (i = 0; i < ARRAY_SIZE(guest_ram_regions); i++) {
-        error = vmm_alloc_guest_ram_at(&vm, guest_ram_regions[i].base, guest_ram_regions[i].size);
+        error = vm_ram_register_at(&vm, guest_ram_regions[i].base, guest_ram_regions[i].size, true);
         ZF_LOGF_IF(error, "Failed to alloc guest ram at %p", (void*)guest_ram_regions[i].base);
     }
 
     for (i = 0; i < ARRAY_SIZE(guest_fake_devices); i++) {
-        error = vmm_alloc_guest_device_at(&vm, guest_fake_devices[i].base, guest_fake_devices[i].size);
-        ZF_LOGF_IF(error, "Failed to alloc guest device at %p", (void*)guest_fake_devices[i].base);
+        vm_memory_reservation_t *reservation = vm_reserve_memory_at(&vm, guest_fake_devices[i].base, guest_fake_devices[i].size,
+            default_error_fault_callback, (void *)NULL);
+        ZF_LOGF_IF(!reservation, "Failed to create guest device reservation at %p", (void*)guest_fake_devices[i].base);
+        error = map_frame_alloc_reservation(&vm, reservation);
+        ZF_LOGF_IF(error, "Failed to map guest device reservation at %p", (void*)guest_fake_devices[i].base);
     }
 
     /* Add in the device mappings specified by the guest. */
@@ -625,16 +639,24 @@ void *main_continued(void *arg)
         uintptr_t base;
         size_t bytes;
         exclude_paddr_get_region(i, &base, &bytes);
-        reservation_t res = vspace_reserve_range_at(&vm.mem.vm_vspace, (void*)base, bytes, seL4_AllRights, 1);
-        if (!res.res) {
-            ZF_LOGF("Failed to reserve guest physical address range %p - %p\n", (void *)base, (void *)(base + bytes));
-        }
+        vm_memory_reservation_t *reservation = vm_reserve_memory_at(&vm, base, bytes,
+                default_error_fault_callback, (void *)NULL);
+        ZF_LOGF_IF(!reservation, "Failed to reserve guest physical address range %p - %p\n",
+                (void*)base, (void*)(base + bytes));
+    }
+
+    for(int i = 0; i < ARRAY_SIZE(free_anonymous_regions); i++) {
+        error = vm_memory_make_anon(&vm, free_anonymous_regions[i].base,
+                free_anonymous_regions[i].size);
+        ZF_LOGF_IF(error, "Failed to create anonymous region %p - %p",
+                (void *)free_anonymous_regions[i].base,
+                (void *)(free_anonymous_regions[i].base +  free_anonymous_regions[i].size));
     }
 
     /* Allocate guest ram. This is the main memory that the guest will actually get
      * told exists. Other memory may get allocated and mapped into the guest */
-    int paddr_is_vaddr;
-    paddr_is_vaddr = 0;
+    bool paddr_is_vaddr;
+    paddr_is_vaddr = false;
     // allocate guest ram in 512MiB chunks. This prevents extreme fragmentation of the
     // physical address space when a large amount of guest RAM has been reuqested.
     // An important side affect is that if the requested RAM is large, and there are
@@ -643,9 +665,9 @@ void *main_continued(void *arg)
     size_t remaining = MiB_TO_BYTES(guest_ram_mb);
     while (remaining > 0) {
         size_t allocate = MIN(remaining, MiB_TO_BYTES(512));
-        error = vmm_alloc_guest_ram(&vm, allocate, paddr_is_vaddr);
-        ZF_LOGF_IF(error, "Failed to allocate %lu bytes of guest ram. Already allocated %lu.",
-                   (long)allocate, (long)(MiB_TO_BYTES(guest_ram_mb) - remaining));
+        uintptr_t res_addr = vm_ram_register(&vm, allocate, paddr_is_vaddr);
+        ZF_LOGF_IF(!res_addr, "Failed to allocate %lu bytes of guest ram. Already allocated %lu.",
+            (long)allocate, (long)(MiB_TO_BYTES(guest_ram_mb) - remaining));
         remaining -= allocate;
     }
 

@@ -21,6 +21,7 @@
 
 #include <sel4vm/guest_vm.h>
 #include <sel4vm/guest_memory.h>
+#include <sel4vm/guest_ram.h>
 
 #include "sel4vm/debug.h"
 #include "sel4vm/vmm.h"
@@ -212,7 +213,7 @@ static void *data_from_guest(vm_t *vm, uintptr_t phys_ptr, size_t size, void *bu
     tok.copy_type = 0;
     tok.copy_size = size;
 
-    vm_guest_mem_touch(vm, phys_ptr, size, &vm_args, &tok);
+    vm_ram_touch(vm, phys_ptr, size, &vm_args, &tok);
 
     return buf;
 }
@@ -226,7 +227,7 @@ static void data_to_guest(vm_t *vm, uintptr_t phys_ptr, size_t size, void *buf) 
     tok.copy_type = 1;
     tok.copy_size = size;
 
-    vm_guest_mem_touch(vm, phys_ptr, size, &vm_args, &tok);
+    vm_ram_touch(vm, phys_ptr, size, &vm_args, &tok);
 
 }
 
@@ -302,14 +303,14 @@ static int vchan_readwrite(vm_t *vm, void *data, uint64_t cmd) {
 
     tok.buf = (void *)b->sync_data + start;
     tok.copy_size = size;
-    if(vm_guest_mem_touch(vm, phys, size, &vchan_sync_copy, &tok) < 0) {
+    if(vm_ram_touch(vm, phys, size, &vchan_sync_copy, &tok) < 0) {
         printf("vmcall_readwrite: did not perform a good write!\n");
         return -1;
     }
 
     tok.buf = &b->sync_data;
     tok.copy_size = remain;
-    if(vm_guest_mem_touch(vm, phys + size, remain, &vchan_sync_copy, &tok) < 0) {
+    if(vm_ram_touch(vm, phys + size, remain, &vchan_sync_copy, &tok) < 0) {
         printf("vmcall_readwrite: did not perform a good write!\n");
         return -1;
     }

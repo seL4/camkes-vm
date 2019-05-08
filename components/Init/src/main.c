@@ -559,8 +559,10 @@ void *main_continued(void *arg)
     error = vm_init(&vm, &vka, &camkes_simple, allocman, vspace, callbacks,
             0, NULL, "X86 VM", NULL);
     ZF_LOGF_IF(error, "VMM init failed");
-    vm_vcpu_t *vcpu_0;
-    error = vm_create_vcpu(&vm, NULL, &vcpu_0, 0);
+
+    vm_vcpu_t *vm_vcpu;
+    vm_vcpu = vm_create_vcpu(&vm, NULL);
+    assert(vm_vcpu);
 
     /* Initialize the init device badges and notification functions */
     ZF_LOGI("Init device badges and notification functions");

@@ -285,6 +285,6 @@ void /*? interface.name ?*/_init(vm_t *vm) {
         .dma_unpin_fn = malloc_dma_unpin,
         .dma_cache_op_fn = malloc_dma_cache_op
     };
-    net->emul = ethif_virtio_emul_init(ioops, QUEUE_SIZE, &vm->mem.vm_vspace, emul_driver_init, net);
+    net->emul = ethif_virtio_emul_init(vm, ioops, QUEUE_SIZE, &vm->mem.vm_vspace, emul_driver_init, net);
     assert(net->emul);
 }

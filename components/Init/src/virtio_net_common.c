@@ -30,7 +30,7 @@
 #include <ethdrivers/virtio/virtio_ring.h>
 
 #include <sel4vm/guest_vm.h>
-#include <sel4vm/guest_vspace.h>
+#include <sel4vm/guest_memory.h>
 
 #include "sel4vm/vmm.h"
 #include "sel4vm/driver/pci_helper.h"
@@ -177,7 +177,7 @@ virtio_net_t *common_make_virtio_net(vm_t *vm, unsigned int iobase, struct raw_i
     };
 
     net->emul_driver_funcs = backend;
-    net->emul = ethif_virtio_emul_init(ioops, QUEUE_SIZE, &vm->mem.vm_vspace, emul_driver_init, net);
+    net->emul = ethif_virtio_emul_init(vm, ioops, QUEUE_SIZE, &vm->mem.vm_vspace, emul_driver_init, net);
     assert(net->emul);
     return net;
 }

@@ -20,7 +20,7 @@
 #include <camkes/dataport.h>
 
 #include <sel4vm/guest_vm.h>
-#include <sel4vm/guest_vspace.h>
+#include <sel4vm/guest_memory.h>
 
 #include "sel4vm/debug.h"
 #include "sel4vm/vmm.h"
@@ -36,8 +36,8 @@
 
 #define VCHAN_VM_MAX_ACTIVE_PORTS 25
 
-static int vm_args(uintptr_t phys, void *vaddr, size_t size, size_t offset, seL4_CPtr cap, void *cookie);
-static int vchan_sync_copy(uintptr_t phys, void *vaddr, size_t size, size_t offset, seL4_CPtr cap, void *cookie);
+static int vm_args(vm_t *vm, uintptr_t phys, void *vaddr, size_t size, size_t offset, void *cookie);
+static int vchan_sync_copy(vm_t *vm, uintptr_t phys, void *vaddr, size_t size, size_t offset, void *cookie);
 
 static void data_to_guest(vm_t *vm, uintptr_t phys_ptr, size_t size, void *buf);
 static void *data_from_guest(vm_t *vm, uintptr_t phys_ptr, size_t size, void *buf);
@@ -170,7 +170,7 @@ static int guest_vchan_init(int domain, int port, int server) {
 
     This requires testing to make sure all arguments are copied correctly, with variable sizes
 */
-static int vm_args(uintptr_t phys, void *vaddr, size_t size, size_t offset, seL4_CPtr cap, void *cookie) {
+static int vm_args(vm_t *vm, uintptr_t phys, void *vaddr, size_t size, size_t offset, void *cookie) {
     vchan_copy_mem_t *tok = (vchan_copy_mem_t *)cookie;
     if(tok->copy_type == 1) {
         memcpy(vaddr, (void *)tok->buf + offset, size);
@@ -183,7 +183,7 @@ static int vm_args(uintptr_t phys, void *vaddr, size_t size, size_t offset, seL4
 /*
     Touch callback for copying data into and out of guest memory
 */
-static int vchan_sync_copy(uintptr_t phys, void *vaddr, size_t size, size_t offset, seL4_CPtr cap, void *cookie) {
+static int vchan_sync_copy(vm_t *vm, uintptr_t phys, void *vaddr, size_t size, size_t offset, void *cookie) {
     vchan_copy_mem_t *arg = (vchan_copy_mem_t *) cookie;
     if(arg->copy_size <= 0) {
         return 1;
@@ -212,8 +212,7 @@ static void *data_from_guest(vm_t *vm, uintptr_t phys_ptr, size_t size, void *bu
     tok.copy_type = 0;
     tok.copy_size = size;
 
-    vspace_t *vs = &vm->mem.vm_vspace;
-    vm_guest_vspace_touch(vs, phys_ptr, size, &vm_args, &tok);
+    vm_guest_mem_touch(vm, phys_ptr, size, &vm_args, &tok);
 
     return buf;
 }
@@ -227,8 +226,7 @@ static void data_to_guest(vm_t *vm, uintptr_t phys_ptr, size_t size, void *buf) 
     tok.copy_type = 1;
     tok.copy_size = size;
 
-    vspace_t *vs = &vm->mem.vm_vspace;
-    vm_guest_vspace_touch(vs, phys_ptr, size, &vm_args, &tok);
+    vm_guest_mem_touch(vm, phys_ptr, size, &vm_args, &tok);
 
 }
 
@@ -304,14 +302,14 @@ static int vchan_readwrite(vm_t *vm, void *data, uint64_t cmd) {
 
     tok.buf = (void *)b->sync_data + start;
     tok.copy_size = size;
-    if(vm_guest_vspace_touch(vs, phys, size, &vchan_sync_copy, &tok) < 0) {
+    if(vm_guest_mem_touch(vm, phys, size, &vchan_sync_copy, &tok) < 0) {
         printf("vmcall_readwrite: did not perform a good write!\n");
         return -1;
     }
 
     tok.buf = &b->sync_data;
     tok.copy_size = remain;
-    if(vm_guest_vspace_touch(vs, phys + size, remain, &vchan_sync_copy, &tok) < 0) {
+    if(vm_guest_mem_touch(vm, phys + size, remain, &vchan_sync_copy, &tok) < 0) {
         printf("vmcall_readwrite: did not perform a good write!\n");
         return -1;
     }

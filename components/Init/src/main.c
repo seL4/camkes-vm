@@ -441,8 +441,7 @@ static seL4_Word irq_badges[16] = {
 
 void serial_character_interrupt(void);
 
-static int handle_async_event(seL4_Word badge)
-{
+static int handle_async_event(seL4_Word badge, seL4_Word label) {
     if (badge & BIT(27)) {
         if ((badge & VM_INIT_TIMER_BADGE) == VM_INIT_TIMER_BADGE) {
             uint32_t completed = init_timer_completed();
@@ -793,7 +792,7 @@ void *main_continued(void *arg)
     ZF_LOGF_IF(error, "Failed to finalise VMM");
 
     /* Now go run the event loop */
-    vmm_run(&vm);
+    vm_run(&vm);
 
     return NULL;
 }

@@ -24,6 +24,7 @@ config_option(
 
 # Create VMM configuration library
 add_config_library(camkes_vmm "${configure_string}")
+link_libraries(kernel_autoconf camkes_vmm_Config)
 
 # Common VM build definitions
 CAmkESAddImportPath(components)

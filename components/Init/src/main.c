@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <autoconf.h>
+#include <camkes_vmm/gen_config.h>
 #include <utils/util.h>
 #include <sel4utils/sel4_zf_logif.h>
 #include <sel4platsupport/arch/io.h>

@@ -11,6 +11,7 @@
  */
 
 #include <autoconf.h>
+#include <camkes_vmm/gen_config.h>
 #include <camkes/dataport.h>
 #include <sel4/sel4.h>
 #include <lwip/udp.h>

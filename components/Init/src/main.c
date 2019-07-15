@@ -29,7 +29,6 @@
 #include <vka/capops.h>
 
 #include <camkes.h>
-#include <camkes_vmm/gen_config.h>
 
 #include "vmm/vmm.h"
 #include "vmm/driver/pci_helper.h"

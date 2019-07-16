@@ -57,7 +57,8 @@ static sel4utils_res_t muslc_brk_reservation_memory;
 
 seL4_CPtr intready_notification();
 
-static seL4_CPtr get_async_event_notification() {
+static seL4_CPtr get_async_event_notification()
+{
     return intready_notification();
 }
 
@@ -77,16 +78,18 @@ int cross_vm_consumes_event_irq_num(void) WEAK;
 int cross_vm_emits_events_init(vmm_t *vmm) WEAK;
 
 static seL4_Error simple_ioport_wrapper(void *data, uint16_t start_port, uint16_t end_port,
-                                        seL4_Word root, seL4_Word dest, seL4_Word depth) {
+                                        seL4_Word root, seL4_Word dest, seL4_Word depth)
+{
     seL4_CPtr cap = ioports_get_ioport(start_port, end_port);
-    if (cap == seL4_CapNull){
+    if (cap == seL4_CapNull) {
         return seL4_FailedLookup;
     }
     return seL4_CNode_Copy(root, dest, depth, root, cap, CONFIG_WORD_SIZE, seL4_AllRights);
 
 }
 
-static seL4_Error simple_frame_cap_wrapper(void *data, void *paddr, int size_bits, cspacepath_t *path) {
+static seL4_Error simple_frame_cap_wrapper(void *data, void *paddr, int size_bits, cspacepath_t *path)
+{
     seL4_CPtr cap = pci_devices_get_device_mem_frame((uintptr_t)paddr);
     if (cap != 0) {
         vka_cspace_make_path(&vka, cap, path);
@@ -109,7 +112,8 @@ void pit_pre_init(void);
 void rtc_pre_init(void);
 void serial_pre_init(void);
 
-void pre_init(void) {
+void pre_init(void)
+{
     int error;
 
     set_putchar(putchar_putchar);
@@ -124,12 +128,12 @@ void pre_init(void) {
 
     /* Initialize allocator */
     allocman = bootstrap_use_current_1level(
-            simple_get_cnode(&camkes_simple),
-            simple_get_cnode_size_bits(&camkes_simple),
-            simple_last_valid_cap(&camkes_simple) + 1,
-            BIT(simple_get_cnode_size_bits(&camkes_simple)),
-            sizeof(allocator_mempool), allocator_mempool
-    );
+                   simple_get_cnode(&camkes_simple),
+                   simple_get_cnode_size_bits(&camkes_simple),
+                   simple_last_valid_cap(&camkes_simple) + 1,
+                   BIT(simple_get_cnode_size_bits(&camkes_simple)),
+                   sizeof(allocator_mempool), allocator_mempool
+               );
     ZF_LOGF_IF(allocman == NULL, "Failed to create allocman");
 
     error = allocman_add_simple_untypeds(allocman, &camkes_simple);
@@ -139,7 +143,7 @@ void pre_init(void) {
 
     /* Initialize the vspace */
     error = sel4utils_bootstrap_vspace(&vspace, &vspace_data,
-            simple_get_init_cap(&camkes_simple, seL4_CapInitThreadPD), &vka, NULL, NULL, existing_frames);
+                                       simple_get_init_cap(&camkes_simple, seL4_CapInitThreadPD), &vka, NULL, NULL, existing_frames);
     ZF_LOGF_IF(error, "Failed to bootstrap vspace");
 
     /* Create virtual pool */
@@ -154,7 +158,8 @@ void pre_init(void) {
     if (error) {
         ZF_LOGF("Failed to provide virtual memory allocator");
     }
-    bootstrap_configure_virtual_pool(allocman, vaddr, ALLOCMAN_VIRTUAL_SIZE, simple_get_init_cap(&camkes_simple, seL4_CapInitThreadPD));
+    bootstrap_configure_virtual_pool(allocman, vaddr, ALLOCMAN_VIRTUAL_SIZE, simple_get_init_cap(&camkes_simple,
+                                                                                                 seL4_CapInitThreadPD));
 
     /* Add additional untypeds that make up extra RAM */
     int num = ram_num_untypeds();
@@ -186,9 +191,12 @@ void pre_init(void) {
         }
     }
 
-    sel4utils_reserve_range_no_alloc(&vspace, &muslc_brk_reservation_memory, BRK_VIRTUAL_SIZE, seL4_AllRights, 1, &muslc_brk_reservation_start);
+    sel4utils_reserve_range_no_alloc(&vspace, &muslc_brk_reservation_memory, BRK_VIRTUAL_SIZE, seL4_AllRights, 1,
+                                     &muslc_brk_reservation_start);
     muslc_this_vspace = &vspace;
-    muslc_brk_reservation = (reservation_t){.res = &muslc_brk_reservation_memory};
+    muslc_brk_reservation = (reservation_t) {
+        .res = &muslc_brk_reservation_memory
+    };
 
 }
 
@@ -219,26 +227,33 @@ typedef struct device_notify {
 } device_notify_t;
 
 /* Wrappers for passing PCI config space calls to camkes */
-static uint8_t camkes_pci_read8(void *cookie, vmm_pci_address_t addr, unsigned int offset) {
+static uint8_t camkes_pci_read8(void *cookie, vmm_pci_address_t addr, unsigned int offset)
+{
     return pci_config_read8(addr.bus, addr.dev, addr.fun, offset);
 }
-static uint16_t camkes_pci_read16(void *cookie, vmm_pci_address_t addr, unsigned int offset) {
+static uint16_t camkes_pci_read16(void *cookie, vmm_pci_address_t addr, unsigned int offset)
+{
     return pci_config_read16(addr.bus, addr.dev, addr.fun, offset);
 }
-static uint32_t camkes_pci_read32(void *cookie, vmm_pci_address_t addr, unsigned int offset) {
+static uint32_t camkes_pci_read32(void *cookie, vmm_pci_address_t addr, unsigned int offset)
+{
     return pci_config_read32(addr.bus, addr.dev, addr.fun, offset);
 }
-static void camkes_pci_write8(void *cookie, vmm_pci_address_t addr, unsigned int offset, uint8_t val) {
+static void camkes_pci_write8(void *cookie, vmm_pci_address_t addr, unsigned int offset, uint8_t val)
+{
     pci_config_write8(addr.bus, addr.dev, addr.fun, offset, val);
 }
-static void camkes_pci_write16(void *cookie, vmm_pci_address_t addr, unsigned int offset, uint16_t val) {
+static void camkes_pci_write16(void *cookie, vmm_pci_address_t addr, unsigned int offset, uint16_t val)
+{
     pci_config_write16(addr.bus, addr.dev, addr.fun, offset, val);
 }
-static void camkes_pci_write32(void *cookie, vmm_pci_address_t addr, unsigned int offset, uint32_t val) {
+static void camkes_pci_write32(void *cookie, vmm_pci_address_t addr, unsigned int offset, uint32_t val)
+{
     pci_config_write32(addr.bus, addr.dev, addr.fun, offset, val);
 }
 
-vmm_pci_config_t make_camkes_pci_config() {
+vmm_pci_config_t make_camkes_pci_config()
+{
     return (vmm_pci_config_t) {
         .cookie = NULL,
         .ioread8 = camkes_pci_read8,
@@ -297,14 +312,15 @@ ioport_desc_t ioport_handlers[] = {
 #endif
 };
 
-int pci_config_io_in(void *cookie, uint32_t port, int io_size, uint32_t *result) {
-    uint32_t *conf_port_addr = (uint32_t*)cookie;
+int pci_config_io_in(void *cookie, uint32_t port, int io_size, uint32_t *result)
+{
+    uint32_t *conf_port_addr = (uint32_t *)cookie;
     uint8_t offset;
     if (port >= PCI_CONF_PORT_ADDR && port < PCI_CONF_PORT_ADDR_END) {
         offset = port - PCI_CONF_PORT_ADDR;
         /* Emulate read addr */
         *result = 0;
-        memcpy(result, ((char*)conf_port_addr) + offset, io_size);
+        memcpy(result, ((char *)conf_port_addr) + offset, io_size);
         return 0;
     }
     if (port < PCI_CONF_PORT_DATA || port + io_size > PCI_CONF_PORT_DATA_END) {
@@ -319,15 +335,15 @@ int pci_config_io_in(void *cookie, uint32_t port, int io_size, uint32_t *result)
     reg = (*conf_port_addr) & MASK(8);
     reg += offset;
     /* Read the real config */
-    switch(io_size) {
+    switch (io_size) {
     case 1:
-        *result=pci_config_read8(bus, dev, fun, reg);
+        *result = pci_config_read8(bus, dev, fun, reg);
         break;
     case 2:
-        *result=pci_config_read16(bus, dev, fun, reg);
+        *result = pci_config_read16(bus, dev, fun, reg);
         break;
     case 4:
-        *result=pci_config_read32(bus, dev, fun, reg);
+        *result = pci_config_read32(bus, dev, fun, reg);
         break;
     default:
         ZF_LOGF("Invalid size");
@@ -336,14 +352,15 @@ int pci_config_io_in(void *cookie, uint32_t port, int io_size, uint32_t *result)
     return 0;
 }
 
-int pci_config_io_out(void *cookie, uint32_t port, int io_size, uint32_t val) {
-    uint32_t *conf_port_addr = (uint32_t*)cookie;
+int pci_config_io_out(void *cookie, uint32_t port, int io_size, uint32_t val)
+{
+    uint32_t *conf_port_addr = (uint32_t *)cookie;
     uint8_t offset;
     if (port >= PCI_CONF_PORT_ADDR && port < PCI_CONF_PORT_ADDR_END) {
         offset = port - PCI_CONF_PORT_ADDR;
         /* Emulate read addr */
         val &= ~MASK(2);
-        memcpy(((char*)conf_port_addr) + offset, &val, io_size);
+        memcpy(((char *)conf_port_addr) + offset, &val, io_size);
         return 0;
     }
     if (port < PCI_CONF_PORT_DATA || port + io_size > PCI_CONF_PORT_DATA_END) {
@@ -358,7 +375,7 @@ int pci_config_io_out(void *cookie, uint32_t port, int io_size, uint32_t val) {
     reg = (*conf_port_addr) & MASK(8);
     reg += offset;
     /* Read the real config */
-    switch(io_size) {
+    switch (io_size) {
     case 1:
         pci_config_write8(bus, dev, fun, reg, val);
         break;
@@ -375,11 +392,13 @@ int pci_config_io_out(void *cookie, uint32_t port, int io_size, uint32_t val) {
     return 0;
 }
 
-ps_io_port_ops_t make_pci_io_ops() {
-    return (ps_io_port_ops_t) { .cookie = malloc(sizeof(uint32_t)),
-                                 .io_port_in_fn = pci_config_io_in,
-                                 .io_port_out_fn = pci_config_io_out
-                               };
+ps_io_port_ops_t make_pci_io_ops()
+{
+    return (ps_io_port_ops_t) {
+        .cookie = malloc(sizeof(uint32_t)),
+        .io_port_in_fn = pci_config_io_in,
+        .io_port_out_fn = pci_config_io_out
+    };
 }
 
 static int device_notify_list_len = 0;
@@ -410,31 +429,34 @@ static seL4_Word irq_badges[16] = {
 
 void serial_character_interrupt(void);
 
-static int handle_async_event(seL4_Word badge) {
+static int handle_async_event(seL4_Word badge)
+{
     if (badge & BIT(27)) {
-        if ( (badge & VM_INIT_TIMER_BADGE) == VM_INIT_TIMER_BADGE) {
+        if ((badge & VM_INIT_TIMER_BADGE) == VM_INIT_TIMER_BADGE) {
             uint32_t completed = init_timer_completed();
             if (completed & BIT(TIMER_PIT)) {
                 pit_timer_interrupt();
             }
-            if (completed & (BIT(TIMER_PERIODIC_TIMER) | BIT(TIMER_COALESCED_TIMER) | BIT(TIMER_SECOND_TIMER) | BIT(TIMER_SECOND_TIMER2))) {
+            if (completed & (BIT(TIMER_PERIODIC_TIMER) | BIT(TIMER_COALESCED_TIMER) | BIT(TIMER_SECOND_TIMER) | BIT(
+                                 TIMER_SECOND_TIMER2))) {
                 rtc_timer_interrupt(completed);
             }
-            if (completed & (BIT(TIMER_FIFO_TIMEOUT) | BIT(TIMER_TRANSMIT_TIMER) | BIT(TIMER_MODEM_STATUS_TIMER) | BIT(TIMER_MORE_CHARS))) {
+            if (completed & (BIT(TIMER_FIFO_TIMEOUT) | BIT(TIMER_TRANSMIT_TIMER) | BIT(TIMER_MODEM_STATUS_TIMER) | BIT(
+                                 TIMER_MORE_CHARS))) {
                 serial_timer_interrupt(completed);
             }
         }
-        if ( (badge & VM_PIC_BADGE_SERIAL_HAS_DATA) == VM_PIC_BADGE_SERIAL_HAS_DATA) {
+        if ((badge & VM_PIC_BADGE_SERIAL_HAS_DATA) == VM_PIC_BADGE_SERIAL_HAS_DATA) {
             serial_character_interrupt();
         }
         for (int i = 0; i < 16; i++) {
-            if ( (badge & irq_badges[i]) == irq_badges[i]) {
+            if ((badge & irq_badges[i]) == irq_badges[i]) {
                 i8259_gen_irq(i);
             }
         }
         for (int i = 0; i < device_notify_list_len; i++) {
             uint32_t device_badge = device_notify_list[i].badge;
-            if ( (badge & device_badge) == device_badge) {
+            if ((badge & device_badge) == device_badge) {
                 ZF_LOGF_IF(device_notify_list[i].func == NULL, "Undefined notify func");
                 device_notify_list[i].func(&vmm);
             }
@@ -444,7 +466,8 @@ static int handle_async_event(seL4_Word badge) {
     return i8259_has_interrupt() ? 0 : 1;
 }
 
-static void init_irqs() {
+static void init_irqs()
+{
     int error UNUSED;
 
     int num_irqs = irqs_num_irqs();
@@ -476,11 +499,13 @@ static void init_irqs() {
     }
 }
 
-int fake_vchan_handler(vmm_vcpu_t *vcpu) {
+int fake_vchan_handler(vmm_vcpu_t *vcpu)
+{
     return 0;
 }
 
-void init_con_irq_init(void) {
+void init_con_irq_init(void)
+{
     int i;
     int irqs = 0;
     uintptr_t badge;
@@ -496,18 +521,20 @@ void init_con_irq_init(void) {
     for (i = 0; i < irqs; i++) {
         init_cons_has_interrupt(i, &badge, &fun);
         device_notify_list[i].badge = badge;
-        device_notify_list[i].func = (void (*)(vmm_t*))fun;
+        device_notify_list[i].func = (void (*)(vmm_t *))fun;
     }
 }
 
-void *main_continued(void *arg) {
+void *main_continued(void *arg)
+{
     int error;
     int i;
     int have_initrd = 0;
     ps_io_port_ops_t ioops;
 
     rtc_time_date_t time_date = system_rtc_time_date();
-    ZF_LOGI("Starting VM %s at: %04d:%02d:%02d %02d:%02d:%02d\n", get_instance_name(), time_date.year, time_date.month, time_date.day, time_date.hour, time_date.minute, time_date.second);
+    ZF_LOGI("Starting VM %s at: %04d:%02d:%02d %02d:%02d:%02d\n", get_instance_name(), time_date.year, time_date.month,
+            time_date.day, time_date.hour, time_date.minute, time_date.second);
 
     ioops = make_pci_io_ops();
 
@@ -579,12 +606,12 @@ void *main_continued(void *arg) {
     /* Do we need to do any early reservations of guest address space? */
     for (i = 0; i < ARRAY_SIZE(guest_ram_regions); i++) {
         error = vmm_alloc_guest_ram_at(&vmm, guest_ram_regions[i].base, guest_ram_regions[i].size);
-        ZF_LOGF_IF(error, "Failed to alloc guest ram at %p", (void*)guest_ram_regions[i].base);
+        ZF_LOGF_IF(error, "Failed to alloc guest ram at %p", (void *)guest_ram_regions[i].base);
     }
 
     for (i = 0; i < ARRAY_SIZE(guest_fake_devices); i++) {
         error = vmm_alloc_guest_device_at(&vmm, guest_fake_devices[i].base, guest_fake_devices[i].size);
-        ZF_LOGF_IF(error, "Failed to alloc guest device at %p", (void*)guest_fake_devices[i].base);
+        ZF_LOGF_IF(error, "Failed to alloc guest device at %p", (void *)guest_fake_devices[i].base);
     }
 
     /* Add in the device mappings specified by the guest. */
@@ -600,9 +627,9 @@ void *main_continued(void *arg) {
         uintptr_t base;
         size_t bytes;
         exclude_paddr_get_region(i, &base, &bytes);
-        reservation_t res = vspace_reserve_range_at(&vmm.guest_mem.vspace, (void*)base, bytes, seL4_AllRights, 1);
+        reservation_t res = vspace_reserve_range_at(&vmm.guest_mem.vspace, (void *)base, bytes, seL4_AllRights, 1);
         if (!res.res) {
-            ZF_LOGF("Failed to reserve guest physical address range %p - %p\n", (void*)base, (void*)(base + bytes));
+            ZF_LOGF("Failed to reserve guest physical address range %p - %p\n", (void *)base, (void *)(base + bytes));
         }
     }
 
@@ -620,7 +647,7 @@ void *main_continued(void *arg) {
         size_t allocate = MIN(remaining, MiB_TO_BYTES(512));
         error = vmm_alloc_guest_ram(&vmm, allocate, paddr_is_vaddr);
         ZF_LOGF_IF(error, "Failed to allocate %lu bytes of guest ram. Already allocated %lu.",
-            (long)allocate, (long)(MiB_TO_BYTES(guest_ram_mb) - remaining));
+                   (long)allocate, (long)(MiB_TO_BYTES(guest_ram_mb) - remaining));
         remaining -= allocate;
     }
 
@@ -659,7 +686,9 @@ void *main_continued(void *arg) {
         vmm_pci_bar_t bars[6];
         int num_bars = vmm_pci_helper_map_bars(&vmm, &device->cfg, bars);
         assert(num_bars >= 0);
-        vmm_pci_entry_t entry = vmm_pci_create_passthrough((vmm_pci_address_t){bus, dev, fun}, make_camkes_pci_config());
+        vmm_pci_entry_t entry = vmm_pci_create_passthrough((vmm_pci_address_t) {
+            bus, dev, fun
+        }, make_camkes_pci_config());
         if (num_bars > 0) {
             entry = vmm_pci_create_bar_emulation(entry, num_bars, bars);
         }
@@ -672,7 +701,7 @@ void *main_continued(void *arg) {
     /* Initialize any extra init devices */
     ZF_LOGI("Init extra devices");
     for (i = 0; i < init_cons_num_connections(); i++) {
-        void (*proc)(vmm_t*) = (void (*)(vmm_t*))init_cons_init_function(i);
+        void (*proc)(vmm_t *) = (void (*)(vmm_t *))init_cons_init_function(i);
         proc(&vmm);
     }
 
@@ -680,10 +709,12 @@ void *main_continued(void *arg) {
     ZF_LOGI("Adding IO ports");
     for (i = 0; i < ARRAY_SIZE(ioport_handlers); i++) {
         if (ioport_handlers[i].port_in) {
-            error = vmm_io_port_add_handler(&vmm.io_port, ioport_handlers[i].start_port, ioport_handlers[i].end_port, NULL, ioport_handlers[i].port_in, ioport_handlers[i].port_out, ioport_handlers[i].desc);
+            error = vmm_io_port_add_handler(&vmm.io_port, ioport_handlers[i].start_port, ioport_handlers[i].end_port, NULL,
+                                            ioport_handlers[i].port_in, ioport_handlers[i].port_out, ioport_handlers[i].desc);
             assert(!error);
         } else {
-            error = vmm_io_port_add_passthrough(&vmm.io_port, ioport_handlers[i].start_port, ioport_handlers[i].end_port, ioport_handlers[i].desc);
+            error = vmm_io_port_add_passthrough(&vmm.io_port, ioport_handlers[i].start_port, ioport_handlers[i].end_port,
+                                                ioport_handlers[i].desc);
             assert(!error);
         }
     }
@@ -697,7 +728,8 @@ void *main_continued(void *arg) {
         assert(!error);
     }
     /* config start and end encomposes both addr and data ports */
-    error = vmm_io_port_add_handler(&vmm.io_port, X86_IO_PCI_CONFIG_START, X86_IO_PCI_CONFIG_END, &vmm.pci, vmm_pci_io_port_in, vmm_pci_io_port_out, "PCI Configuration Space");
+    error = vmm_io_port_add_handler(&vmm.io_port, X86_IO_PCI_CONFIG_START, X86_IO_PCI_CONFIG_END, &vmm.pci,
+                                    vmm_pci_io_port_in, vmm_pci_io_port_out, "PCI Configuration Space");
     assert(!error);
 
     /* Load in an elf file. Hard code alignment to 4M */
@@ -733,7 +765,7 @@ void *main_continued(void *arg) {
 
     if (cross_vm_consumes_events_init && cross_vm_consumes_event_irq_num) {
         error = cross_vm_consumes_events_init(&vmm, &vspace,
-            irq_badges[cross_vm_consumes_event_irq_num()]);
+                                              irq_badges[cross_vm_consumes_event_irq_num()]);
 
         assert(!error);
     }
@@ -750,7 +782,8 @@ void *main_continued(void *arg) {
     return NULL;
 }
 
-int run(void) {
+int run(void)
+{
     sel4utils_run_on_stack(&vspace, main_continued, NULL, NULL);
     assert(!"Should not get here");
 

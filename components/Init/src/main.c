@@ -441,7 +441,7 @@ static seL4_Word irq_badges[16] = {
 
 void serial_character_interrupt(void);
 
-static int handle_async_event(seL4_Word badge, seL4_Word label) {
+static int handle_async_event(vm_t *vm, seL4_Word badge, seL4_Word label, void *cookie) {
     if (badge & BIT(27)) {
         if ((badge & VM_INIT_TIMER_BADGE) == VM_INIT_TIMER_BADGE) {
             uint32_t completed = init_timer_completed();
@@ -469,7 +469,7 @@ static int handle_async_event(seL4_Word badge, seL4_Word label) {
             uint32_t device_badge = device_notify_list[i].badge;
             if ((badge & device_badge) == device_badge) {
                 ZF_LOGF_IF(device_notify_list[i].func == NULL, "Undefined notify func");
-                device_notify_list[i].func(&vm);
+                device_notify_list[i].func(vm);
             }
         }
     }
@@ -558,22 +558,25 @@ void *main_continued(void *arg)
     error = ps_new_stdlib_malloc_ops(&io_ops.malloc_ops);
     ZF_LOGF_IF(error, "malloc ops init failed");
 
+    seL4_CPtr ready_notification_cap = intready_notification();
     /* Construct a new VM */
-    vm_plat_callbacks_t callbacks = (vm_plat_callbacks_t) {
+    struct vm_init_x86_config vm_init_x86_params = {
         .get_interrupt = i8259_get_interrupt,
         .has_interrupt = i8259_has_interrupt,
-        .do_async = handle_async_event,
-        .get_async_event_notification = get_async_event_notification,
+        .notification_cap = ready_notification_cap
     };
 
     ZF_LOGI("VMM init");
-    error = vm_init(&vm, &vka, &camkes_simple, allocman, vspace, callbacks,
-            0, &io_ops, "X86 VM", NULL);
+    error = vm_init(&vm, &vka, &camkes_simple, allocman, vspace,
+            0, &io_ops, "X86 VM", &vm_init_x86_params);
     ZF_LOGF_IF(error, "VMM init failed");
 
     vm_vcpu_t *vm_vcpu;
     vm_vcpu = vm_create_vcpu(&vm, NULL);
     assert(vm_vcpu);
+
+    error = vm_register_notification_callback(&vm, handle_async_event, NULL);
+    assert(!error);
 
     /* Initialize the init device badges and notification functions */
     ZF_LOGI("Init device badges and notification functions");

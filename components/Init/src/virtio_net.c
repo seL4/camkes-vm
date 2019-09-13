@@ -32,10 +32,9 @@
 #include <sel4vm/guest_vm.h>
 #include <sel4vm/guest_memory.h>
 
-#include "sel4vm/vmm.h"
-#include "sel4vm/driver/pci_helper.h"
-#include "sel4vm/driver/virtio_emul.h"
-#include "sel4vm/platform/ioports.h"
+#include <sel4pci/pci.h>
+#include <sel4pci/virtio_emul.h>
+#include <sel4vmmcore/drivers/virtio_net/virtio_net.h>
 
 #include "vm.h"
 #include "i8259.h"
@@ -69,7 +68,7 @@ int __attribute__((weak)) eth_rx_ready_reg_callback(void (*proc)(void*),void *bl
 
 
 static virtio_net_t *virtio_net = NULL;
-
+static vm_t *emul_vm;
 
 static int emul_raw_tx(struct eth_driver *driver, unsigned int num, uintptr_t *phys, unsigned int *len, void *cookie) {
     size_t tot_len = 0;
@@ -83,6 +82,9 @@ static int emul_raw_tx(struct eth_driver *driver, unsigned int num, uintptr_t *p
     return ETHIF_TX_COMPLETE;
 }
 
+static void emul_raw_handle_irq(struct eth_driver *driver, int irq) {
+    i8259_gen_irq(6);
+}
 
 static void emul_low_level_init(struct eth_driver *driver, uint8_t *mac, int *mtu) {
     ethdriver_mac(&mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
@@ -111,12 +113,16 @@ void virtio_net_notify(vm_t *vm) {
     }
 }
 
-void make_virtio_net(vm_t *vm) {
+void make_virtio_net(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_ports) {
     /* drain any existing packets */
     struct raw_iface_funcs backend = virtio_net_default_backend();
     backend.raw_tx = emul_raw_tx;
     backend.low_level_init = emul_low_level_init;
-    virtio_net = common_make_virtio_net(vm, 0x9000, backend);
+    backend.raw_handleIRQ = emul_raw_handle_irq;
+    emul_vm = vm;
+
+    virtio_net = common_make_virtio_net(vm, pci, io_ports, 0x9000, MASK(6), 6, 6,
+            backend, true);
     assert(virtio_net);
     int len;
     while (ethdriver_rx(&len) != -1);

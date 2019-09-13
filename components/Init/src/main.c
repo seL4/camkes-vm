@@ -37,8 +37,12 @@
 #include <sel4vm/guest_ram.h>
 #include <sel4vm/guest_iospace.h>
 
+#include <sel4vmmcore/util/io.h>
+#include <sel4pci/pci.h>
+#include <sel4pci/pci_helper.h>
+#include <sel4pci/vmm_pci_helper.h>
+
 #include "sel4vm/vmm.h"
-#include "sel4vm/driver/pci_helper.h"
 #include "sel4vm/platform/ioports.h"
 #include "sel4vm/platform/boot_guest.h"
 #include "sel4vm/vchan_component.h"
@@ -50,6 +54,7 @@
 #include "timers.h"
 #include "fsclient.h"
 #include "vchan_init.h"
+#include "virtio_net_vswitch.h"
 
 #define BRK_VIRTUAL_SIZE 400000000
 #define ALLOCMAN_VIRTUAL_SIZE 400000000
@@ -78,6 +83,8 @@ static vspace_t vspace;
 static sel4utils_alloc_data_t vspace_data;
 struct ps_io_ops io_ops;
 static vm_t vm;
+static vmm_pci_space_t *pci;
+static vmm_io_port_list_t *io_ports;
 
 int cross_vm_dataports_init(vm_t *vm) WEAK;
 int cross_vm_consumes_events_init(vm_t *vm, vspace_t *vspace, seL4_Word irq_badge) WEAK;
@@ -535,6 +542,27 @@ void init_con_irq_init(void)
     }
 }
 
+ioport_fault_result_t ioport_callback_handler(vm_t *vm, unsigned int port_no, bool is_in, unsigned int *value,
+        size_t size, void *cookie) {
+    ioport_fault_result_t result;
+    int res = emulate_io_handler(io_ports, port_no, is_in, size, value);
+    switch (res) {
+        case 0:
+            result = IO_FAULT_HANDLED;
+            break;
+        case 1:
+            result = IO_FAULT_UNHANDLED;
+            break;
+        default: /*-1*/
+            result = IO_FAULT_ERROR;
+    }
+    return result;
+}
+
+void make_virtio_net_vswitch(vm_t *vm) {
+    return make_virtio_net_vswitch_driver(vm, pci, io_ports);
+}
+
 void *main_continued(void *arg)
 {
     int error;
@@ -578,6 +606,9 @@ void *main_continued(void *arg)
     error = vm_register_notification_callback(&vm, handle_async_event, NULL);
     assert(!error);
 
+    error = vm_register_ioport_callback(&vm, ioport_callback_handler, NULL);
+    assert(!error);
+
     /* Initialize the init device badges and notification functions */
     ZF_LOGI("Init device badges and notification functions");
     init_con_irq_init();
@@ -598,6 +629,11 @@ void *main_continued(void *arg)
 
     ZF_LOGI("RTC pre init");
     rtc_pre_init();
+
+    error = vmm_io_port_init(&io_ports);
+    if (error) {
+        ZF_LOGF_IF(error, "Failed to initialise VMM ioport management");
+    }
 
 #ifdef CONFIG_CAMKES_VM_GUEST_DMA_IOMMU
     /* Do early device discovery and find any relevant PCI busses that
@@ -673,6 +709,11 @@ void *main_continued(void *arg)
         remaining -= allocate;
     }
 
+    error = vmm_pci_init(&pci);
+    if (error) {
+        ZF_LOGF_IF(error, "Failed to initialise VMM PCI");
+    }
+
     /* Perform device discovery and give passthrough device information */
     ZF_LOGI("PCI device discovery");
     for (i = 0; i < pci_devices_num_devices(); i++) {
@@ -716,7 +757,7 @@ void *main_continued(void *arg)
         }
         entry = vmm_pci_create_irq_emulation(entry, irq);
         entry = vmm_pci_no_msi_cap_emulation(entry);
-        error = vmm_pci_add_entry(&vm.arch.pci, entry, NULL);
+        error = vmm_pci_add_entry(pci, entry, NULL);
         assert(!error);
     }
 
@@ -731,10 +772,14 @@ void *main_continued(void *arg)
     ZF_LOGI("Adding IO ports");
     for (i = 0; i < ARRAY_SIZE(ioport_handlers); i++) {
         if (ioport_handlers[i].port_in) {
-            error = vmm_io_port_add_handler(&vm.arch.io_port, ioport_handlers[i].start_port, ioport_handlers[i].end_port, NULL, ioport_handlers[i].port_in, ioport_handlers[i].port_out, ioport_handlers[i].desc);
+            ioport_range_t config_range = {ioport_handlers[i].start_port, ioport_handlers[i].end_port};
+            ioport_interface_t config_interface = {NULL, ioport_handlers[i].port_in, ioport_handlers[i].port_out,
+                ioport_handlers[i].desc};
+            error = vmm_io_port_add_handler(io_ports, config_range, config_interface);
             assert(!error);
         } else {
-            error = vmm_io_port_add_passthrough(&vm.arch.io_port, ioport_handlers[i].start_port, ioport_handlers[i].end_port, ioport_handlers[i].desc);
+            error = vm_enable_passthrough_ioport(vm_vcpu, ioport_handlers[i].start_port,
+                    ioport_handlers[i].end_port);
             assert(!error);
         }
     }
@@ -744,11 +789,13 @@ void *main_continued(void *arg)
         const char *desc;
         seL4_CPtr cap;
         desc = ioports_get_nonpci_ioport(i, &cap, &start, &end);
-        error = vmm_io_port_add_passthrough(&vm.arch.io_port, start, end, desc);
+        error = vm_enable_passthrough_ioport(vm_vcpu, start, end);
         assert(!error);
     }
     /* config start and end encomposes both addr and data ports */
-    error = vmm_io_port_add_handler(&vm.arch.io_port, X86_IO_PCI_CONFIG_START, X86_IO_PCI_CONFIG_END, &vm.arch.pci, vmm_pci_io_port_in, vmm_pci_io_port_out, "PCI Configuration Space");
+    ioport_range_t pci_config_range = {X86_IO_PCI_CONFIG_START, X86_IO_PCI_CONFIG_END};
+    ioport_interface_t pci_config_interface = {pci, vmm_pci_io_port_in, vmm_pci_io_port_out, "PCI Configuration Space"};
+    error = vmm_io_port_add_handler(io_ports, pci_config_range, pci_config_interface);
     assert(!error);
 
     /* Load in an elf file. Hard code alignment to 4M */

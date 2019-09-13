@@ -34,17 +34,20 @@
 #include <sel4vm/guest_vm.h>
 #include <sel4vm/guest_memory.h>
 
-#include "sel4vm/vmm.h"
-#include "sel4vm/driver/pci_helper.h"
-#include "sel4vm/driver/virtio_emul.h"
+#include <sel4pci/pci.h>
+#include <sel4pci/virtio_emul.h>
+#include <sel4vmmcore/drivers/virtio_net/virtio_net.h>
+
 #include "sel4vm/platform/ioports.h"
 
+#include "i8259.h"
 #include "vm.h"
 #include "virtio_net.h"
 
 static vswitch_t g_vswitch;
 static virtio_net_t *virtio_net = NULL;
 
+static vm_t *emul_vm;
 
 static void virtio_net_notify_vswitch_send(vswitch_node_t *node)
 {
@@ -269,13 +272,21 @@ static int make_vswitch_net(void)
     }
 }
 
-void make_virtio_net_vswitch(vm_t *vm)
+static void emul_raw_handle_irq(struct eth_driver *driver, int irq) {
+    i8259_gen_irq(6);
+}
+
+void make_virtio_net_vswitch_driver(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_ports)
 {
     struct raw_iface_funcs backend = virtio_net_default_backend();
     backend.raw_tx = emul_raw_tx;
     backend.low_level_init = emul_low_level_init;
+    backend.raw_handleIRQ = emul_raw_handle_irq;
+
+    emul_vm = vm;
 
     make_vswitch_net();
-    virtio_net = common_make_virtio_net(vm, 0x9040, backend);
+    virtio_net = common_make_virtio_net(vm, pci, io_ports, 0x9040, MASK(6), 6, 6, backend,
+            true);
     assert(virtio_net);
 }

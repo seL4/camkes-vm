@@ -1,5 +1,5 @@
 /*
- * Copyright 2017, Data61
+ * Copyright 2019, Data61
  * Commonwealth Scientific and Industrial Research Organisation (CSIRO)
  * ABN 41 687 119 230.
  *
@@ -10,13 +10,9 @@
  * @TAG(DATA61_GPL)
  */
 
-#ifndef VM_INIT_VIRTIO_NET_H
-#define VM_INIT_VIRTIO_NET_H
+#pragma once
 
 #include <sel4vmmcore/util/io.h>
 #include <sel4pci/pci.h>
 
-void make_virtio_net(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_ports);
-void virtio_net_notify(vm_t *vm);
-
-#endif
+void make_virtio_net_vswitch_driver(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_ports);

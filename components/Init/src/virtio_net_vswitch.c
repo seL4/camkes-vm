@@ -121,8 +121,7 @@ static int emul_raw_tx(struct eth_driver *driver,
         /* Copy the frame into the virtqueue of each of the targets we decided
          * upon.
          */
-        for (int j = destnode_start_idx;
-                j < destnode_start_idx + destnode_n_idxs; j++) {
+        for (int j = destnode_start_idx; j < destnode_start_idx + destnode_n_idxs; j++) {
             vswitch_node_t *destnode;
 
             destnode = vswitch_get_destnode_by_index(&g_vswitch, j);
@@ -154,7 +153,7 @@ static void emul_low_level_init(struct eth_driver *driver, uint8_t *mac, int *mt
 {
     struct ether_addr res;
     struct ether_addr *resp;
-    resp = ether_aton_r (vswitch_mac_address, &res);
+    resp = ether_aton_r(vswitch_mac_address, &res);
     if (resp == NULL) {
         ZF_LOGF("Failed to get MAC address");
     }
@@ -165,7 +164,7 @@ static void emul_low_level_init(struct eth_driver *driver, uint8_t *mac, int *mt
 
 static void get_self_mac_addr(struct ether_addr *self_addr)
 {
-    struct ether_addr * res = ether_aton_r (vswitch_mac_address, self_addr);
+    struct ether_addr *res = ether_aton_r(vswitch_mac_address, self_addr);
     if (res == NULL) {
         ZF_LOGF("Failed to get MAC address");
     }
@@ -217,7 +216,7 @@ static void virtio_net_notify_vswitch_recv(vswitch_node_t *node)
         size_t len = available_buff_sz;
         int enqueue_res = 0;
         /* Allocate ring space to put the eth frame into. */
-        emul_buf = (void*)virtio_net->emul_driver->i_cb.allocate_rx_buf(
+        emul_buf = (void *)virtio_net->emul_driver->i_cb.allocate_rx_buf(
                        virtio_net->emul_driver->cb_cookie,
                        available_buff_sz, &cookie);
         if (emul_buf == NULL) {
@@ -226,11 +225,11 @@ static void virtio_net_notify_vswitch_recv(vswitch_node_t *node)
             break;
         }
 
-        memcpy(emul_buf, (void*)available_buff, len);
+        memcpy(emul_buf, (void *)available_buff, len);
 
         virtio_net->emul_driver->i_cb.rx_complete(
             virtio_net->emul_driver->cb_cookie,
-            1, &cookie, (unsigned int*)&len);
+            1, &cookie, (unsigned int *)&len);
     }
 
     if (!virtqueue_add_used_buf(node->virtqueues.recv_queue, &handle, 0)) {
@@ -265,7 +264,7 @@ static int make_vswitch_net(void)
     for (int i = 0; i < num_vswitch_entries; i++) {
         struct vswitch_mapping mac_mapping = vswitch_layout[i];
         struct ether_addr guest_macaddr;
-        struct ether_addr *res = ether_aton_r (mac_mapping.mac_addr, &guest_macaddr);
+        struct ether_addr *res = ether_aton_r(mac_mapping.mac_addr, &guest_macaddr);
         virtqueue_driver_t *vq_send;
         virtqueue_device_t *vq_recv;
 

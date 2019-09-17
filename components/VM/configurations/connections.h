@@ -105,6 +105,8 @@
     vm##base_id.ether_##target_id##_recv_attributes = VAR_STRINGIZE(target_id##base_id); \
     vm##base_id.ether_##target_id##_recv_global_endpoint = VAR_STRINGIZE(vm##target_id); \
     vm##base_id.ether_##target_id##_recv_badge = CONNECTION_BADGE; \
+    vm##base_id.ether_##target_id##_send_shmem_size = 32768; \
+    vm##base_id.ether_##target_id##_recv_shmem_size = 32768; \
 
 // Add macaddress to virtqueue mapping. Called per connection per vm
 #define __ADD_MACADDR_MAPPING(base_id, vm_id, idx) \

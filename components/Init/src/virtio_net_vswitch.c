@@ -29,6 +29,7 @@
 #include <camkes/virtqueue.h>
 
 #include <vswitch.h>
+#include <virtqueue.h>
 
 #include "vmm/vmm.h"
 #include "vmm/driver/pci_helper.h"
@@ -46,15 +47,18 @@ static virtio_net_t *virtio_net = NULL;
 static void virtio_net_notify_vswitch_send(vswitch_node_t *node)
 {
     volatile void *used_buff = NULL;
-    size_t used_buff_sz = 0;
-    int dequeue_res = virtqueue_driver_dequeue(node->virtqueues.send_queue,
-                                               &used_buff,
-                                               &used_buff_sz);
-    if (dequeue_res) {
+    size_t used_buff_sz = 0, len;
+    virtqueue_ring_object_t handle;
+    vq_flags_t flags;
+
+    if (!virtqueue_get_used_buf(node->virtqueues.send_queue, &handle, &len)) {
         ZF_LOGE("Unable to dequeue used buff");
         return;
     }
-    camkes_virtqueue_buffer_free(node->virtqueues.send_queue, used_buff);
+    while (camkes_virtqueue_driver_gather_buffer(node->virtqueues.send_queue, &handle,
+                                                 &used_buff, &used_buff_sz, &flags) == 0) {
+        camkes_virtqueue_buffer_free(node->virtqueues.send_queue, used_buff);
+    }
 }
 
 /*
@@ -120,7 +124,6 @@ static int emul_raw_tx(struct eth_driver *driver,
         for (int j = destnode_start_idx;
                 j < destnode_start_idx + destnode_n_idxs; j++) {
             vswitch_node_t *destnode;
-            virtqueue_t *destbuff;
 
             destnode = vswitch_get_destnode_by_index(&g_vswitch, j);
             if (destnode == NULL) {
@@ -132,44 +135,15 @@ static int emul_raw_tx(struct eth_driver *driver,
                         PR_MAC802_ADDR_ARGS(destaddr));
                 continue;
             }
-            volatile void *alloc_buffer = NULL;
-            int err = camkes_virtqueue_buffer_alloc(destnode->virtqueues.send_queue, &alloc_buffer, len[i]);
-            if (err) {
-                ZF_LOGW("Dropping eth frame to dest " PR_MAC802_ADDR ": no buff "
-                        "available.",
-                        PR_MAC802_ADDR_ARGS(destaddr));
 
-                return ETHIF_TX_COMPLETE;
-            };
-
-            memcpy((void *)alloc_buffer, (void *)phys[i], len[i]);
-
-            err = virtqueue_driver_enqueue(destnode->virtqueues.send_queue,
-                                           alloc_buffer, len[i]);
-            if (err != 0) {
+            if (camkes_virtqueue_driver_scatter_send_buffer(destnode->virtqueues.send_queue, phys[i], len[i]) < 0) {
                 ZF_LOGE("Unknown error while enqueuing available buffer for dest "
                         PR_MAC802_ADDR ".",
                         PR_MAC802_ADDR_ARGS(destaddr));
-                camkes_virtqueue_buffer_free(destnode->virtqueues.send_queue, alloc_buffer);
                 return ETHIF_TX_COMPLETE;
             }
 
-            err = virtqueue_driver_signal(destnode->virtqueues.send_queue);
-            if (err != 0) {
-                ZF_LOGE("Unknown error while signaling dest "
-                        PR_MAC802_ADDR ".",
-                        PR_MAC802_ADDR_ARGS(destaddr));
-
-                return ETHIF_TX_COMPLETE;
-            }
-            /* This is a minor optimisation. We yield here to give the other end a chance to consume our
-             * transmited packet. When we resume at this point we then have the chance to send further
-             * packets, avoiding the need to drop them.
-             */
-            seL4_Yield();
-            if (virtqueue_driver_poll(destnode->virtqueues.send_queue) == 1) {
-                virtio_net_notify_vswitch_send(destnode);
-            }
+            destnode->virtqueues.send_queue->notify();
         }
     }
 
@@ -212,8 +186,8 @@ static void virtio_net_notify_vswitch_recv(vswitch_node_t *node)
 {
     int err;
     struct ether_addr myaddr;
-    virtqueue_t *rxdata_buff;
     ssize_t rxdata_buff_sz;
+    vq_flags_t flags;
 
     /* First we need to know who we are. Ask the template because it knows. */
     get_self_mac_addr(&myaddr);
@@ -231,11 +205,14 @@ static void virtio_net_notify_vswitch_recv(vswitch_node_t *node)
      */
     volatile void *available_buff = NULL;
     size_t available_buff_sz = 0;
-    int dequeue_res = virtqueue_device_dequeue(node->virtqueues.recv_queue,
-                                               &available_buff,
-                                               &available_buff_sz);
+    virtqueue_ring_object_t handle;
 
-    while (dequeue_res >= 0) {
+    if (!virtqueue_get_available_buf(node->virtqueues.recv_queue, &handle)) {
+        return;
+    }
+
+    while (camkes_virtqueue_device_gather_buffer(node->virtqueues.recv_queue, &handle,
+                                                 &available_buff, &available_buff_sz, &flags) >= 0) {
         void *cookie, *emul_buf;
         size_t len = available_buff_sz;
         int enqueue_res = 0;
@@ -246,11 +223,6 @@ static void virtio_net_notify_vswitch_recv(vswitch_node_t *node)
         if (emul_buf == NULL) {
             ZF_LOGW("Dropping frame for " PR_MAC802_ADDR ": No ring mem avail.",
                     PR_MAC802_ADDR_ARGS(&myaddr));
-            enqueue_res = virtqueue_device_enqueue(node->virtqueues.recv_queue, available_buff, available_buff_sz);
-            if (enqueue_res) {
-                ZF_LOGE("Unable to enqueue frame at " PR_MAC802_ADDR "",
-                        PR_MAC802_ADDR_ARGS(&myaddr));
-            }
             break;
         }
 
@@ -259,39 +231,24 @@ static void virtio_net_notify_vswitch_recv(vswitch_node_t *node)
         virtio_net->emul_driver->i_cb.rx_complete(
             virtio_net->emul_driver->cb_cookie,
             1, &cookie, (unsigned int*)&len);
-
-        enqueue_res = virtqueue_device_enqueue(node->virtqueues.recv_queue, available_buff, available_buff_sz);
-        if (enqueue_res) {
-            ZF_LOGE("Unable to enqueue frame at " PR_MAC802_ADDR "",
-                    PR_MAC802_ADDR_ARGS(&myaddr));
-        }
-        /* We yield here to give the other end a chance to send more virtqueues for us to consume. This is a minor
-         * optimisation to avoid having to re-enter the event loop on our global notification object. */
-        seL4_Yield();
-        dequeue_res = virtqueue_device_dequeue(node->virtqueues.recv_queue,
-                                               &available_buff,
-                                               &available_buff_sz);
     }
-    err = virtqueue_device_signal(node->virtqueues.recv_queue);
-    if (err) {
-        ZF_LOGW("Failed to signal on virtqueue meant for Guest "
-                PR_MAC802_ADDR ".",
+
+    if (!virtqueue_add_used_buf(node->virtqueues.recv_queue, &handle, 0)) {
+        ZF_LOGE("Unable to enqueue frame at " PR_MAC802_ADDR "",
                 PR_MAC802_ADDR_ARGS(&myaddr));
     }
+
+    node->virtqueues.recv_queue->notify();
 }
 
 void virtio_net_notify_vswitch(vmm_t *vmm)
 {
     for (int i = 0; i < VSWITCH_NUM_NODES; i++) {
-        if (g_vswitch.nodes[i].virtqueues.send_queue != NULL) {
-            if (virtqueue_driver_poll(g_vswitch.nodes[i].virtqueues.send_queue) == 1) {
-                virtio_net_notify_vswitch_send(&g_vswitch.nodes[i]);
-            }
+        if (g_vswitch.nodes[i].virtqueues.send_queue && VQ_DRV_POLL(g_vswitch.nodes[i].virtqueues.send_queue)) {
+            virtio_net_notify_vswitch_send(&g_vswitch.nodes[i]);
         }
-        if (g_vswitch.nodes[i].virtqueues.recv_queue != NULL) {
-            if (virtqueue_device_poll(g_vswitch.nodes[i].virtqueues.recv_queue) == 1) {
-                virtio_net_notify_vswitch_recv(&g_vswitch.nodes[i]);
-            }
+        if (g_vswitch.nodes[i].virtqueues.recv_queue && VQ_DEV_POLL(g_vswitch.nodes[i].virtqueues.recv_queue)) {
+            virtio_net_notify_vswitch_recv(&g_vswitch.nodes[i]);
         }
     }
 }
@@ -307,30 +264,24 @@ static int make_vswitch_net(void)
     int num_vswitch_entries = ARRAY_SIZE(vswitch_layout);
     for (int i = 0; i < num_vswitch_entries; i++) {
         struct vswitch_mapping mac_mapping = vswitch_layout[i];
-        virtqueue_driver_t *send_virtqueue;
-        virtqueue_device_t *recv_virtqueue;
-        err = camkes_virtqueue_driver_init(&send_virtqueue, mac_mapping.send_id);
-        if (err) {
-            ZF_LOGE("Unable to initialise send virtqueue for %s", mac_mapping.mac_addr);
-            continue;
-        }
-        err = camkes_virtqueue_device_init(&recv_virtqueue, mac_mapping.recv_id);
-        if (err) {
-            ZF_LOGE("Unable to initialise recv virtqueue for %s", mac_mapping.mac_addr);
-            camkes_virtqueue_driver_free(send_virtqueue);
-            continue;
-        }
         struct ether_addr guest_macaddr;
         struct ether_addr *res = ether_aton_r (mac_mapping.mac_addr, &guest_macaddr);
-        if (res == NULL) {
-            ZF_LOGF("Failed to get MAC address");
+        virtqueue_driver_t *vq_send;
+        virtqueue_device_t *vq_recv;
+
+        if (!((vq_send = malloc(sizeof(*vq_send))) && (vq_recv = malloc(sizeof(*vq_recv))))) {
+            ZF_LOGE("Unable to malloc memory for virtqueues");
+            return -1;
+        }
+        if (camkes_virtqueue_driver_init(vq_send, mac_mapping.send_id) < 0 ||
+            camkes_virtqueue_device_init(vq_recv, mac_mapping.recv_id)) {
+            ZF_LOGE("Unable to init virtqueues");
+            return -1;
         }
 
-        err = vswitch_connect(&g_vswitch, &guest_macaddr, send_virtqueue, recv_virtqueue);
+        err = vswitch_connect(&g_vswitch, &guest_macaddr, vq_send, vq_recv);
         if (err) {
             ZF_LOGE("Unable to initialise vswitch for MAC address: %s", mac_mapping.mac_addr);
-            camkes_virtqueue_driver_free(send_virtqueue);
-            camkes_virtqueue_device_free(recv_virtqueue);
         }
     }
 }

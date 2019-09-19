@@ -51,13 +51,11 @@ static void virtio_net_notify_vswitch_send(vswitch_node_t *node)
     virtqueue_ring_object_t handle;
     vq_flags_t flags;
 
-    if (!virtqueue_get_used_buf(node->virtqueues.send_queue, &handle, &len)) {
-        ZF_LOGE("Unable to dequeue used buff");
-        return;
-    }
-    while (camkes_virtqueue_driver_gather_buffer(node->virtqueues.send_queue, &handle,
-                                                 &used_buff, &used_buff_sz, &flags) == 0) {
-        camkes_virtqueue_buffer_free(node->virtqueues.send_queue, used_buff);
+    while (virtqueue_get_used_buf(node->virtqueues.send_queue, &handle, &len)) {
+        while (camkes_virtqueue_driver_gather_buffer(node->virtqueues.send_queue,
+                                                     &handle, &used_buff, &used_buff_sz, &flags) == 0) {
+            camkes_virtqueue_buffer_free(node->virtqueues.send_queue, used_buff);
+        }
     }
 }
 
@@ -135,7 +133,7 @@ static int emul_raw_tx(struct eth_driver *driver,
                 continue;
             }
 
-            if (camkes_virtqueue_driver_scatter_send_buffer(destnode->virtqueues.send_queue, phys[i], len[i]) < 0) {
+            if (camkes_virtqueue_driver_scatter_send_buffer(destnode->virtqueues.send_queue, (void *)phys[i], len[i]) < 0) {
                 ZF_LOGE("Unknown error while enqueuing available buffer for dest "
                         PR_MAC802_ADDR ".",
                         PR_MAC802_ADDR_ARGS(destaddr));
@@ -173,13 +171,7 @@ static void get_self_mac_addr(struct ether_addr *self_addr)
 
 /*
  * We recieve packets from other VM's through using our virtqueue
- * implementation. The current virtqueue implementation is limited to
- * recieving a single packet at a time. Our RX implementation is
- * limited by the following:
- * - Can't recieve payloads larger than 4K (maximum size of buffer)
- * - Can recive only one packet at once
- *   - We yield between packet consumes to give the other end a
- *   chance to send further virtqueue buffers.
+ * implementation.
  */
 static void virtio_net_notify_vswitch_recv(vswitch_node_t *node)
 {
@@ -202,39 +194,29 @@ static void virtio_net_notify_vswitch_recv(vswitch_node_t *node)
     /* The eth frame is already in the virtqueue. It was placed there by
      * the sender's libvswitch instance. Check the virtqueue and pull it out.
      */
-    volatile void *available_buff = NULL;
-    size_t available_buff_sz = 0;
     virtqueue_ring_object_t handle;
 
-    if (!virtqueue_get_available_buf(node->virtqueues.recv_queue, &handle)) {
-        return;
-    }
-
-    while (camkes_virtqueue_device_gather_buffer(node->virtqueues.recv_queue, &handle,
-                                                 &available_buff, &available_buff_sz, &flags) >= 0) {
+    while (virtqueue_get_available_buf(node->virtqueues.recv_queue, &handle)) {
         void *cookie, *emul_buf;
-        size_t len = available_buff_sz;
+        size_t len = virtqueue_scattered_available_size(node->virtqueues.recv_queue, &handle);
         int enqueue_res = 0;
+
         /* Allocate ring space to put the eth frame into. */
-        emul_buf = (void *)virtio_net->emul_driver->i_cb.allocate_rx_buf(
-                       virtio_net->emul_driver->cb_cookie,
-                       available_buff_sz, &cookie);
+        emul_buf = (void *)virtio_net->emul_driver->i_cb.allocate_rx_buf(virtio_net->emul_driver->cb_cookie,
+                                                                         len, &cookie);
         if (emul_buf == NULL) {
             ZF_LOGW("Dropping frame for " PR_MAC802_ADDR ": No ring mem avail.",
                     PR_MAC802_ADDR_ARGS(&myaddr));
             break;
         }
+        if (camkes_virtqueue_device_gather_copy_buffer(node->virtqueues.recv_queue, &handle, emul_buf, len) < 0) {
+            ZF_LOGW("Dropping frame for " PR_MAC802_ADDR ": Can't gather vq buffer.",
+                    PR_MAC802_ADDR_ARGS(&myaddr));
+            break;
+        }
 
-        memcpy(emul_buf, (void *)available_buff, len);
-
-        virtio_net->emul_driver->i_cb.rx_complete(
-            virtio_net->emul_driver->cb_cookie,
-            1, &cookie, (unsigned int *)&len);
-    }
-
-    if (!virtqueue_add_used_buf(node->virtqueues.recv_queue, &handle, 0)) {
-        ZF_LOGE("Unable to enqueue frame at " PR_MAC802_ADDR "",
-                PR_MAC802_ADDR_ARGS(&myaddr));
+        virtio_net->emul_driver->i_cb.rx_complete(virtio_net->emul_driver->cb_cookie, 1,
+                                                  &cookie, (unsigned int *)&len);
     }
 
     node->virtqueues.recv_queue->notify();

@@ -448,7 +448,7 @@ static seL4_Word irq_badges[16] = {
 
 void serial_character_interrupt(void);
 
-static int handle_async_event(vm_t *vm, seL4_Word badge, seL4_Word label, void *cookie) {
+static int handle_async_event(vm_t *vm, seL4_Word badge, UNUSED seL4_MessageInfo_t tag, void *cookie) {
     if (badge & BIT(27)) {
         if ((badge & VM_INIT_TIMER_BADGE) == VM_INIT_TIMER_BADGE) {
             uint32_t completed = init_timer_completed();

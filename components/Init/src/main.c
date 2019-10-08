@@ -228,7 +228,6 @@ static memory_range_t guest_ram_regions[] = {
 
 static memory_range_t guest_fake_devices[] = {
     {0xf0000, 0x10000}, // DMI
-    {0xe0000, 0x10000}, // PCI BIOS
     {0xc0000, 0xc8000 - 0xc0000}, // VIDEO BIOS
     {0xc8000, 0xe0000 - 0xc8000}, // Mapped hardware and MISC
 };

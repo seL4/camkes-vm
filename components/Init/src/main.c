@@ -48,6 +48,8 @@
 #include "sel4vm/vchan_component.h"
 #include <sel4vm/vmcall.h>
 
+#include <sel4vmmplatsupport/guest_image.h>
+
 #include "sel4vm/vmm_manager.h"
 #include "vm.h"
 #include "i8259.h"
@@ -797,23 +799,30 @@ void *main_continued(void *arg)
     error = vmm_io_port_add_handler(io_ports, pci_config_range, pci_config_interface);
     assert(!error);
 
-    /* Load in an elf file. Hard code alignment to 4M */
-    /* TODO: use proper libc file handles with the CPIO file system */
-    ZF_LOGI("Elf loading");
-    error = vmm_load_guest_elf(&vm, kernel_image, BIT(PAGE_BITS_4M));
-    ZF_LOGF_IF(error, "Failed to load guest elf file");
-
-    /* Relocate the elf */
-    ZF_LOGI("Relocate elf");
-    vmm_plat_guest_elf_relocate(&vm, kernel_relocs);
+    uintptr_t kernel_load_addr;
+    uintptr_t kernel_region_size;
+    error = vm_ram_find_largest_free_region(&vm, &kernel_load_addr, &kernel_region_size);
+    ZF_LOGF_IF(error, "Unable to find ram region for loading kernel image");
+    guest_kernel_image_t guest_kernel_image;
+    guest_kernel_image.kernel_image_arch.is_reloc_enabled = true;
+    guest_kernel_image.kernel_image_arch.relocs_file = kernel_relocs;
+    error =  vm_load_guest_kernel(&vm, kernel_image, kernel_load_addr, BIT(PAGE_BITS_4M), &guest_kernel_image);
+    ZF_LOGF_IF(error, "Failed to load guest kernel file");
 
     /* Add a boot module */
+    guest_image_t guest_boot_image;
     if (have_initrd) {
-        error = vmm_guest_load_boot_module(&vm, initrd_image);
+        uintptr_t initrd_load_addr;
+        uintptr_t initrd_region_size;
+        error = vm_ram_find_largest_free_region(&vm, &initrd_load_addr, &initrd_region_size);
+        ZF_LOGF_IF(error, "Unable to find ram region for loading initrd image");
+        error = vm_load_guest_module(&vm, initrd_image, initrd_load_addr, 0, &guest_boot_image);
         ZF_LOGF_IF(error, "Failed to load boot module");
     }
 
-    vmm_plat_init_guest_boot_structure(&vm, kernel_cmdline);
+    vmm_plat_init_guest_boot_structure(&vm, kernel_cmdline,
+            guest_kernel_image.kernel_image.load_paddr, guest_kernel_image.kernel_image.alignment,
+            guest_boot_image.load_paddr, guest_boot_image.size);
 
     error = reg_new_handler(&vm, &vchan_handler, VMM_MANAGER_TOKEN);
     ZF_LOGF_IF(error, "Failed register vchan_handler");

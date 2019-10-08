@@ -846,7 +846,7 @@ void *main_continued(void *arg)
 
     /* Final VMM setup now that everything is defined and loaded */
     ZF_LOGI("Finalising VMM");
-    error = vmm_finalize(&vm);
+    vmm_init_guest_thread_state(vm_vcpu, guest_kernel_image.kernel_image_arch.entry);
     ZF_LOGF_IF(error, "Failed to finalise VMM");
 
     /* Now go run the event loop */

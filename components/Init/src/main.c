@@ -652,7 +652,7 @@ void *main_continued(void *arg)
 
     /* Do we need to do any early reservations of guest address space? */
     for (i = 0; i < ARRAY_SIZE(guest_ram_regions); i++) {
-        error = vm_ram_register_at(&vm, guest_ram_regions[i].base, guest_ram_regions[i].size, true);
+        error = vm_ram_register_at(&vm, guest_ram_regions[i].base, guest_ram_regions[i].size, false);
         ZF_LOGF_IF(error, "Failed to alloc guest ram at %p", (void*)guest_ram_regions[i].base);
     }
 
@@ -703,7 +703,7 @@ void *main_continued(void *arg)
     size_t remaining = MiB_TO_BYTES(guest_ram_mb);
     while (remaining > 0) {
         size_t allocate = MIN(remaining, MiB_TO_BYTES(512));
-        uintptr_t res_addr = vm_ram_register(&vm, allocate, paddr_is_vaddr);
+        uintptr_t res_addr = vm_ram_register(&vm, allocate);
         ZF_LOGF_IF(!res_addr, "Failed to allocate %lu bytes of guest ram. Already allocated %lu.",
             (long)allocate, (long)(MiB_TO_BYTES(guest_ram_mb) - remaining));
         remaining -= allocate;

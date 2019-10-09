@@ -32,9 +32,9 @@
 #include <sel4vm/guest_vm.h>
 #include <sel4vm/guest_memory.h>
 
-#include <sel4pci/pci.h>
-#include <sel4pci/virtio_emul.h>
-#include <sel4vmmcore/drivers/virtio_net/virtio_net.h>
+#include <sel4vmmplatsupport/drivers/pci.h>
+#include <sel4vmmplatsupport/drivers/virtio_pci_emul.h>
+#include <sel4vmmplatsupport/drivers/virtio_net.h>
 
 #include "vm.h"
 #include "i8259.h"

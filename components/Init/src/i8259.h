@@ -37,8 +37,8 @@ void i8259_level_lower(int irq);
 void i8259_level_set(int irq, int level);
 
 /* Port in/out functions for i8259 emulation */
-int i8259_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
-int i8259_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
+ioport_fault_result_t i8259_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
+ioport_fault_result_t i8259_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
 
 /* Init function */
 void i8259_pre_init(void);

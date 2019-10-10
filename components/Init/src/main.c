@@ -36,6 +36,7 @@
 #include <sel4vm/guest_memory_util.h>
 #include <sel4vm/guest_ram.h>
 #include <sel4vm/guest_iospace.h>
+#include <sel4vm/ioports.h>
 
 #include <sel4vmmplatsupport/ioports.h>
 #include <sel4vmmplatsupport/drivers/pci.h>
@@ -293,14 +294,14 @@ typedef struct ioport_desc {
     const char *desc;
 } ioport_desc_t;
 
-int i8254_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
-int i8254_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
+ioport_fault_result_t i8254_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
+ioport_fault_result_t i8254_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
 
-int cmos_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
-int cmos_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
+ioport_fault_result_t cmos_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
+ioport_fault_result_t cmos_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
 
-int serial_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
-int serial_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
+ioport_fault_result_t serial_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
+ioport_fault_result_t serial_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
 
 ioport_desc_t ioport_handlers[] = {
     {X86_IO_SERIAL_1_START,   X86_IO_SERIAL_1_END,   serial_port_in, serial_port_out, "COM1 Serial Port"},
@@ -607,7 +608,7 @@ void *main_continued(void *arg)
     error = vm_register_notification_callback(&vm, handle_async_event, NULL);
     assert(!error);
 
-    error = vm_register_ioport_callback(&vm, ioport_callback_handler, NULL);
+    error = vm_register_unhandled_ioport_callback(&vm, ioport_callback_handler, NULL);
     assert(!error);
 
     /* Initialize the init device badges and notification functions */
@@ -773,10 +774,10 @@ void *main_continued(void *arg)
     ZF_LOGI("Adding IO ports");
     for (i = 0; i < ARRAY_SIZE(ioport_handlers); i++) {
         if (ioport_handlers[i].port_in) {
-            ioport_range_t config_range = {ioport_handlers[i].start_port, ioport_handlers[i].end_port};
-            ioport_interface_t config_interface = {NULL, ioport_handlers[i].port_in, ioport_handlers[i].port_out,
+            vm_ioport_range_t config_range = {ioport_handlers[i].start_port, ioport_handlers[i].end_port};
+            vm_ioport_interface_t config_interface = {NULL, ioport_handlers[i].port_in, ioport_handlers[i].port_out,
                 ioport_handlers[i].desc};
-            error = vmm_io_port_add_handler(io_ports, config_range, config_interface);
+            error = vm_io_port_add_handler(&vm, config_range, config_interface);
             assert(!error);
         } else {
             error = vm_enable_passthrough_ioport(vm_vcpu, ioport_handlers[i].start_port,
@@ -794,9 +795,9 @@ void *main_continued(void *arg)
         assert(!error);
     }
     /* config start and end encomposes both addr and data ports */
-    ioport_range_t pci_config_range = {X86_IO_PCI_CONFIG_START, X86_IO_PCI_CONFIG_END};
-    ioport_interface_t pci_config_interface = {pci, vmm_pci_io_port_in, vmm_pci_io_port_out, "PCI Configuration Space"};
-    error = vmm_io_port_add_handler(io_ports, pci_config_range, pci_config_interface);
+    vm_ioport_range_t pci_config_range = {X86_IO_PCI_CONFIG_START, X86_IO_PCI_CONFIG_END};
+    vm_ioport_interface_t pci_config_interface = {pci, vmm_pci_io_port_in, vmm_pci_io_port_out, "PCI Configuration Space"};
+    error = vm_io_port_add_handler(&vm, pci_config_range, pci_config_interface);
     assert(!error);
 
     uintptr_t kernel_load_addr;

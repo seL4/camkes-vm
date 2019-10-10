@@ -40,6 +40,7 @@
 #include <sel4/sel4.h>
 #include <stdio.h>
 #include <camkes.h>
+#include <sel4vm/ioports.h>
 #include "i8259.h"
 #include "timers.h"
 #include <platsupport/arch/tsc.h>
@@ -605,21 +606,21 @@ void pit_pre_init(void) {
     pit_reset(&pit_state);
 }
 
-int i8254_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
+ioport_fault_result_t i8254_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
     if (size != 1) {
         LOG_ERROR("i8254 only supports reads of size 1");
-        return -1;
+        return IO_FAULT_ERROR;
     }
     *result = pit_ioport_read(&pit_state, port_no, 1);
-    return 0;
+    return IO_FAULT_HANDLED;
 }
 
-int i8254_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value) {
+ioport_fault_result_t i8254_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value) {
     if (size != 1) {
         LOG_ERROR("i8254 only supports writes of size 1");
-        return -1;
+        return IO_FAULT_ERROR;
     }
     pit_ioport_write(&pit_state, port_no, value, 1);
-    return 0;
+    return IO_FAULT_HANDLED;
 }
 

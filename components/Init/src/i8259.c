@@ -25,6 +25,8 @@
 #include <stdio.h>
 #include <camkes.h>
 #include <utils/util.h>
+#include <sel4vm/ioports.h>
+
 #include "i8259.h"
 
 #define I8259_MASTER   0
@@ -433,15 +435,15 @@ static unsigned int elcr_ioport_read(struct i8259_state *s, unsigned int addr) {
 }
 
 
-int i8259_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value) {
+ioport_fault_result_t i8259_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value) {
     /* Sender thread is the VMM main thread, calculate guest ID according to the badge. */
     struct i8259 *s = &i8259_gs;
 
     if (!i8259_in_range(port_no)) {
-        return -1;
+        return IO_FAULT_ERROR;
     }
     if (size != 1) {
-        return -1;
+        return IO_FAULT_ERROR;
     }
 
     /* 0x20, 0x21, master pic, 0xa0, 0xa1 slave PIC. */
@@ -458,18 +460,18 @@ int i8259_port_out(void *cookie, unsigned int port_no, unsigned int size, unsign
             break;
     }
 
-    return 0;
+    return IO_FAULT_HANDLED;
 }
 
-int i8259_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
+ioport_fault_result_t i8259_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
     /* Sender thread is the VMM main thread, calculate guest ID according to the badge. */
     struct i8259 *s = &i8259_gs;
 
     if (!i8259_in_range(port_no)) {
-        return -1;
+        return IO_FAULT_ERROR;
     }
     if (size != 1) {
-        return -1;
+        return IO_FAULT_ERROR;
     }
 
     /* 0x20, 0x21, master pic, 0xa0, 0xa1 slave PIC. */
@@ -485,7 +487,7 @@ int i8259_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigne
             *result = elcr_ioport_read(&s->pics[port_no & 1], port_no);
             break;
     }
-    return 0;
+    return IO_FAULT_HANDLED;
 }
 
 /* Init internal status for PIC driver. */

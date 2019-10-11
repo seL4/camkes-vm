@@ -289,19 +289,19 @@ vmm_pci_config_t make_camkes_pci_config()
 typedef struct ioport_desc {
     uint16_t start_port;
     uint16_t end_port;
-    ioport_in_fn port_in;
-    ioport_out_fn port_out;
+    vm_ioport_in_fn port_in;
+    vm_ioport_out_fn port_out;
     const char *desc;
 } ioport_desc_t;
 
-ioport_fault_result_t i8254_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
-ioport_fault_result_t i8254_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
+ioport_fault_result_t i8254_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
+ioport_fault_result_t i8254_port_out(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
 
-ioport_fault_result_t cmos_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
-ioport_fault_result_t cmos_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
+ioport_fault_result_t cmos_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
+ioport_fault_result_t cmos_port_out(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
 
-ioport_fault_result_t serial_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
-ioport_fault_result_t serial_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
+ioport_fault_result_t serial_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
+ioport_fault_result_t serial_port_out(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
 
 ioport_desc_t ioport_handlers[] = {
     {X86_IO_SERIAL_1_START,   X86_IO_SERIAL_1_END,   serial_port_in, serial_port_out, "COM1 Serial Port"},
@@ -544,7 +544,7 @@ void init_con_irq_init(void)
     }
 }
 
-ioport_fault_result_t ioport_callback_handler(vm_t *vm, unsigned int port_no, bool is_in, unsigned int *value,
+ioport_fault_result_t ioport_callback_handler(vm_vcpu_t *vcpu, unsigned int port_no, bool is_in, unsigned int *value,
         size_t size, void *cookie) {
     ioport_fault_result_t result;
     int res = emulate_io_handler(io_ports, port_no, is_in, size, value);

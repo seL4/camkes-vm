@@ -1026,7 +1026,7 @@ void serial_pre_init(void) {
     serial_update_msl(s);
 }
 
-ioport_fault_result_t serial_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
+ioport_fault_result_t serial_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
     if (size != 1) {
         LOG_ERROR("serial only supports reads of size 1");
         return IO_FAULT_ERROR;
@@ -1035,7 +1035,7 @@ ioport_fault_result_t serial_port_in(void *cookie, unsigned int port_no, unsigne
     return IO_FAULT_HANDLED;
 }
 
-ioport_fault_result_t serial_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value) {
+ioport_fault_result_t serial_port_out(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int value) {
     if (size != 1) {
         LOG_ERROR("serial only supports writes of size 1");
         return IO_FAULT_ERROR;

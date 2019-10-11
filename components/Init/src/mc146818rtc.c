@@ -799,7 +799,7 @@ void rtc_pre_init(void) {
     rtc_reset(&rtc_state);
 }
 
-ioport_fault_result_t cmos_port_in(void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
+ioport_fault_result_t cmos_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
     if (size != 1) {
         assert(!"Reads to CMOS ports must be of size 1");
         return IO_FAULT_ERROR;
@@ -808,7 +808,7 @@ ioport_fault_result_t cmos_port_in(void *cookie, unsigned int port_no, unsigned 
     return IO_FAULT_HANDLED;
 }
 
-ioport_fault_result_t cmos_port_out(void *cookie, unsigned int port_no, unsigned int size, unsigned int value) {
+ioport_fault_result_t cmos_port_out(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int value) {
     if (size != 1) {
         assert(!"Writes to CMOS ports must be of size 1");
         return IO_FAULT_ERROR;

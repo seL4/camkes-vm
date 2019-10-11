@@ -33,8 +33,8 @@
 #include <sel4/sel4.h>
 #include <camkes.h>
 #include <sel4vm/ioports.h>
+#include <sel4vm/guest_irq_controller.h>
 #include "timers.h"
-#include "i8259.h"
 
 #define TARGET_I386
 
@@ -148,6 +148,8 @@ static void rtc_copy_date(RTCState *s);
 
 static int rtc_td_hack = 0;
 
+extern vm_t vm;
+
 #ifdef TARGET_I386
 static void rtc_coalesced_timer_update(RTCState *s)
 {
@@ -175,7 +177,7 @@ static void rtc_coalesced_timer(void *opaque)
         s->cmos_data[RTC_REG_C] |= 0xc0;
         DPRINTF_C("cmos: injecting from timer\n");
 //        qemu_irq_raise(s->irq);
-        i8259_level_raise(8);
+        vm_set_irq_level(&vm, 8, 1);
 //        if (apic_get_irq_delivered()) {
 //            s->irq_coalesced--;
 //            DPRINTF_C("cmos: coalesced irqs decreased to %d\n",
@@ -236,7 +238,7 @@ static void rtc_periodic_timer(void *opaque)
                 s->irq_reinject_on_ack_count = 0;
 //            apic_reset_irq_delivered();
 //            qemu_irq_raise(s->irq);
-            i8259_level_raise(8);
+            vm_set_irq_level(&vm, 8, 1);
 //            if (!apic_get_irq_delivered()) {
 //                s->irq_coalesced++;
 //                rtc_coalesced_timer_update(s);
@@ -246,13 +248,13 @@ static void rtc_periodic_timer(void *opaque)
         } else
 #endif
 //        qemu_irq_raise(s->irq);
-            i8259_level_raise(8);
+            vm_set_irq_level(&vm, 8, 1);
     }
     if (s->cmos_data[RTC_REG_B] & REG_B_SQWE) {
         /* Not square wave at all but we don't want 2048Hz interrupts!
            Must be seen as a pulse.  */
 //        qemu_irq_raise(s->sqw_irq);
-        i8259_level_raise(8);
+        vm_set_irq_level(&vm, 8, 1);
     }
 }
 
@@ -491,7 +493,7 @@ static void rtc_update_second2(void *opaque)
 
             s->cmos_data[RTC_REG_C] |= 0xa0;
 //            qemu_irq_raise(s->irq);
-            i8259_level_raise(8);
+            vm_set_irq_level(&vm, 8, 1);
         }
     }
 
@@ -500,7 +502,7 @@ static void rtc_update_second2(void *opaque)
     if (s->cmos_data[RTC_REG_B] & REG_B_UIE) {
         s->cmos_data[RTC_REG_C] |= REG_C_IRQF;
 //        qemu_irq_raise(s->irq);
-        i8259_level_raise(8);
+        vm_set_irq_level(&vm, 8, 1);
     }
 
     /* clear update in progress bit */
@@ -534,7 +536,7 @@ static uint32_t cmos_ioport_read(void *opaque, uint32_t addr)
         case RTC_REG_C:
             ret = s->cmos_data[s->cmos_index];
 //            qemu_irq_lower(s->irq);
-            i8259_level_lower(8);
+            vm_set_irq_level(&vm, 8, 0);
 #ifdef TARGET_I386
             if(s->irq_coalesced &&
                     s->irq_reinject_on_ack_count < RTC_REINJECT_ON_ACK_COUNT) {
@@ -542,7 +544,7 @@ static uint32_t cmos_ioport_read(void *opaque, uint32_t addr)
 //                apic_reset_irq_delivered();
                 DPRINTF_C("cmos: injecting on ack\n");
 //                qemu_irq_raise(s->irq);
-                i8259_level_raise(8);
+                vm_set_irq_level(&vm, 8, 1);
 //                if (apic_get_irq_delivered()) {
 //                    s->irq_coalesced--;
 //                    DPRINTF_C("cmos: coalesced irqs decreased to %d\n",
@@ -675,7 +677,7 @@ static void rtc_reset(void *opaque)
     s->cmos_data[RTC_REG_C] &= ~(REG_C_UF | REG_C_IRQF | REG_C_PF | REG_C_AF);
 
 //    qemu_irq_lower(s->irq);
-    i8259_level_lower(8);
+    vm_set_irq_level(&vm, 8, 0);
 
 #ifdef TARGET_I386
     if (rtc_td_hack)

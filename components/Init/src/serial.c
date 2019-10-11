@@ -36,9 +36,11 @@
 #include <string.h>
 #include <camkes.h>
 #include <sel4vm/ioports.h>
-#include "i8259.h"
+#include <sel4vm/guest_irq_controller.h>
 #include "timers.h"
 #include <platsupport/arch/tsc.h>
+
+extern vm_t vm;
 
 //#define DEBUG_SERIAL
 
@@ -269,10 +271,11 @@ static void serial_update_irq(SerialState *s)
     s->iir = tmp_iir | (s->iir & 0xF0);
 
     if (tmp_iir != UART_IIR_NO_INT) {
-        i8259_level_set(4, 1);
+
+        vm_set_irq_level(&vm, 4, 1);
 //        qemu_irq_raise(s->irq);
     } else {
-        i8259_level_set(4, 0);
+        vm_set_irq_level(&vm, 4, 0);
 //        qemu_irq_lower(s->irq);
     }
 }

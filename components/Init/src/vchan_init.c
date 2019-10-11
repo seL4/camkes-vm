@@ -22,6 +22,7 @@
 #include <sel4vm/guest_vm.h>
 #include <sel4vm/guest_memory.h>
 #include <sel4vm/guest_ram.h>
+#include <sel4vm/guest_irq_controller.h>
 
 #include "sel4vm/debug.h"
 #include "sel4vm/vmm.h"
@@ -30,8 +31,6 @@
 #include "sel4vm/vchan_component.h"
 #include "sel4vm/vmcall.h"
 #include "vm.h"
-
-#include "i8259.h"
 
 #include <camkes.h>
 
@@ -129,7 +128,7 @@ void vchan_interrupt(vm_t *vm) {
             in_alert.alert = vchan_camkes_component.alert_status(ct);
 
             data_to_guest(vm, addr, sizeof(vchan_alert_t), &in_alert);
-            i8259_gen_irq(VCHAN_EVENT_IRQ);
+            vm_inject_irq(vm, VCHAN_EVENT_IRQ);
         }
     }
 }

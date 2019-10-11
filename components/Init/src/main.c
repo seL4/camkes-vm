@@ -37,6 +37,7 @@
 #include <sel4vm/guest_ram.h>
 #include <sel4vm/guest_iospace.h>
 #include <sel4vm/ioports.h>
+#include <sel4vm/guest_irq_controller.h>
 
 #include <sel4vmmplatsupport/ioports.h>
 #include <sel4vmmplatsupport/drivers/pci.h>
@@ -53,7 +54,6 @@
 
 #include "sel4vm/vmm_manager.h"
 #include "vm.h"
-#include "i8259.h"
 #include "timers.h"
 #include "fsclient.h"
 #include "vchan_init.h"
@@ -85,9 +85,10 @@ static vka_t vka;
 static vspace_t vspace;
 static sel4utils_alloc_data_t vspace_data;
 struct ps_io_ops io_ops;
-static vm_t vm;
 static vmm_pci_space_t *pci;
 static vmm_io_port_list_t *io_ports;
+
+vm_t vm;
 
 int cross_vm_dataports_init(vm_t *vm) WEAK;
 int cross_vm_consumes_events_init(vm_t *vm, vspace_t *vspace, seL4_Word irq_badge) WEAK;
@@ -306,9 +307,6 @@ ioport_fault_result_t serial_port_out(vm_vcpu_t *vcpu, void *cookie, unsigned in
 ioport_desc_t ioport_handlers[] = {
     {X86_IO_SERIAL_1_START,   X86_IO_SERIAL_1_END,   serial_port_in, serial_port_out, "COM1 Serial Port"},
 //    {X86_IO_SERIAL_3_START,   X86_IO_SERIAL_3_END,   NULL, NULL, "COM3 Serial Port"},
-    {X86_IO_PIC_1_START,      X86_IO_PIC_1_END,      i8259_port_in, i8259_port_out, "8259 Programmable Interrupt Controller (1st, Master)"},
-    {X86_IO_PIC_2_START,      X86_IO_PIC_2_END,      i8259_port_in, i8259_port_out, "8259 Programmable Interrupt Controller (2nd, Slave)"},
-    {X86_IO_ELCR_START,       X86_IO_ELCR_END,       i8259_port_in, i8259_port_out, "ELCR (edge/level control register) for IRQ line"},
     /* PCI config requires a cookie and is specced dynamically in code */
 //    {X86_IO_PCI_CONFIG_START, X86_IO_PCI_CONFIG_END, vmm_pci_io_port_in, vmm_pci_io_port_out, "PCI Configuration"},
     {X86_IO_RTC_START,        X86_IO_RTC_END,        cmos_port_in, cmos_port_out, "CMOS Registers / RTC Real-Time Clock / NMI Interrupts"},
@@ -471,7 +469,7 @@ static int handle_async_event(vm_t *vm, seL4_Word badge, UNUSED seL4_MessageInfo
         }
         for (int i = 0; i < 16; i++) {
             if ((badge & irq_badges[i]) == irq_badges[i]) {
-                i8259_gen_irq(i);
+                vm_inject_irq(vm, i);
             }
         }
         for (int i = 0; i < device_notify_list_len; i++) {
@@ -482,11 +480,16 @@ static int handle_async_event(vm_t *vm, seL4_Word badge, UNUSED seL4_MessageInfo
             }
         }
     }
-    /* return 0 to indicate an interrupt occured */
-    return i8259_has_interrupt() ? 0 : 1;
+    return 0;
 }
 
-static void init_irqs()
+static void irq_ack_hw_irq_handler(vm_t *vm, int irq, void *cookie) {
+    seL4_CPtr handler = (seL4_CPtr) cookie;
+    int UNUSED error = seL4_IRQHandler_Ack(handler);
+    assert(!error);
+}
+
+static void init_irqs(vm_t *vm)
 {
     int error UNUSED;
 
@@ -515,7 +518,8 @@ static void init_irqs()
         ZF_LOGF_IF(error, "Failed to set notification for irq handler");
         error = seL4_IRQHandler_Ack(irq_handler);
         ZF_LOGF_IF(error, "Failed to ack irq handler");
-        i8259_register_hw_ack(dest, irq_handler);
+        error = vm_register_irq(vm, dest, irq_ack_hw_irq_handler, (void *)irq_handler);
+        ZF_LOGF_IF(error, "Failed to register irq ack handler");
     }
 }
 
@@ -591,8 +595,6 @@ void *main_continued(void *arg)
     seL4_CPtr ready_notification_cap = intready_notification();
     /* Construct a new VM */
     struct vm_init_x86_config vm_init_x86_params = {
-        .get_interrupt = i8259_get_interrupt,
-        .has_interrupt = i8259_has_interrupt,
         .notification_cap = ready_notification_cap
     };
 
@@ -618,10 +620,11 @@ void *main_continued(void *arg)
     have_initrd = !(strcmp(initrd_image, "") == 0);
 
     ZF_LOGI("Init irqs");
-    init_irqs();
+    init_irqs(&vm);
 
-    ZF_LOGI("i8259 pre init");
-    i8259_pre_init();
+    ZF_LOGI("IRQ controller init");
+    error = vm_create_default_irq_controller(&vm);
+    ZF_LOGF_IF(error, "IRQ Controller init failed");
 
     ZF_LOGI("serial pre init");
     serial_pre_init();

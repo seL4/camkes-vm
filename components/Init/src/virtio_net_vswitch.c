@@ -33,6 +33,7 @@
 
 #include <sel4vm/guest_vm.h>
 #include <sel4vm/guest_memory.h>
+#include <sel4vm/guest_irq_controller.h>
 
 #include <sel4vmmplatsupport/drivers/pci.h>
 #include <sel4vmmplatsupport/drivers/virtio_pci_emul.h>
@@ -40,7 +41,6 @@
 
 #include "sel4vm/platform/ioports.h"
 
-#include "i8259.h"
 #include "vm.h"
 #include "virtio_net.h"
 
@@ -273,7 +273,7 @@ static int make_vswitch_net(void)
 }
 
 static void emul_raw_handle_irq(struct eth_driver *driver, int irq) {
-    i8259_gen_irq(6);
+    vm_inject_irq(emul_vm, 6);
 }
 
 void make_virtio_net_vswitch_driver(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_ports)

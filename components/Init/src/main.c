@@ -46,11 +46,11 @@
 
 #include "sel4vm/vmm.h"
 #include "sel4vm/platform/ioports.h"
-#include "sel4vm/platform/boot_guest.h"
 #include "sel4vm/vchan_component.h"
 #include <sel4vm/vmcall.h>
 
 #include <sel4vmmplatsupport/guest_image.h>
+#include <sel4vmmplatsupport/guest_boot_init.h>
 
 #include "sel4vm/vmm_manager.h"
 #include "vm.h"
@@ -823,10 +823,11 @@ void *main_continued(void *arg)
         error = vm_load_guest_module(&vm, initrd_image, initrd_load_addr, 0, &guest_boot_image);
         ZF_LOGF_IF(error, "Failed to load boot module");
     }
-
-    vmm_plat_init_guest_boot_structure(&vm, kernel_cmdline,
-            guest_kernel_image.kernel_image.load_paddr, guest_kernel_image.kernel_image.alignment,
-            guest_boot_image.load_paddr, guest_boot_image.size);
+    uintptr_t guest_boot_info_structure_addr;
+    error = vmm_plat_init_guest_boot_structure(&vm, kernel_cmdline,
+            guest_kernel_image, guest_boot_image,
+            &guest_boot_info_structure_addr);
+    ZF_LOGF_IF(error, "Failed to init guest boot structure");
 
     error = reg_new_handler(&vm, &vchan_handler, VMM_MANAGER_TOKEN);
     ZF_LOGF_IF(error, "Failed register vchan_handler");
@@ -850,7 +851,9 @@ void *main_continued(void *arg)
 
     /* Final VMM setup now that everything is defined and loaded */
     ZF_LOGI("Finalising VMM");
-    vmm_init_guest_thread_state(vm_vcpu, guest_kernel_image.kernel_image_arch.entry);
+    error = vmm_plat_init_guest_thread_state(vm_vcpu,
+            guest_kernel_image.kernel_image_arch.entry,
+            guest_boot_info_structure_addr);
     ZF_LOGF_IF(error, "Failed to finalise VMM");
 
     /* Now go run the event loop */

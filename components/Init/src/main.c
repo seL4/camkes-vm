@@ -600,11 +600,11 @@ void *main_continued(void *arg)
 
     ZF_LOGI("VMM init");
     error = vm_init(&vm, &vka, &camkes_simple, allocman, vspace,
-            0, &io_ops, "X86 VM", &vm_init_x86_params);
+            &io_ops, "X86 VM", &vm_init_x86_params);
     ZF_LOGF_IF(error, "VMM init failed");
 
     vm_vcpu_t *vm_vcpu;
-    vm_vcpu = vm_create_vcpu(&vm, NULL);
+    vm_vcpu = vm_create_vcpu(&vm, 0, NULL);
     assert(vm_vcpu);
 
     error = vm_register_notification_callback(&vm, handle_async_event, NULL);

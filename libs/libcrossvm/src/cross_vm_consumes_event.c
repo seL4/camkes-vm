@@ -26,7 +26,6 @@
 #include "camkes_mutex.h"
 #include "cross_vm_shared/cross_vm_shared_vmm_to_guest_event.h"
 #include <sel4vm/guest_vm.h>
-#include <sel4vm/vmm.h>
 #include <vspace/vspace.h>
 
 static event_context_t *event_context = NULL;

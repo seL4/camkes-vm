@@ -11,7 +11,6 @@
  */
 
 procedure VchanInitInterface {
-    include <sel4vm/vmm.h>;
     include <sel4vm/vchan_component.h>;
 
     camkes_vchan_con_t init();

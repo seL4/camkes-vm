@@ -11,7 +11,6 @@
  */
 
 #include <sel4vm/guest_vm.h>
-#include <sel4vm/vmm.h>
 #include <sel4vm/vchan_component.h>
 
 /*- set domain = configuration[me.instance.name].get("%s_domain" % me.interface.name) -*/

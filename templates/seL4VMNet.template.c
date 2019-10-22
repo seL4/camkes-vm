@@ -32,7 +32,6 @@
 #include <ethdrivers/virtio/virtio_ring.h>
 
 #include <sel4vm/guest_vm.h>
-#include "sel4vm/vmm.h"
 #include "sel4vm/driver/pci_helper.h"
 #include "sel4vm/driver/virtio_emul.h"
 #include "sel4vm/platform/ioports.h"

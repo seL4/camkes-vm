@@ -13,7 +13,6 @@
 #include "cross_vm_shared/cross_vm_shared_dataport.h"
 #include "dataport_caps.h"
 #include <sel4vm/guest_vm.h>
-#include <sel4vm/vmm.h>
 
 static dataport_caps_handle_t **dataports;
 static unsigned int num_dataports;

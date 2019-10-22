@@ -23,12 +23,11 @@
 #include <sel4vm/guest_memory.h>
 #include <sel4vm/guest_ram.h>
 #include <sel4vm/guest_irq_controller.h>
+#include <sel4vm/arch/vmcall.h>
 
-#include "sel4vm/vmm.h"
 #include "sel4vm/vmm_manager.h"
 #include "sel4vm/vchan_copy.h"
 #include "sel4vm/vchan_component.h"
-#include "sel4vm/vmcall.h"
 #include "vm.h"
 
 #include <camkes.h>

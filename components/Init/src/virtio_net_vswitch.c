@@ -38,8 +38,7 @@
 #include <sel4vmmplatsupport/drivers/pci.h>
 #include <sel4vmmplatsupport/drivers/virtio_pci_emul.h>
 #include <sel4vmmplatsupport/drivers/virtio_net.h>
-
-#include "sel4vm/platform/ioports.h"
+#include <sel4vmmplatsupport/ioport_defs.h>
 
 #include "vm.h"
 #include "virtio_net.h"

@@ -32,7 +32,7 @@
 #include <platsupport/plat/rtc.h>
 #include <sel4/sel4.h>
 #include <camkes.h>
-#include <sel4vm/ioports.h>
+#include <sel4vm/arch/ioports.h>
 #include <sel4vm/guest_irq_controller.h>
 #include "timers.h"
 

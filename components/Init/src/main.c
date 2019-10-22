@@ -36,7 +36,7 @@
 #include <sel4vm/guest_memory_util.h>
 #include <sel4vm/guest_ram.h>
 #include <sel4vm/guest_iospace.h>
-#include <sel4vm/ioports.h>
+#include <sel4vm/arch/ioports.h>
 #include <sel4vm/guest_irq_controller.h>
 
 #include <sel4vmmplatsupport/ioports.h>
@@ -44,13 +44,12 @@
 #include <sel4vmmplatsupport/drivers/pci_helper.h>
 #include <sel4vmmplatsupport/drivers/vmm_pci_helper.h>
 
-#include "sel4vm/vmm.h"
-#include "sel4vm/platform/ioports.h"
 #include "sel4vm/vchan_component.h"
-#include <sel4vm/vmcall.h>
+#include <sel4vm/arch/vmcall.h>
 
 #include <sel4vmmplatsupport/guest_image.h>
 #include <sel4vmmplatsupport/guest_boot_init.h>
+#include <sel4vmmplatsupport/ioport_defs.h>
 
 #include "sel4vm/vmm_manager.h"
 #include "vm.h"

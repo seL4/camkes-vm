@@ -35,7 +35,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <camkes.h>
-#include <sel4vm/ioports.h>
+#include <sel4vm/arch/ioports.h>
 #include <sel4vm/guest_irq_controller.h>
 #include "timers.h"
 #include <platsupport/arch/tsc.h>

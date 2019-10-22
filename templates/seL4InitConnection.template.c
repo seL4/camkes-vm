@@ -16,7 +16,6 @@
 #include <stdint.h>
 #include <sel4/sel4.h>
 #include <sel4vm/guest_vm.h>
-#include <sel4vm/vmm.h>
 
 /*? macros.show_includes(me.instance.type.includes) ?*/
 

@@ -19,7 +19,6 @@
 
 #include <camkes.h>
 
-#include "sel4vm/vmm.h"
 #include "sel4vm/vchan_copy.h"
 #include "sel4vm/vchan_sharemem.h"
 #include "vm.h"

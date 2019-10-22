@@ -114,16 +114,11 @@ static int event_vmcall_handler(vm_vcpu_t *vcpu) {
 }
 
 int cross_vm_consumes_events_init_common(vm_t *vm, vspace_t *vspace, camkes_mutex_t *mutex,
-                                camkes_consumes_event_t *events, int n, seL4_Word irq_badge) {
+                                camkes_consumes_event_t *events, int n, seL4_CPtr notification) {
 
     vmm_vspace = vspace;
     cross_vm_event_mutex = mutex;
-    irq_notification = vmm_create_async_event_notification_cap(vm, irq_badge);
-
-    if (irq_notification == seL4_CapNull) {
-        ZF_LOGE("Failed to create async event notification cap");
-        return -1;
-    }
+    irq_notification = notification;
 
     for (int i = 0; i < n; i++) {
         int error = camkes_event_reg_callback_self(&events[i], event_camkes_callback);

@@ -91,7 +91,7 @@ static vmm_io_port_list_t *io_ports;
 vm_t vm;
 
 int cross_vm_dataports_init(vm_t *vm) WEAK;
-int cross_vm_consumes_events_init(vm_t *vm, vspace_t *vspace, seL4_Word irq_badge) WEAK;
+int cross_vm_consumes_events_init(vm_t *vm, vspace_t *vspace, seL4_CPtr irq_notification) WEAK;
 int cross_vm_consumes_event_irq_num(void) WEAK;
 int cross_vm_emits_events_init(vm_t *vm) WEAK;
 
@@ -483,6 +483,35 @@ static int handle_async_event(vm_t *vm, seL4_Word badge, UNUSED seL4_MessageInfo
     return 0;
 }
 
+static seL4_CPtr create_async_event_notification_cap(vm_t *vm, seL4_Word badge) {
+
+    if (!(badge & BIT(27))) {
+        ZF_LOGE("Invalid badge");
+        return seL4_CapNull;
+    }
+
+    // notification cap
+    seL4_CPtr ntfn = intready_notification();
+
+    // path to notification cap slot
+    cspacepath_t ntfn_path;
+    vka_cspace_make_path(vm->vka, ntfn, &ntfn_path);
+
+    // allocate slot to store copy
+    cspacepath_t minted_ntfn_path = {};
+    vka_cspace_alloc_path(vm->vka, &minted_ntfn_path);
+
+    // mint the notification cap
+    int error = vka_cnode_mint(&minted_ntfn_path, &ntfn_path, seL4_AllRights, badge);
+
+    if (error != seL4_NoError) {
+        ZF_LOGE("Failed to mint notification cap");
+        return seL4_CapNull;
+    }
+
+    return minted_ntfn_path.capPtr;
+}
+
 static void irq_ack_hw_irq_handler(vm_t *vm, int irq, void *cookie) {
     seL4_CPtr handler = (seL4_CPtr) cookie;
     int UNUSED error = seL4_IRQHandler_Ack(handler);
@@ -843,8 +872,10 @@ void *main_continued(void *arg)
     }
 
     if (cross_vm_consumes_events_init && cross_vm_consumes_event_irq_num) {
-        error = cross_vm_consumes_events_init(&vm, &vspace,
-            irq_badges[cross_vm_consumes_event_irq_num()]);
+        seL4_CPtr irq_notification = create_async_event_notification_cap(&vm, irq_badges[cross_vm_consumes_event_irq_num()]);
+        ZF_LOGF_IF(irq_notification == seL4_CapNull,
+                "Failed to create async event notification cap");
+        error = cross_vm_consumes_events_init(&vm, &vspace, irq_notification);
 
         assert(!error);
     }

@@ -24,7 +24,6 @@
 #include <sel4vm/guest_ram.h>
 #include <sel4vm/guest_irq_controller.h>
 
-#include "sel4vm/debug.h"
 #include "sel4vm/vmm.h"
 #include "sel4vm/vmm_manager.h"
 #include "sel4vm/vchan_copy.h"
@@ -365,7 +364,7 @@ static int vchan_connect(vm_t *vm, void *data, uint64_t cmd) {
         return -1;
     }
 
-    //DPRINTF(4, "ADDING %x as ADDR\n", pass->event_mon);
+    //ZF_LOGD("ADDING %x as ADDR\n", pass->event_mon);
     guest_vchan_init(pass->v.dest, pass->v.port, pass->server);
 
     return 0;
@@ -387,7 +386,7 @@ static int vchan_close(vm_t *vm, void *data, uint64_t cmd) {
 
     vchan_camkes_component.disconnect(t);
 
-    //DPRINTF(4, "REMOVING %x as ADDR\n", pass->event_mon);
+    //ZF_LOGD("REMOVING %x as ADDR\n", pass->event_mon);
     rem_callback_addr((void *) pass->event_mon);
 
     return 0;
@@ -411,7 +410,7 @@ static int driver_connect(vm_t *vm, void *data, uint64_t cmd) {
         return -1;
     }
 
-    //DPRINTF(4, "vmcall: num is %d\n", *res);
+    //ZF_LOGD("vmcall: num is %d\n", *res);
     return 0;
 }
 
@@ -444,7 +443,7 @@ int vchan_handler(vm_vcpu_t *vcpu) {
 
     /* Catch if the request is for an invalid command */
     if(cmd >= NUM_VMM_OPS || vmm_manager_ops_table.op_func[cmd] == NULL) {
-        DPRINTF(2, "unsupported command %d\n", cmd);
+        ZF_LOGE("unsupported command %d\n", cmd);
         args->err = -1;
     } else {
         /* Perform given token:command action */

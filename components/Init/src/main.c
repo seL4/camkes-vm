@@ -42,14 +42,14 @@
 #include <sel4vmmplatsupport/ioports.h>
 #include <sel4vmmplatsupport/drivers/pci.h>
 #include <sel4vmmplatsupport/drivers/pci_helper.h>
-#include <sel4vmmplatsupport/drivers/vmm_pci_helper.h>
+#include <sel4vmmplatsupport/arch/drivers/vmm_pci_helper.h>
 
 #include "sel4vm/vchan_component.h"
 #include <sel4vm/arch/vmcall.h>
 
 #include <sel4vmmplatsupport/guest_image.h>
-#include <sel4vmmplatsupport/guest_boot_init.h>
-#include <sel4vmmplatsupport/ioport_defs.h>
+#include <sel4vmmplatsupport/arch/guest_boot_init.h>
+#include <sel4vmmplatsupport/arch/ioport_defs.h>
 
 #include "sel4vm/vmm_manager.h"
 #include "vm.h"

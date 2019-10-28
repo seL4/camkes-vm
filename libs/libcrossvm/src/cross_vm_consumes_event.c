@@ -26,6 +26,8 @@
 #include "camkes_mutex.h"
 #include "cross_vm_shared/cross_vm_shared_vmm_to_guest_event.h"
 #include <sel4vm/guest_vm.h>
+#include <sel4vm/arch/guest_x86_context.h>
+#include <sel4vm/arch/vmcall.h>
 #include <vspace/vspace.h>
 
 static event_context_t *event_context = NULL;
@@ -88,12 +90,22 @@ static int event_shmem_init(uintptr_t paddr, vm_mem_t *guest_mem) {
 
 static int event_vmcall_handler(vm_vcpu_t *vcpu) {
 
-    int cmd = vmm_read_user_context(&vcpu->arch.guest_state, USER_CONTEXT_EBX);
+    int cmd;
+    int error = vm_get_thread_context_reg(vcpu, VCPU_CONTEXT_EBX, &cmd);
+    if (error) {
+        ZF_LOGE("Failed to get thread context register for command");
+        return -1;
+    }
 
     switch (cmd) {
     case EVENT_CMD_INIT: {
-        uintptr_t paddr = vmm_read_user_context(&vcpu->arch.guest_state, USER_CONTEXT_ECX);
-        int error = event_shmem_init(paddr, &vcpu->vm->mem);
+        uintptr_t paddr;
+        error = vm_get_thread_context_reg(vcpu, VCPU_CONTEXT_ECX, &paddr);
+        if (error) {
+            ZF_LOGE("Failed to get thread context register for event addr");
+            return -1;
+        }
+        error = event_shmem_init(paddr, &vcpu->vm->mem);
         if (error) {
             return error;
         }

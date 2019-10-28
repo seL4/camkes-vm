@@ -13,6 +13,8 @@
 #include "camkes_emits_event.h"
 #include "cross_vm_shared/cross_vm_shared_guest_to_vmm_event.h"
 #include <sel4vm/guest_vm.h>
+#include <sel4vm/arch/guest_x86_context.h>
+#include <sel4vm/arch/vmcall.h>
 #include <utils/zf_log.h>
 
 static camkes_emit_fn *events;
@@ -43,11 +45,21 @@ static int emit_event(int id) {
 
 static int event_vmcall_handler(vm_vcpu_t *vcpu) {
 
-    int cmd = vmm_read_user_context(&vcpu->arch.guest_state, USER_CONTEXT_EBX);
+    int cmd;
+    int err = vm_get_thread_context_reg(vcpu, VCPU_CONTEXT_EBX, &cmd);
+    if (err) {
+        ZF_LOGE("Failed to get thread context register for command");
+        return -1;
+    }
 
     switch (cmd) {
     case EVENT_CMD_EMIT: {
-        int id = vmm_read_user_context(&vcpu->arch.guest_state, USER_CONTEXT_ECX);
+        int id;
+        err = vm_get_thread_context_reg(vcpu, VCPU_CONTEXT_ECX, &id);
+        if (err) {
+            ZF_LOGE("Failed to get thread context register for event id");
+            return -1;
+        }
         return emit_event(id);
     }
     default: {

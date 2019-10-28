@@ -21,4 +21,4 @@ file(GLOB sources src/*.c)
 add_library(crossvm STATIC EXCLUDE_FROM_ALL ${sources})
 
 target_include_directories(crossvm PUBLIC include shared_include)
-target_link_libraries(crossvm muslc sel4 sel4camkes sel4vmm)
+target_link_libraries(crossvm muslc sel4 sel4camkes sel4vm sel4vmmplatsupport pci utils sel4utils)

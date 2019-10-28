@@ -89,7 +89,7 @@ static vmm_io_port_list_t *io_ports;
 
 vm_t vm;
 
-int cross_vm_dataports_init(vm_t *vm) WEAK;
+int cross_vm_dataports_init(vm_t *vm, vmm_pci_space_t *pci) WEAK;
 int cross_vm_consumes_events_init(vm_t *vm, vspace_t *vspace, seL4_CPtr irq_notification) WEAK;
 int cross_vm_consumes_event_irq_num(void) WEAK;
 int cross_vm_emits_events_init(vm_t *vm) WEAK;
@@ -861,7 +861,7 @@ void *main_continued(void *arg)
     ZF_LOGF_IF(error, "Failed register vchan_handler");
 
     if (cross_vm_dataports_init) {
-        error = cross_vm_dataports_init(&vm);
+        error = cross_vm_dataports_init(&vm, pci);
         ZF_LOGF_IF(error, "cross vm dataports init failed");
     }
 

@@ -14,5 +14,7 @@
 
 #include <dataport_caps.h>
 #include <sel4vm/guest_vm.h>
+#include <sel4vmmplatsupport/drivers/pci_helper.h>
+#include <pci/helper.h>
 
-int cross_vm_dataports_init_common(vm_t *vm, dataport_caps_handle_t **d, int n);
+int cross_vm_dataports_init_common(vm_t *vm, dataport_caps_handle_t **d, int n, vmm_pci_space_t *pci);

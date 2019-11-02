@@ -622,17 +622,13 @@ void *main_continued(void *arg)
 
     seL4_CPtr ready_notification_cap = intready_notification();
     /* Construct a new VM */
-    struct vm_init_x86_config vm_init_x86_params = {
-        .notification_cap = ready_notification_cap
-    };
-
     ZF_LOGI("VMM init");
     error = vm_init(&vm, &vka, &camkes_simple, allocman, vspace,
-            &io_ops, "X86 VM", &vm_init_x86_params);
+            &io_ops, ready_notification_cap, "X86 VM");
     ZF_LOGF_IF(error, "VMM init failed");
 
     vm_vcpu_t *vm_vcpu;
-    vm_vcpu = vm_create_vcpu(&vm, 0, NULL);
+    vm_vcpu = vm_create_vcpu(&vm, 0);
     assert(vm_vcpu);
 
     error = vm_register_notification_callback(&vm, handle_async_event, NULL);

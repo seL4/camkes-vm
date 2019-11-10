@@ -15,11 +15,12 @@
 
 #include <sel4vm/guest_vm.h>
 #include <sel4vm/guest_memory.h>
-#include <sel4vm/guest_memory_util.h>
+#include <sel4vm/guest_memory_helpers.h>
 
 #include <sel4vm/arch/guest_x86_context.h>
 #include <sel4vm/arch/vmcall.h>
 
+#include <sel4vmmplatsupport/guest_memory_util.h>
 #include <sel4vmmplatsupport/drivers/virtio.h>
 #include <sel4vmmplatsupport/drivers/pci_helper.h>
 #include <pci/helper.h>
@@ -94,7 +95,7 @@ static vm_frame_t dataport_memory_iterator(uintptr_t addr, void *cookie) {
     vm_t *vm = dataport_cookie->vm;
     uintptr_t dataport_start = dataport_cookie->dataport_start;
     size_t dataport_size = dataport_cookie->dataport_size;
-    int page_size = vm->mem.page_size;
+    int page_size = seL4_PageBits;
 
     uintptr_t frame_start = ROUND_DOWN(addr, BIT(page_size));
     if (frame_start <  dataport_start ||

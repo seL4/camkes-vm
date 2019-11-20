@@ -46,8 +46,8 @@ static virtio_net_t *virtio_net = NULL;
 
 static void virtio_net_notify_vswitch_send(vswitch_node_t *node)
 {
-    volatile void *used_buff = NULL;
-    size_t used_buff_sz = 0, len;
+    void *used_buff = NULL;
+    unsigned used_buff_sz = 0, len;
     virtqueue_ring_object_t handle;
     vq_flags_t flags;
 

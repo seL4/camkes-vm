@@ -74,37 +74,37 @@ connector seL4VMNet {
 }
 
 connector seL4ExtraRAM {
-    from Procedure template "seL4ExtraRAM.template.c";
+    from Procedure template "seL4ExtraRAM.template.c" with 0 threads;
     to hardware Procedure;
 }
 
 connector seL4ExcludeGuestPAddr {
-    from Procedure template "seL4ExcludeGuestPAddr.template.c";
+    from Procedure template "seL4ExcludeGuestPAddr.template.c"  with 0 threads;
     to hardware Procedure;
 }
 
 connector seL4InitConnection {
-    from Procedure template "seL4InitConnection.template.c";
+    from Procedure template "seL4InitConnection.template.c" with 0 threads;
     to hardware Procedure;
 }
 
 connector seL4VMIOPorts {
-    from Procedure template "seL4VMIOPorts.template.c";
+    from Procedure template "seL4VMIOPorts.template.c" with 0 threads;
     to hardware Procedure;
 }
 
 connector seL4GuestMaps {
-    from Procedure template "seL4GuestMaps.template.c";
+    from Procedure template "seL4GuestMaps.template.c" with 0 threads;
     to hardware Procedure;
 }
 
 connector seL4VMIRQs {
-    from Procedure template "seL4VMIRQs.template.c";
+    from Procedure template "seL4VMIRQs.template.c" with 0 threads;
     to hardware Procedure;
 }
 
 connector seL4VMPCIDevices {
-    from Procedure template "seL4VMPCIDevices.template.c";
+    from Procedure template "seL4VMPCIDevices.template.c" with 0 threads;
     to hardware Procedure;
 }
 

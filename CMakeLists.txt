@@ -37,3 +37,43 @@ add_subdirectory(components/HelloWorld)
 add_subdirectory(components/StringReverse)
 add_subdirectory(components/UDPServer)
 add_subdirectory(libs/libcrossvm)
+
+# Declare connectors with templates.
+# We can rely on the naming scheme being consistent to allow for easier declaration.
+foreach(
+    connector
+    IN
+    ITEMS
+    seL4UDPSend
+    seL4UDPRecv
+    seL4PicoUDPSend
+    seL4PicoUDPRecv
+    seL4VMNet
+    seL4MultiSharedData
+    seL4SharedDataWithCaps
+    seL4VChanInit
+)
+    DeclareCAmkESConnector(
+        ${connector}
+        FROM
+        ${connector}-from.template.c
+        TO
+        ${connector}-to.template.c
+    )
+endforeach()
+
+# Connectors with only FROM end interfaces
+foreach(
+    connector
+    IN
+    ITEMS
+    seL4ExtraRAM
+    seL4ExcludeGuestPAddr
+    seL4InitConnection
+    seL4VMIOPorts
+    seL4GuestMaps
+    seL4VMIRQs
+    seL4VMPCIDevices
+)
+    DeclareCAmkESConnector(${connector} FROM ${connector}.template.c)
+endforeach()

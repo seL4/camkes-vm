@@ -49,78 +49,78 @@ import <FileServer/FileServer.camkes>;
 import <Echo/Echo.camkes>;
 
 connector seL4UDPSend {
-    from Procedure template "seL4UDPSend-from.template.c";
-    to Procedure template "seL4UDPSend-to.template.c";
+    from Procedure;
+    to Procedure;
 }
 
 connector seL4UDPRecv {
-    from Procedure template "seL4UDPRecv-from.template.c";
-    to Procedure template "seL4UDPRecv-to.template.c";
+    from Procedure;
+    to Procedure;
 }
 
 connector seL4PicoUDPSend {
-    from Procedure template "seL4PicoUDPSend-from.template.c";
-    to Procedure template "seL4PicoUDPSend-to.template.c";
+    from Procedure;
+    to Procedure;
 }
 
 connector seL4PicoUDPRecv {
-    from Procedure template "seL4PicoUDPRecv-from.template.c";
-    to Procedure template "seL4PicoUDPRecv-to.template.c";
+    from Procedure;
+    to Procedure;
 }
 
 connector seL4VMNet {
-    from Dataport template "seL4VMNet-from.template.c";
-    to Dataport template "seL4VMNet-to.template.c";
+    from Dataport;
+    to Dataport;
 }
 
 connector seL4ExtraRAM {
-    from Procedure template "seL4ExtraRAM.template.c" with 0 threads;
+    from Procedure with 0 threads;
     to hardware Procedure;
 }
 
 connector seL4ExcludeGuestPAddr {
-    from Procedure template "seL4ExcludeGuestPAddr.template.c"  with 0 threads;
+    from Procedure with 0 threads;
     to hardware Procedure;
 }
 
 connector seL4InitConnection {
-    from Procedure template "seL4InitConnection.template.c" with 0 threads;
+    from Procedure with 0 threads;
     to hardware Procedure;
 }
 
 connector seL4VMIOPorts {
-    from Procedure template "seL4VMIOPorts.template.c" with 0 threads;
+    from Procedure with 0 threads;
     to hardware Procedure;
 }
 
 connector seL4GuestMaps {
-    from Procedure template "seL4GuestMaps.template.c" with 0 threads;
+    from Procedure with 0 threads;
     to hardware Procedure;
 }
 
 connector seL4VMIRQs {
-    from Procedure template "seL4VMIRQs.template.c" with 0 threads;
+    from Procedure with 0 threads;
     to hardware Procedure;
 }
 
 connector seL4VMPCIDevices {
-    from Procedure template "seL4VMPCIDevices.template.c" with 0 threads;
+    from Procedure with 0 threads;
     to hardware Procedure;
 }
 
 connector seL4MultiSharedData {
-    from Dataport template "seL4MultiSharedData-from.template.c";
-    to Dataport template "seL4MultiSharedData-to.template.c";
+    from Dataport;
+    to Dataport;
 }
 
 connector seL4SharedDataWithCaps {
-    from Dataport template "seL4SharedDataWithCaps-from.template.c";
-    to Dataport template "seL4SharedDataWithCaps-to.template.c";
+    from Dataport;
+    to Dataport;
 }
 
 connector seL4VChanInit {
-    from Procedures template "seL4VChanInit-from.template.c";
-    to Procedure template "seL4VChanInit-to.template.c";
+    from Procedures;
+    to Procedure;
 }
 
 component VMConfig {

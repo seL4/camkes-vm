@@ -57,19 +57,3 @@ foreach(
         ${connector}-to.template.c
     )
 endforeach()
-
-# Connectors with only FROM end interfaces
-foreach(
-    connector
-    IN
-    ITEMS
-    seL4ExtraRAM
-    seL4ExcludeGuestPAddr
-    seL4InitConnection
-    seL4VMIOPorts
-    seL4GuestMaps
-    seL4VMIRQs
-    seL4VMPCIDevices
-)
-    DeclareCAmkESConnector(${connector} FROM ${connector}.template.c)
-endforeach()

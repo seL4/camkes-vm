@@ -19,9 +19,7 @@
 #include <sel4vmmplatsupport/drivers/pci_helper.h>
 #include <sel4vmmplatsupport/ioports.h>
 
-/*? macros.show_includes(me.instance.type.includes) ?*/
-
-/*- set cons = configuration[me.parent.to_instance.name].get(me.parent.to_interface.name) -*/
+/*- set cons = configuration[me.name].get("init_cons") -*/
 /*- set cons = lambda('x: [] if x is None else x')(cons) -*/
 
 /*- for con in cons -*/
@@ -31,11 +29,11 @@
     /*- endif -*/
 /*- endfor -*/
 
-int /*? me.interface.name ?*/_num_connections() {
+int init_cons_num_connections() {
     return /*? len(cons) ?*/;
 }
 
-uintptr_t /*? me.interface.name ?*/_init_function(int con) {
+uintptr_t init_cons_init_function(int con) {
     /*- if len(cons) == 0 -*/
         return -1;
     /*- else -*/
@@ -50,7 +48,7 @@ uintptr_t /*? me.interface.name ?*/_init_function(int con) {
     /*- endif -*/
 }
 
-int /*? me.interface.name ?*/_has_interrupt(int con, uintptr_t *badge, uintptr_t *fun) {
+int init_cons_has_interrupt(int con, uintptr_t *badge, uintptr_t *fun) {
     /*- if len(cons) == 0 -*/
         return -1;
     /*- else -*/

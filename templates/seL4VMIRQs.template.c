@@ -16,9 +16,7 @@
 #include <stdint.h>
 #include <sel4/sel4.h>
 
-/*? macros.show_includes(me.instance.type.includes) ?*/
-
-/*- set config_irqs = configuration[me.parent.to_instance.name].get(me.parent.to_interface.name) -*/
+/*- set config_irqs = configuration[me.name].get("vm_irqs") -*/
 /*- set irqs = [] -*/
 /*- set irqnotification_object = alloc_obj('irq_notification_obj', seL4_NotificationObject) -*/
 /*- set irqnotification_object_cap = alloc_cap('irq_notification_obj', irqnotification_object, read=True) -*/
@@ -29,11 +27,11 @@
     /*- endfor -*/
 /*- endif -*/
 
-int /*? me.interface.name ?*/_num_irqs() {
+int irqs_num_irqs() {
     return /*? len(irqs) ?*/;
 }
 
-const char * /*? me.interface.name ?*/_get_irq(int irq, seL4_CPtr *irq_handler, uint8_t *source, int *level_trig, int *active_low, uint8_t *dest) {
+const char * irqs_get_irq(int irq, seL4_CPtr *irq_handler, uint8_t *source, int *level_trig, int *active_low, uint8_t *dest) {
     /*- if len(irqs) == 0 -*/
         return NULL;
     /*- else -*/

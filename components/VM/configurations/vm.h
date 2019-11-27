@@ -53,13 +53,6 @@
     uses PutChar guest_putchar; \
     uses PCIConfig pci_config; \
     uses RTC system_rtc; \
-    uses ExtraRAM ram; \
-    uses ExcludeGuestPAddr exclude_paddr; \
-    uses VMIOPorts ioports; \
-    uses VMIRQs irqs; \
-    uses GuestMaps guest_mappings; \
-    uses VMPCIDevices pci_devices; \
-    uses InitConnection init_cons; \
     consumes HaveInterrupt intready; \
     emits HaveInterrupt intready_connector; \
     uses Timer init_timer; \
@@ -80,7 +73,6 @@
 /* VM and per VM componenents */
 #define VM_PER_VM_COMPONENTS(num) \
     component Init##num vm##num; \
-    component VMConfig CAT(vm##num, _config); \
     /**/
 
 
@@ -100,14 +92,6 @@
     connection seL4TimeServer CAT(pit##num,_timer)(from vm##num.init_timer, to time_server.the_timer); \
     /* Connect config space to main VM */ \
     connection seL4RPCCall pciconfig##num(from vm##num.pci_config, to pci_config.pci_config); \
-    /* Connect the fake hardware devices */ \
-    connection seL4ExtraRAM extra_ram##num(from vm##num.ram, to CAT(vm##num,_config).ram); \
-    connection seL4ExcludeGuestPAddr exclude_paddr##num(from vm##num.exclude_paddr, to CAT(vm##num,_config).exclude_paddr); \
-    connection seL4VMIOPorts vm_ioports##num(from vm##num.ioports, to CAT(vm##num,_config).ioports); \
-    connection seL4GuestMaps vm_guest_maps##num(from vm##num.guest_mappings, to CAT(vm##num,_config).guest_mappings); \
-    connection seL4VMIRQs vm_irqs##num(from vm##num.irqs, to CAT(vm##num,_config).irqs); \
-    connection seL4VMPCIDevices vm_pci_devices##num(from vm##num.pci_devices, to CAT(vm##num,_config).pci_devices); \
-    connection seL4InitConnection vm_init_cons##num(from vm##num.init_cons, to CAT(vm##num,_config).init_cons); \
     /**/
 
 #define VM_MAYBE_ZONE_DMA(num)

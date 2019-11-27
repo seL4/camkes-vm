@@ -16,12 +16,11 @@
 #include <stdint.h>
 #include <sel4/sel4.h>
 
-/*? macros.show_includes(me.instance.type.includes) ?*/
 
 /*- set bits_to_frame_type = { 12:seL4_FrameObject, 20:seL4_ARM_SectionObject, 21:seL4_ARM_SectionObject } -*/
 
 
-/*- set config_guestmaps = configuration[me.parent.to_instance.name].get(me.parent.to_interface.name) -*/
+/*- set config_guestmaps = configuration[me.name].get("guest_mappings") -*/
 /*- set gmaps = [] -*/
 /*- if config_guestmaps is not none -*/
     /*- for gmap in config_guestmaps -*/
@@ -35,11 +34,11 @@
     /*- endfor -*/
 /*- endif -*/
 
-int /*? me.interface.name ?*/_num_guestmaps() {
+int guest_mappings_num_guestmaps() {
     return /*? len(gmaps) ?*/;
 }
 
-int /*? me.interface.name ?*/_get_guest_map(int num, uint64_t *frame, uint64_t *size) {
+int guest_mappings_get_guest_map(int num, uint64_t *frame, uint64_t *size) {
         /*- if len(gmaps) == 0 -*/
         return 0;
     /*- else -*/
@@ -56,7 +55,7 @@ int /*? me.interface.name ?*/_get_guest_map(int num, uint64_t *frame, uint64_t *
     /*- endif -*/
 }
 
-seL4_CPtr /*? me.interface.name ?*/_get_mapping_mem_frame(uintptr_t paddr) {
+seL4_CPtr guest_mappings_get_mapping_mem_frame(uintptr_t paddr) {
     /*- if len(gmaps) == 0 -*/
         return 0;
     /*- else -*/

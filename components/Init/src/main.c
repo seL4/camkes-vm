@@ -30,6 +30,7 @@
 
 #include <camkes.h>
 
+#include "camkes_vm_interfaces.h"
 #include <sel4vm/guest_vm.h>
 #include <sel4vm/boot.h>
 #include <sel4vm/guest_memory.h>
@@ -51,6 +52,7 @@
 #include <sel4vmmplatsupport/guest_image.h>
 #include <sel4vmmplatsupport/arch/guest_boot_init.h>
 #include <sel4vmmplatsupport/arch/ioport_defs.h>
+
 
 #include "vm.h"
 #include "timers.h"

@@ -16,13 +16,10 @@
 #include <stdint.h>
 #include <sel4/sel4.h>
 
-/*? macros.show_includes(me.instance.type.includes) ?*/
+/*- set iospace_domain = configuration[me.name].get('iospace_domain') -*/
 
-/*- set vm_name = me.parent.to_instance.name[0:me.parent.to_instance.name.rfind('_config')] -*/
-/*- set iospace_domain = configuration[vm_name].get('iospace_domain') -*/
-
-/*- set config_pci = configuration[me.parent.to_instance.name].get(me.parent.to_interface.name) -*/
-/*- set has_iospace = configuration[me.parent.to_instance.name].get("%s_iospace" % me.parent.to_interface.name) -*/
+/*- set config_pci = configuration[me.name].get("pci_devices") -*/
+/*- set has_iospace = configuration[me.name].get("pci_devices_iospace") -*/
 /*- set devices = [] -*/
 /*- set device_mem = [] -*/
 
@@ -54,11 +51,11 @@
     /*- endfor -*/
 /*- endif -*/
 
-int /*? me.interface.name ?*/_num_devices() {
+int pci_devices_num_devices() {
     return /*? len(devices) ?*/;
 }
 
-const char */*? me.interface.name ?*/_get_device(int pci_dev, uint8_t *bus, uint8_t *dev, uint8_t *fun, seL4_CPtr *iospace_cap) {
+const char *pci_devices_get_device(int pci_dev, uint8_t *bus, uint8_t *dev, uint8_t *fun, seL4_CPtr *iospace_cap) {
     /*- if len(devices) == 0 -*/
         return NULL;
     /*- else -*/
@@ -81,7 +78,7 @@ const char */*? me.interface.name ?*/_get_device(int pci_dev, uint8_t *bus, uint
     /*- endif -*/
 }
 
-int /*? me.interface.name ?*/_num_device_mem(int pci_dev) {
+int pci_devices_num_device_mem(int pci_dev) {
     /*- if len(devices) == 0 -*/
         return -1;
     /*- else -*/
@@ -96,7 +93,7 @@ int /*? me.interface.name ?*/_num_device_mem(int pci_dev) {
     /*- endif -*/
 }
 
-const char */*? me.interface.name ?*/_get_device_irq(int pci_dev) {
+const char *pci_devices_get_device_irq(int pci_dev) {
     /*- if len(devices) == 0 -*/
         return NULL;
     /*- else -*/
@@ -111,7 +108,7 @@ const char */*? me.interface.name ?*/_get_device_irq(int pci_dev) {
     /*- endif -*/
 }
 
-int /*? me.interface.name ?*/_get_device_mem(int pci_dev, int mem, uintptr_t *paddr, size_t *size, int *page_bits) {
+int pci_devices_get_device_mem(int pci_dev, int mem, uintptr_t *paddr, size_t *size, int *page_bits) {
     /*- if len(devices) == 0 -*/
         return -1;
     /*- else -*/
@@ -140,7 +137,7 @@ int /*? me.interface.name ?*/_get_device_mem(int pci_dev, int mem, uintptr_t *pa
     /*- endif -*/
 }
 
-seL4_CPtr /*? me.interface.name ?*/_get_device_mem_frame(uintptr_t paddr) {
+seL4_CPtr pci_devices_get_device_mem_frame(uintptr_t paddr) {
     /*- if len(device_mem) == 0 -*/
         return 0;
     /*- else -*/

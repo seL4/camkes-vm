@@ -15,20 +15,11 @@
 import <std_connector.camkes>;
 import <global-connectors.camkes>;
 
-import <VirtIOPort.idl4>;
-import <InterruptGenerator.idl4>;
 import <PCIConfig.idl4>;
 import <Timer.idl4>;
 import <RTC.idl4>;
 import <Ethdriver.idl4>;
-import <ExtraRAM.idl4>;
-import <ExcludeGuestPAddr.idl4>;
-import <VMIOPorts.idl4>;
-import <VMIRQs.idl4>;
-import <VMPCIDevices.idl4>;
 import <FileServerInterface.camkes>;
-import <InitConnection.idl4>;
-import <GuestMaps.idl4>;
 
 import "PIC.camkes";
 
@@ -69,53 +60,7 @@ connector seL4VMNet {
     to Dataport;
 }
 
-connector seL4ExtraRAM {
-    from Procedure with 0 threads;
-    to hardware Procedure;
-}
-
-connector seL4ExcludeGuestPAddr {
-    from Procedure with 0 threads;
-    to hardware Procedure;
-}
-
-connector seL4InitConnection {
-    from Procedure with 0 threads;
-    to hardware Procedure;
-}
-
-connector seL4VMIOPorts {
-    from Procedure with 0 threads;
-    to hardware Procedure;
-}
-
-connector seL4GuestMaps {
-    from Procedure with 0 threads;
-    to hardware Procedure;
-}
-
-connector seL4VMIRQs {
-    from Procedure with 0 threads;
-    to hardware Procedure;
-}
-
-connector seL4VMPCIDevices {
-    from Procedure with 0 threads;
-    to hardware Procedure;
-}
-
 connector seL4MultiSharedData {
     from Dataport;
     to Dataport;
 }
-
-component VMConfig {
-    hardware;
-    provides ExtraRAM ram;
-    provides ExcludeGuestPAddr exclude_paddr;
-    provides VMIOPorts ioports;
-    provides GuestMaps guest_mappings;
-    provides VMIRQs irqs;
-    provides VMPCIDevices pci_devices;
-    provides InitConnection init_cons;
-};

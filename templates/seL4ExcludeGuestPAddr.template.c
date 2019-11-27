@@ -16,9 +16,7 @@
 #include <stdint.h>
 #include <sel4/sel4.h>
 
-/*? macros.show_includes(me.instance.type.includes) ?*/
-
-/*- set regions = configuration[me.parent.to_instance.name].get(me.parent.to_interface.name) -*/
+/*- set regions = configuration[me.name].get("exclude_paddr") -*/
 static uintptr_t exclude_regions[] = {
 /*- if regions is not none -*/
     /*- for paddr, bytes in regions -*/
@@ -27,14 +25,14 @@ static uintptr_t exclude_regions[] = {
 /*- endif -*/
 };
 
-int /*? me.interface.name ?*/_num_regions() {
+int exclude_paddr_num_regions() {
     return ARRAY_SIZE(exclude_regions) / 2;
 }
 
-void /*? me.interface.name ?*/_get_region(int region_num, uintptr_t *paddr, size_t *bytes) {
+void exclude_paddr_get_region(int region_num, uintptr_t *paddr, size_t *bytes) {
     assert(paddr);
     assert(bytes);
-    assert(region_num < /*? me.interface.name ?*/_num_regions());
+    assert(region_num < exclude_paddr_num_regions());
     *paddr = exclude_regions[region_num * 2];
     *bytes = exclude_regions[(region_num * 2) + 1];
 }

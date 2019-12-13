@@ -40,12 +40,10 @@ This repo provides a series of useful CAmkES components that can be used to deve
 - `StringReverse`
 - `Echo`
 - `Firewall`
-- `HelloWorld`
 - `PicoTCPServer`
 - `PicoUDPServer`
 - `StringReverse`
 - `UDPServer`
-- `Vchan`
 
 ### Linux Images
 This repo provides Guest Linux VM images you can use for your CAmkES VM application, located in the `linux` directory. We provide a ready-to-use Rootfs (`linux/rootfs.cpio`) and Kernel image (`linux/bzimage`) built from the [buildroot](https://buildroot.org/) project.

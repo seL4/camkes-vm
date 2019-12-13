@@ -33,7 +33,6 @@ CAmkESAddTemplatesPath(templates)
 # Add VM Components and Libraries
 add_subdirectory(components/Echo)
 add_subdirectory(components/Firewall)
-add_subdirectory(components/HelloWorld)
 add_subdirectory(components/StringReverse)
 add_subdirectory(components/UDPServer)
 add_subdirectory(libs/libcrossvm)
@@ -51,7 +50,6 @@ foreach(
     seL4VMNet
     seL4MultiSharedData
     seL4SharedDataWithCaps
-    seL4VChanInit
 )
     DeclareCAmkESConnector(
         ${connector}

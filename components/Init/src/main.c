@@ -45,18 +45,15 @@
 #include <sel4vmmplatsupport/drivers/pci_helper.h>
 #include <sel4vmmplatsupport/arch/drivers/vmm_pci_helper.h>
 
-#include "sel4vm/vchan_component.h"
 #include <sel4vm/arch/vmcall.h>
 
 #include <sel4vmmplatsupport/guest_image.h>
 #include <sel4vmmplatsupport/arch/guest_boot_init.h>
 #include <sel4vmmplatsupport/arch/ioport_defs.h>
 
-#include "sel4vm/vmm_manager.h"
 #include "vm.h"
 #include "timers.h"
 #include "fsclient.h"
-#include "vchan_init.h"
 #include "virtio_net_vswitch.h"
 
 #define BRK_VIRTUAL_SIZE 400000000
@@ -552,9 +549,6 @@ static void init_irqs(vm_t *vm)
     }
 }
 
-int fake_vchan_handler(vm_vcpu_t *vcpu) {
-    return 0;
-}
 
 void init_con_irq_init(void)
 {
@@ -853,9 +847,6 @@ void *main_continued(void *arg)
             guest_kernel_image, guest_boot_image,
             &guest_boot_info_structure_addr);
     ZF_LOGF_IF(error, "Failed to init guest boot structure");
-
-    error = reg_new_handler(&vm, &vchan_handler, VMM_MANAGER_TOKEN);
-    ZF_LOGF_IF(error, "Failed register vchan_handler");
 
     if (cross_vm_dataports_init) {
         error = cross_vm_dataports_init(&vm, pci);

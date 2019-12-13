@@ -21,7 +21,6 @@ import <PCIConfig.idl4>;
 import <Timer.idl4>;
 import <RTC.idl4>;
 import <Ethdriver.idl4>;
-import <VchanInterface.idl4>;
 import <ExtraRAM.idl4>;
 import <ExcludeGuestPAddr.idl4>;
 import <VMIOPorts.idl4>;
@@ -30,7 +29,6 @@ import <VMPCIDevices.idl4>;
 import <FileServerInterface.camkes>;
 import <InitConnection.idl4>;
 import <GuestMaps.idl4>;
-import <VchanInitInterface.idl4>;
 
 import "PIC.camkes";
 
@@ -42,8 +40,6 @@ import <SerialServer/SerialServer.camkes>;
 import <Ethdriver/Ethdriver.camkes>;
 import <UDPServer/UDPServer.camkes>;
 import <PicoUDPServer/PicoUDPServer.camkes>;
-import <Vchan/Vchan.camkes>;
-import <HelloWorld/HelloWorld.camkes>;
 import <FileServer/FileServer.camkes>;
 
 import <Echo/Echo.camkes>;
@@ -116,11 +112,6 @@ connector seL4MultiSharedData {
 connector seL4SharedDataWithCaps {
     from Dataport;
     to Dataport;
-}
-
-connector seL4VChanInit {
-    from Procedures;
-    to Procedure;
 }
 
 component VMConfig {

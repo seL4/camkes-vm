@@ -99,7 +99,7 @@ static int event_vmcall_handler(vm_vcpu_t *vcpu) {
 
     switch (cmd) {
     case EVENT_CMD_INIT: {
-        uintptr_t paddr;
+        uintptr_t paddr = 0;
         error = vm_get_thread_context_reg(vcpu, VCPU_CONTEXT_ECX, &paddr);
         if (error) {
             ZF_LOGE("Failed to get thread context register for event addr");

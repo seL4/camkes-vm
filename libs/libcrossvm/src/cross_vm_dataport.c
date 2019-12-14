@@ -35,7 +35,8 @@ struct dataport_info {
 static dataport_caps_handle_t **dataports;
 static unsigned int num_dataports;
 
-static int construct_dataport_virtio_bar(vm_t *vm, struct dataport_info *info, int num_dataports, vmm_pci_space_t *pci) {
+static int construct_dataport_virtio_bar(vm_t *vm, struct dataport_info *info, int num_dataports, vmm_pci_space_t *pci)
+{
     vmm_pci_device_def_t *pci_config;
     pci_config = calloc(1, sizeof(*pci_config));
     ZF_LOGF_IF(pci_config == NULL, "Failed to allocate pci config");
@@ -44,15 +45,15 @@ static int construct_dataport_virtio_bar(vm_t *vm, struct dataport_info *info, i
         .device_id = 0xa111,
         .revision_id = 0x1,
         .subsystem_vendor_id = 0x0,
-        .subsystem_id= 0x0,
+        .subsystem_id = 0x0,
         .command = PCI_COMMAND_IO | PCI_COMMAND_MEMORY,
         .header_type = PCI_HEADER_TYPE_NORMAL,
         .subclass = (PCI_CLASS_MEMORY_RAM >> 8) & 0xff,
         .class_code = (PCI_CLASS_MEMORY_RAM >> 16) & 0xff,
     };
 
-    uint32_t *pci_config_bars = (uint32_t *)&(pci_config->bar0);
-    for(int i = 0; i < num_dataports; i++) {
+    uint32_t *pci_config_bars = (uint32_t *) & (pci_config->bar0);
+    for (int i = 0; i < num_dataports; i++) {
         pci_config_bars[i] = info[i].address | PCI_BASE_ADDRESS_SPACE_MEMORY;
     }
 
@@ -86,7 +87,8 @@ struct dataport_iterator_cookie {
     vm_t *vm;
 };
 
-static vm_frame_t dataport_memory_iterator(uintptr_t addr, void *cookie) {
+static vm_frame_t dataport_memory_iterator(uintptr_t addr, void *cookie)
+{
     int error;
     cspacepath_t return_frame;
     vm_frame_t frame_result = { seL4_CapNull, seL4_NoRights, 0, 0 };
@@ -99,11 +101,11 @@ static vm_frame_t dataport_memory_iterator(uintptr_t addr, void *cookie) {
 
     uintptr_t frame_start = ROUND_DOWN(addr, BIT(page_size));
     if (frame_start <  dataport_start ||
-            frame_start > dataport_start + dataport_size) {
+        frame_start > dataport_start + dataport_size) {
         ZF_LOGE("Error: Not Dataport region");
         return frame_result;
     }
-    int page_idx = (frame_start - dataport_start)/BIT(page_size);
+    int page_idx = (frame_start - dataport_start) / BIT(page_size);
     frame_result.cptr = dataport_frames[page_idx];
     frame_result.rights = seL4_AllRights;
     frame_result.vaddr = frame_start;
@@ -111,7 +113,8 @@ static vm_frame_t dataport_memory_iterator(uintptr_t addr, void *cookie) {
     return frame_result;
 }
 
-static int reserve_dataport_memory(vm_t *vm, dataport_caps_handle_t **d, int n, struct dataport_info *info) {
+static int reserve_dataport_memory(vm_t *vm, dataport_caps_handle_t **d, int n, struct dataport_info *info)
+{
     int err;
     for (int i = 0; i < n; i++) {
         size_t size = dataport_get_size(d[i]);
@@ -120,8 +123,8 @@ static int reserve_dataport_memory(vm_t *vm, dataport_caps_handle_t **d, int n, 
         uintptr_t dataport_addr;
 
         vm_memory_reservation_t *dataport_reservation = vm_reserve_anon_memory(vm, size, default_error_fault_callback, NULL,
-                &dataport_addr);
-        if(!dataport_reservation) {
+                                                                               &dataport_addr);
+        if (!dataport_reservation) {
             ZF_LOGE("Failed to reserve dataport (id:%d) memory", i);
             return -1;
         }
@@ -146,7 +149,8 @@ static int reserve_dataport_memory(vm_t *vm, dataport_caps_handle_t **d, int n, 
     return 0;
 }
 
-int cross_vm_dataports_init_common(vm_t *vm, dataport_caps_handle_t **d, int n, vmm_pci_space_t *pci) {
+int cross_vm_dataports_init_common(vm_t *vm, dataport_caps_handle_t **d, int n, vmm_pci_space_t *pci)
+{
     dataports = d;
     num_dataports = n;
     uintptr_t guest_paddr = 0;

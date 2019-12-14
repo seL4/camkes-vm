@@ -292,14 +292,20 @@ typedef struct ioport_desc {
     const char *desc;
 } ioport_desc_t;
 
-ioport_fault_result_t i8254_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
-ioport_fault_result_t i8254_port_out(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
+ioport_fault_result_t i8254_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size,
+                                    unsigned int *result);
+ioport_fault_result_t i8254_port_out(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size,
+                                     unsigned int value);
 
-ioport_fault_result_t cmos_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
-ioport_fault_result_t cmos_port_out(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
+ioport_fault_result_t cmos_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size,
+                                   unsigned int *result);
+ioport_fault_result_t cmos_port_out(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size,
+                                    unsigned int value);
 
-ioport_fault_result_t serial_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int *result);
-ioport_fault_result_t serial_port_out(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int value);
+ioport_fault_result_t serial_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size,
+                                     unsigned int *result);
+ioport_fault_result_t serial_port_out(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size,
+                                      unsigned int value);
 
 ioport_desc_t ioport_handlers[] = {
     {X86_IO_SERIAL_1_START,   X86_IO_SERIAL_1_END,   serial_port_in, serial_port_out, "COM1 Serial Port"},
@@ -445,7 +451,8 @@ static seL4_Word irq_badges[16] = {
 
 void serial_character_interrupt(void);
 
-static int handle_async_event(vm_t *vm, seL4_Word badge, UNUSED seL4_MessageInfo_t tag, void *cookie) {
+static int handle_async_event(vm_t *vm, seL4_Word badge, UNUSED seL4_MessageInfo_t tag, void *cookie)
+{
     if (badge & BIT(27)) {
         if ((badge & VM_INIT_TIMER_BADGE) == VM_INIT_TIMER_BADGE) {
             uint32_t completed = init_timer_completed();
@@ -480,7 +487,8 @@ static int handle_async_event(vm_t *vm, seL4_Word badge, UNUSED seL4_MessageInfo
     return 0;
 }
 
-static seL4_CPtr create_async_event_notification_cap(vm_t *vm, seL4_Word badge) {
+static seL4_CPtr create_async_event_notification_cap(vm_t *vm, seL4_Word badge)
+{
 
     if (!(badge & BIT(27))) {
         ZF_LOGE("Invalid badge");
@@ -509,7 +517,8 @@ static seL4_CPtr create_async_event_notification_cap(vm_t *vm, seL4_Word badge) 
     return minted_ntfn_path.capPtr;
 }
 
-static void irq_ack_hw_irq_handler(vm_t *vm, int irq, void *cookie) {
+static void irq_ack_hw_irq_handler(vm_t *vm, int irq, void *cookie)
+{
     seL4_CPtr handler = (seL4_CPtr) cookie;
     int UNUSED error = seL4_IRQHandler_Ack(handler);
     assert(!error);
@@ -567,28 +576,30 @@ void init_con_irq_init(void)
     for (i = 0; i < irqs; i++) {
         init_cons_has_interrupt(i, &badge, &fun);
         device_notify_list[i].badge = badge;
-        device_notify_list[i].func = (void (*)(vm_t*))fun;
+        device_notify_list[i].func = (void (*)(vm_t *))fun;
     }
 }
 
 ioport_fault_result_t ioport_callback_handler(vm_vcpu_t *vcpu, unsigned int port_no, bool is_in, unsigned int *value,
-        size_t size, void *cookie) {
+                                              size_t size, void *cookie)
+{
     ioport_fault_result_t result;
     int res = emulate_io_handler(io_ports, port_no, is_in, size, value);
     switch (res) {
-        case 0:
-            result = IO_FAULT_HANDLED;
-            break;
-        case 1:
-            result = IO_FAULT_UNHANDLED;
-            break;
-        default: /*-1*/
-            result = IO_FAULT_ERROR;
+    case 0:
+        result = IO_FAULT_HANDLED;
+        break;
+    case 1:
+        result = IO_FAULT_UNHANDLED;
+        break;
+    default: /*-1*/
+        result = IO_FAULT_ERROR;
     }
     return result;
 }
 
-void make_virtio_net_vswitch(vm_t *vm) {
+void make_virtio_net_vswitch(vm_t *vm)
+{
     return make_virtio_net_vswitch_driver(vm, pci, io_ports);
 }
 
@@ -619,7 +630,7 @@ void *main_continued(void *arg)
     /* Construct a new VM */
     ZF_LOGI("VMM init");
     error = vm_init(&vm, &vka, &camkes_simple, allocman, vspace,
-            &io_ops, ready_notification_cap, "X86 VM");
+                    &io_ops, ready_notification_cap, "X86 VM");
     ZF_LOGF_IF(error, "VMM init failed");
 
 #ifdef CONFIG_CAMKES_VM_GUEST_DMA_IOMMU
@@ -677,15 +688,15 @@ void *main_continued(void *arg)
     /* Do we need to do any early reservations of guest address space? */
     for (i = 0; i < ARRAY_SIZE(guest_ram_regions); i++) {
         error = vm_ram_register_at(&vm, guest_ram_regions[i].base, guest_ram_regions[i].size, false);
-        ZF_LOGF_IF(error, "Failed to alloc guest ram at %p", (void*)guest_ram_regions[i].base);
+        ZF_LOGF_IF(error, "Failed to alloc guest ram at %p", (void *)guest_ram_regions[i].base);
     }
 
     for (i = 0; i < ARRAY_SIZE(guest_fake_devices); i++) {
         vm_memory_reservation_t *reservation = vm_reserve_memory_at(&vm, guest_fake_devices[i].base, guest_fake_devices[i].size,
-            default_error_fault_callback, (void *)NULL);
-        ZF_LOGF_IF(!reservation, "Failed to create guest device reservation at %p", (void*)guest_fake_devices[i].base);
+                                                                    default_error_fault_callback, (void *)NULL);
+        ZF_LOGF_IF(!reservation, "Failed to create guest device reservation at %p", (void *)guest_fake_devices[i].base);
         error = map_frame_alloc_reservation(&vm, reservation);
-        ZF_LOGF_IF(error, "Failed to map guest device reservation at %p", (void*)guest_fake_devices[i].base);
+        ZF_LOGF_IF(error, "Failed to map guest device reservation at %p", (void *)guest_fake_devices[i].base);
     }
 
     /* Add in the device mappings specified by the guest. */
@@ -702,17 +713,17 @@ void *main_continued(void *arg)
         size_t bytes;
         exclude_paddr_get_region(i, &base, &bytes);
         vm_memory_reservation_t *reservation = vm_reserve_memory_at(&vm, base, bytes,
-                default_error_fault_callback, (void *)NULL);
+                                                                    default_error_fault_callback, (void *)NULL);
         ZF_LOGF_IF(!reservation, "Failed to reserve guest physical address range %p - %p\n",
-                (void*)base, (void*)(base + bytes));
+                   (void *)base, (void *)(base + bytes));
     }
 
-    for(int i = 0; i < ARRAY_SIZE(free_anonymous_regions); i++) {
+    for (int i = 0; i < ARRAY_SIZE(free_anonymous_regions); i++) {
         error = vm_memory_make_anon(&vm, free_anonymous_regions[i].base,
-                free_anonymous_regions[i].size);
+                                    free_anonymous_regions[i].size);
         ZF_LOGF_IF(error, "Failed to create anonymous region %p - %p",
-                (void *)free_anonymous_regions[i].base,
-                (void *)(free_anonymous_regions[i].base +  free_anonymous_regions[i].size));
+                   (void *)free_anonymous_regions[i].base,
+                   (void *)(free_anonymous_regions[i].base +  free_anonymous_regions[i].size));
     }
 
     /* Allocate guest ram. This is the main memory that the guest will actually get
@@ -729,7 +740,7 @@ void *main_continued(void *arg)
         size_t allocate = MIN(remaining, MiB_TO_BYTES(512));
         uintptr_t res_addr = vm_ram_register(&vm, allocate);
         ZF_LOGF_IF(!res_addr, "Failed to allocate %lu bytes of guest ram. Already allocated %lu.",
-            (long)allocate, (long)(MiB_TO_BYTES(guest_ram_mb) - remaining));
+                   (long)allocate, (long)(MiB_TO_BYTES(guest_ram_mb) - remaining));
         remaining -= allocate;
     }
 
@@ -788,7 +799,8 @@ void *main_continued(void *arg)
     /* Initialize any extra init devices */
     ZF_LOGI("Init extra devices");
     for (i = 0; i < init_cons_num_connections(); i++) {
-        void (*proc)(vm_t*, vmm_pci_space_t *, vmm_io_port_list_t *) = (void (*)(vm_t *, vmm_pci_space_t *, vmm_io_port_list_t *))init_cons_init_function(i);
+        void (*proc)(vm_t *, vmm_pci_space_t *, vmm_io_port_list_t *) = (void (*)(vm_t *, vmm_pci_space_t *,
+                                                                                  vmm_io_port_list_t *))init_cons_init_function(i);
         proc(&vm, pci, io_ports);
     }
 
@@ -798,12 +810,13 @@ void *main_continued(void *arg)
         if (ioport_handlers[i].port_in) {
             vm_ioport_range_t config_range = {ioport_handlers[i].start_port, ioport_handlers[i].end_port};
             vm_ioport_interface_t config_interface = {NULL, ioport_handlers[i].port_in, ioport_handlers[i].port_out,
-                ioport_handlers[i].desc};
+                                                      ioport_handlers[i].desc
+                                                     };
             error = vm_io_port_add_handler(&vm, config_range, config_interface);
             assert(!error);
         } else {
             error = vm_enable_passthrough_ioport(vm_vcpu, ioport_handlers[i].start_port,
-                    ioport_handlers[i].end_port);
+                                                 ioport_handlers[i].end_port);
             assert(!error);
         }
     }
@@ -844,8 +857,8 @@ void *main_continued(void *arg)
     }
     uintptr_t guest_boot_info_structure_addr;
     error = vmm_plat_init_guest_boot_structure(&vm, kernel_cmdline,
-            guest_kernel_image, guest_boot_image,
-            &guest_boot_info_structure_addr);
+                                               guest_kernel_image, guest_boot_image,
+                                               &guest_boot_info_structure_addr);
     ZF_LOGF_IF(error, "Failed to init guest boot structure");
 
     if (cross_vm_dataports_init) {
@@ -861,7 +874,7 @@ void *main_continued(void *arg)
     if (cross_vm_consumes_events_init && cross_vm_consumes_event_irq_num) {
         seL4_CPtr irq_notification = create_async_event_notification_cap(&vm, irq_badges[cross_vm_consumes_event_irq_num()]);
         ZF_LOGF_IF(irq_notification == seL4_CapNull,
-                "Failed to create async event notification cap");
+                   "Failed to create async event notification cap");
         error = cross_vm_consumes_events_init(&vm, &vspace, irq_notification);
 
         assert(!error);
@@ -870,8 +883,8 @@ void *main_continued(void *arg)
     /* Final VMM setup now that everything is defined and loaded */
     ZF_LOGI("Finalising VMM");
     error = vmm_plat_init_guest_thread_state(vm_vcpu,
-            guest_kernel_image.kernel_image_arch.entry,
-            guest_boot_info_structure_addr);
+                                             guest_kernel_image.kernel_image_arch.entry,
+                                             guest_boot_info_structure_addr);
     ZF_LOGF_IF(error, "Failed to finalise VMM");
 
     /* Now go run the event loop */

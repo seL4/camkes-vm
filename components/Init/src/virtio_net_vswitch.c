@@ -271,7 +271,8 @@ static int make_vswitch_net(void)
     }
 }
 
-static void emul_raw_handle_irq(struct eth_driver *driver, int irq) {
+static void emul_raw_handle_irq(struct eth_driver *driver, int irq)
+{
     vm_inject_irq(emul_vm, 6);
 }
 
@@ -286,6 +287,6 @@ void make_virtio_net_vswitch_driver(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_
 
     make_vswitch_net();
     virtio_net = common_make_virtio_net(vm, pci, io_ports, 0x9040, MASK(6), 6, 6, backend,
-            true);
+                                        true);
     assert(virtio_net);
 }

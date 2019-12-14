@@ -35,7 +35,8 @@ static vspace_t *vmm_vspace;
 static camkes_mutex_t *cross_vm_event_mutex;
 static seL4_CPtr irq_notification;
 
-static void event_camkes_callback(void *arg) {
+static void event_camkes_callback(void *arg)
+{
     int error UNUSED;
     camkes_consumes_event_t *event = arg;
 
@@ -63,7 +64,8 @@ static void event_camkes_callback(void *arg) {
     assert(!error);
 }
 
-static void event_interrupt_ack(void) {
+static void event_interrupt_ack(void)
+{
     /* The guest will make a hypercall when it is finished reading
      * from the shared context.
      */
@@ -71,10 +73,11 @@ static void event_interrupt_ack(void) {
     assert(!error);
 }
 
-static int event_shmem_init(uintptr_t paddr, vm_mem_t *guest_mem) {
+static int event_shmem_init(uintptr_t paddr, vm_mem_t *guest_mem)
+{
 
     // share event context between guest and vmm
-    event_context = vspace_share_mem(&guest_mem->vm_vspace, vmm_vspace, (void*)paddr, 1 /* num pages */,
+    event_context = vspace_share_mem(&guest_mem->vm_vspace, vmm_vspace, (void *)paddr, 1 /* num pages */,
                                      PAGE_BITS_4K, seL4_AllRights, 1 /* cacheable */);
 
     if (event_context == NULL) {
@@ -88,7 +91,8 @@ static int event_shmem_init(uintptr_t paddr, vm_mem_t *guest_mem) {
     return 0;
 }
 
-static int event_vmcall_handler(vm_vcpu_t *vcpu) {
+static int event_vmcall_handler(vm_vcpu_t *vcpu)
+{
 
     int cmd;
     int error = vm_get_thread_context_reg(vcpu, VCPU_CONTEXT_EBX, &cmd);
@@ -125,7 +129,8 @@ static int event_vmcall_handler(vm_vcpu_t *vcpu) {
 }
 
 int cross_vm_consumes_events_init_common(vm_t *vm, vspace_t *vspace, camkes_mutex_t *mutex,
-                                camkes_consumes_event_t *events, int n, seL4_CPtr notification) {
+                                         camkes_consumes_event_t *events, int n, seL4_CPtr notification)
+{
 
     vmm_vspace = vspace;
     cross_vm_event_mutex = mutex;
@@ -140,6 +145,7 @@ int cross_vm_consumes_events_init_common(vm_t *vm, vspace_t *vspace, camkes_mute
     return reg_new_handler(vm, event_vmcall_handler, EVENT_VMCALL_VMM_TO_GUEST_HANDLER_TOKEN);
 }
 
-int cross_vm_consumes_event_irq_num(void) {
+int cross_vm_consumes_event_irq_num(void)
+{
     return EVENT_IRQ_NUM;
 }

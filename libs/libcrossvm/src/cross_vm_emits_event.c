@@ -20,7 +20,8 @@
 static camkes_emit_fn *events;
 static int num_events;
 
-static int emit_event(int id) {
+static int emit_event(int id)
+{
     if (id == 0) {
         ZF_LOGE("Invalid event id 0");
         return -1;
@@ -43,7 +44,8 @@ static int emit_event(int id) {
     return 0;
 }
 
-static int event_vmcall_handler(vm_vcpu_t *vcpu) {
+static int event_vmcall_handler(vm_vcpu_t *vcpu)
+{
 
     int cmd;
     int err = vm_get_thread_context_reg(vcpu, VCPU_CONTEXT_EBX, &cmd);
@@ -71,7 +73,8 @@ static int event_vmcall_handler(vm_vcpu_t *vcpu) {
     return 0;
 }
 
-int cross_vm_emits_events_init_common(vm_t *vm,  camkes_emit_fn *e, int n) {
+int cross_vm_emits_events_init_common(vm_t *vm,  camkes_emit_fn *e, int n)
+{
     events = e;
     num_events = n;
     return reg_new_handler(vm, event_vmcall_handler, EVENT_VMCALL_GUEST_TO_VMM_HANDLER_TOKEN);

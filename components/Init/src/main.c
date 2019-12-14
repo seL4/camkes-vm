@@ -788,8 +788,8 @@ void *main_continued(void *arg)
     /* Initialize any extra init devices */
     ZF_LOGI("Init extra devices");
     for (i = 0; i < init_cons_num_connections(); i++) {
-        void (*proc)(vm_t*) = (void (*)(vm_t*))init_cons_init_function(i);
-        proc(&vm);
+        void (*proc)(vm_t*, vmm_pci_space_t *, vmm_io_port_list_t *) = (void (*)(vm_t *, vmm_pci_space_t *, vmm_io_port_list_t *))init_cons_init_function(i);
+        proc(&vm, pci, io_ports);
     }
 
     /* Add any IO ports */

@@ -16,6 +16,8 @@
 #include <stdint.h>
 #include <sel4/sel4.h>
 #include <sel4vm/guest_vm.h>
+#include <sel4vmmplatsupport/drivers/pci_helper.h>
+#include <sel4vmmplatsupport/ioports.h>
 
 /*? macros.show_includes(me.instance.type.includes) ?*/
 
@@ -23,7 +25,7 @@
 /*- set cons = lambda('x: [] if x is None else x')(cons) -*/
 
 /*- for con in cons -*/
-    void /*? con['init'].strip('"') ?*/(vm_t *vm);
+    void /*? con['init'].strip('"') ?*/(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_ports);
     /*- if con['irq'] is not none -*/
         void /*? con['irq'].strip('"') ?*/(vm_t *vm);
     /*- endif -*/

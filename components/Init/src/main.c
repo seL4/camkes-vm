@@ -622,6 +622,21 @@ void *main_continued(void *arg)
             &io_ops, ready_notification_cap, "X86 VM");
     ZF_LOGF_IF(error, "VMM init failed");
 
+#ifdef CONFIG_CAMKES_VM_GUEST_DMA_IOMMU
+    /* Do early device discovery and find any relevant PCI busses that
+     * need to get added */
+    ZF_LOGI("PCI early device discovery");
+    for (i = 0; i < pci_devices_num_devices(); i++) {
+        uint8_t bus;
+        uint8_t dev;
+        uint8_t fun;
+        seL4_CPtr iospace_cap;
+        pci_devices_get_device(i, &bus, &dev, &fun, &iospace_cap);
+        error = vm_guest_add_iospace(&vm.mem.vmm_vspace, &vm.mem.vm_vspace, iospace_cap);
+        ZF_LOGF_IF(error, "failed to add iospace to vspace");
+    }
+#endif
+
     vm_vcpu_t *vm_vcpu;
     vm_vcpu = vm_create_vcpu(&vm, 0);
     assert(vm_vcpu);
@@ -658,21 +673,6 @@ void *main_continued(void *arg)
     if (error) {
         ZF_LOGF_IF(error, "Failed to initialise VMM ioport management");
     }
-
-#ifdef CONFIG_CAMKES_VM_GUEST_DMA_IOMMU
-    /* Do early device discovery and find any relevant PCI busses that
-     * need to get added */
-    ZF_LOGI("PCI early device discovery");
-    for (i = 0; i < pci_devices_num_devices(); i++) {
-        uint8_t bus;
-        uint8_t dev;
-        uint8_t fun;
-        seL4_CPtr iospace_cap;
-        pci_devices_get_device(i, &bus, &dev, &fun, &iospace_cap);
-        error = vm_guest_add_iospace(&vm.mem.vmm_vspace, &vm.mem.vm_vspace, iospace_cap);
-        ZF_LOGF_IF(error, "failed to add iospace to vspace");
-    }
-#endif
 
     /* Do we need to do any early reservations of guest address space? */
     for (i = 0; i < ARRAY_SIZE(guest_ram_regions); i++) {

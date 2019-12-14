@@ -235,7 +235,7 @@ static memory_range_t guest_fake_devices[] = {
 
 /* Memory areas we reserve for anonymous allocations */
 static memory_range_t free_anonymous_regions[] = {
-    {0x10001000, 0xC0000000 - 0x10001000},
+    {0x10001000, 0xa0000000 - 0x10001000},
 };
 
 typedef struct device_notify {

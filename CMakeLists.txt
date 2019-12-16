@@ -29,6 +29,7 @@ add_config_library(camkes_vmm "${configure_string}")
 CAmkESAddImportPath(components)
 CAmkESAddImportPath(interfaces)
 CAmkESAddTemplatesPath(templates)
+CAmkESAddTemplatesPath(components/Init/templates)
 
 # Add VM Components and Libraries
 add_subdirectory(components/Echo)

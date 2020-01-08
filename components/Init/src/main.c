@@ -43,6 +43,7 @@
 #include <sel4vmmplatsupport/ioports.h>
 #include <sel4vmmplatsupport/drivers/pci.h>
 #include <sel4vmmplatsupport/drivers/pci_helper.h>
+#include <sel4vmmplatsupport/drivers/cross_vm_connection.h>
 #include <sel4vmmplatsupport/arch/drivers/vmm_pci_helper.h>
 
 #include <sel4vm/arch/vmcall.h>
@@ -58,6 +59,8 @@
 
 #define BRK_VIRTUAL_SIZE 400000000
 #define ALLOCMAN_VIRTUAL_SIZE 400000000
+#define CROSS_VM_EVENT_IRQ_NUM 12
+#define CROSS_VM_BASE_ADDRESS 0xa0000000
 
 extern void *fs_buf;
 
@@ -87,10 +90,13 @@ static vmm_io_port_list_t *io_ports;
 
 vm_t vm;
 
-int cross_vm_dataports_init(vm_t *vm, vmm_pci_space_t *pci) WEAK;
-int cross_vm_consumes_events_init(vm_t *vm, vspace_t *vspace, seL4_CPtr irq_notification) WEAK;
-int cross_vm_consumes_event_irq_num(void) WEAK;
-int cross_vm_emits_events_init(vm_t *vm) WEAK;
+int camkes_cross_vm_connections_init(vm_t *vm, vmm_pci_space_t *pci,
+                                     seL4_CPtr irq_notification, uintptr_t connection_base_address) WEAK;
+
+int get_crossvm_irq_num(void)
+{
+    return CROSS_VM_EVENT_IRQ_NUM;
+}
 
 static seL4_Error simple_ioport_wrapper(void *data, uint16_t start_port, uint16_t end_port,
                                         seL4_Word root, seL4_Word dest, seL4_Word depth)
@@ -530,7 +536,7 @@ static void init_irqs(vm_t *vm)
 
     int num_irqs = irqs_num_irqs();
 
-    if (cross_vm_consumes_event_irq_num && num_irqs > cross_vm_consumes_event_irq_num()) {
+    if (camkes_cross_vm_connections_init && num_irqs > get_crossvm_irq_num()) {
         ZF_LOGE("Cross vm event irq number not available");
     }
 
@@ -861,22 +867,11 @@ void *main_continued(void *arg)
                                                &guest_boot_info_structure_addr);
     ZF_LOGF_IF(error, "Failed to init guest boot structure");
 
-    if (cross_vm_dataports_init) {
-        error = cross_vm_dataports_init(&vm, pci);
-        ZF_LOGF_IF(error, "cross vm dataports init failed");
-    }
-
-    if (cross_vm_emits_events_init) {
-        error = cross_vm_emits_events_init(&vm);
-        assert(!error);
-    }
-
-    if (cross_vm_consumes_events_init && cross_vm_consumes_event_irq_num) {
-        seL4_CPtr irq_notification = create_async_event_notification_cap(&vm, irq_badges[cross_vm_consumes_event_irq_num()]);
+    if (camkes_cross_vm_connections_init) {
+        seL4_CPtr irq_notification = create_async_event_notification_cap(&vm, irq_badges[get_crossvm_irq_num()]);
         ZF_LOGF_IF(irq_notification == seL4_CapNull,
                    "Failed to create async event notification cap");
-        error = cross_vm_consumes_events_init(&vm, &vspace, irq_notification);
-
+        error = camkes_cross_vm_connections_init(&vm, pci, irq_notification, CROSS_VM_BASE_ADDRESS);
         assert(!error);
     }
 

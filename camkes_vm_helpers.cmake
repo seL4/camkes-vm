@@ -41,6 +41,7 @@ function(DeclareCAmkESVM init_component)
         ${VM_COMP_EXTRA_SOURCES}
         INCLUDES
         ${VM_PROJECT_DIR}/components/Init/src
+        ${VM_PROJECT_DIR}/components/Init/include
         ${VM_PROJECT_DIR}/components/VM/configurations
         ${VM_COMP_EXTRA_INCLUDES}
         LIBS

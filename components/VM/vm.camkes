@@ -109,11 +109,6 @@ connector seL4MultiSharedData {
     to Dataport;
 }
 
-connector seL4SharedDataWithCaps {
-    from Dataport;
-    to Dataport;
-}
-
 component VMConfig {
     hardware;
     provides ExtraRAM ram;

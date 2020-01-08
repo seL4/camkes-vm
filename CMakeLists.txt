@@ -49,7 +49,6 @@ foreach(
     seL4PicoUDPRecv
     seL4VMNet
     seL4MultiSharedData
-    seL4SharedDataWithCaps
 )
     DeclareCAmkESConnector(
         ${connector}

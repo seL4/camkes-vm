@@ -35,7 +35,6 @@ add_subdirectory(components/Echo)
 add_subdirectory(components/Firewall)
 add_subdirectory(components/StringReverse)
 add_subdirectory(components/UDPServer)
-add_subdirectory(libs/libcrossvm)
 
 # Declare connectors with templates.
 # We can rely on the naming scheme being consistent to allow for easier declaration.

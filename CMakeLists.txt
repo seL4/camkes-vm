@@ -47,7 +47,6 @@ foreach(
     seL4UDPRecv
     seL4PicoUDPSend
     seL4PicoUDPRecv
-    seL4VMNet
     seL4MultiSharedData
 )
     DeclareCAmkESConnector(

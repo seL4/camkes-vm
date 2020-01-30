@@ -55,11 +55,6 @@ connector seL4PicoUDPRecv {
     to Procedure;
 }
 
-connector seL4VMNet {
-    from Dataport;
-    to Dataport;
-}
-
 connector seL4MultiSharedData {
     from Dataport;
     to Dataport;

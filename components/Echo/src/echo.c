@@ -17,6 +17,9 @@
 #undef ERR_IF
 #include <string.h>
 
+extern volatile void *echo_recv_buf;
+extern volatile void *echo2_recv_buf;
+
 void echo_recv_ready_callback() {
     int status = 0;
     while (status == 0) {

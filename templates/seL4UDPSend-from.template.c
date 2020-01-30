@@ -10,6 +10,9 @@
  * @TAG(DATA61_BSD)
  */
 
+/*- set suffix = "_buf" -*/
+/*- include 'seL4MultiSharedData-from.template.c' -*/
+
 #include <sel4/sel4.h>
 #include <string.h>
 #include <lwip/ip_addr.h>
@@ -23,16 +26,13 @@
     /*- do cap_space.cnode[ep].set_badge(int(badge, 0)) -*/
 /*- endif -*/
 
-/* assume a dataport symbols exists */
-extern void * /*? me.interface.name?*/_buf;
-
 int /*? me.interface.name ?*/_send(void *p, unsigned int len, ip_addr_t addr) {
     seL4_SetMR(0, len);
     seL4_SetMR(1, addr.addr);
     if (len > 4096) {
         len = 4096;
     }
-    memcpy(/*? me.interface.name?*/_buf, p, len);
+    memcpy((void *)/*? me.interface.name?*/_buf, p, len);
     seL4_Call(/*? ep ?*/, seL4_MessageInfo_new(0, 0, 0, 2));
     return len;
 }

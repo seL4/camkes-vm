@@ -10,6 +10,9 @@
  * @TAG(DATA61_BSD)
  */
 
+/*- set suffix = "_buf" -*/
+/*- include 'seL4MultiSharedData-from.template.c' -*/
+
 #include <sel4/sel4.h>
 #include <camkes/dataport.h>
 #include <lwip/udp.h>

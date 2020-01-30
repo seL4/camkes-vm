@@ -10,6 +10,8 @@
  * @TAG(DATA61_BSD)
  */
 
+/*- include 'seL4MultiSharedData-to.template.c' -*/
+
 #include <sel4/sel4.h>
 #include <camkes/dataport.h>
 #include <lwip/udp.h>
@@ -17,9 +19,6 @@
 #include <string.h>
 
 /*- set ep = alloc('ep', seL4_EndpointObject, read=True, write=True) -*/
-
-/* assume a function exists to get a dataport */
-void * /*? me.interface.name?*/_buf_buf(unsigned int client_id);
 
 /*- set clients = [] -*/
 
@@ -56,7 +55,7 @@ void /*? me.interface.name ?*/__run(void) {
             lwip_lock();
             p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
             if (p) {
-                memcpy(p->payload, /*? me.interface.name?*/_buf_buf(badge), len);
+                memcpy(p->payload, /*? me.interface.name?*/_buf(badge), len);
                 switch (badge) {
                 /*- for client, source, dest in clients -*/
                 case /*? client ?*/:

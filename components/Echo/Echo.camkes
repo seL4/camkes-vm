@@ -31,13 +31,9 @@ import <Timer.idl4>;
 
 component Echo {
     uses UDPRecv echo_recv;
-    dataport Buf echo_recv_buf;
     consumes Notification echo_recv_ready;
     uses UDPSend echo_send;
-    dataport Buf echo_send_buf;
     uses UDPRecv echo2_recv;
-    dataport Buf echo2_recv_buf;
     consumes Notification echo2_recv_ready;
     uses UDPSend echo2_send;
-    dataport Buf echo2_send_buf;
 }

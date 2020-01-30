@@ -18,6 +18,13 @@
 #include <sync/sem-bare.h>
 #include <string.h>
 
+/*- from 'rpc-connector.c' import allocate_badges with context -*/
+
+/*- set client_ids = namespace() -*/
+/*- do allocate_badges(client_ids) -*/
+
+/*- set badges = client_ids.badges -*/
+
 /*- set ep = alloc('ep', seL4_EndpointObject, read=True, write=True) -*/
 
 void lwip_lock();
@@ -29,8 +36,7 @@ void lwip_unlock();
 /*- for c in me.parent.from_ends -*/
 
     /*- set port = configuration[c.instance.name].get('%s_port' % c.interface.name) -*/
-    /*- set client = configuration[c.instance.name].get('%s_attributes' % c.interface.name) -*/
-    /*- set client = client.strip('"') -*/
+    /*- set client = badges[loop.index0] -*/
 
     /*- set is_reader = False -*/
     /*- set instance = c.instance.name -*/

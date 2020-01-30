@@ -20,11 +20,17 @@
 
 /*- set ep = alloc('ep', seL4_EndpointObject, write=True, grantreply=True) -*/
 
-/*- set badge = configuration[me.instance.name].get('%s_attributes' % me.interface.name) -*/
-/*- if badge is not none -*/
-    /*- set badge = badge.strip('"') -*/
-    /*- do cap_space.cnode[ep].set_badge(int(badge, 0)) -*/
-/*- endif -*/
+/*- from 'rpc-connector.c' import allocate_badges with context -*/
+
+/*- set client_ids = namespace() -*/
+/*- do allocate_badges(client_ids) -*/
+
+/*- set badges = client_ids.badges -*/
+
+/*- set index = me.parent.from_ends.index(me) -*/
+
+/*- set badge = badges[index] -*/
+/*- do cap_space.cnode[ep].set_badge(badge) -*/
 
 int /*? me.interface.name ?*/_poll(unsigned int *len, uint16_t *port, ip_addr_t *addr) {
     int status;

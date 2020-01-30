@@ -109,7 +109,7 @@ void /*? me.interface.name ?*/__run(void) {
             }
         }
         assert(client);
-        result = seL4_CNode_SaveCaller(/*? cnode ?*/, /*? reply_cap_slot ?*/, 32);
+        result = seL4_CNode_SaveCaller(/*? cnode ?*/, /*? reply_cap_slot ?*/, CONFIG_WORD_SIZE);
         assert(result == seL4_NoError);
         lwip_lock();
         len = 0;

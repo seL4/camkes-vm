@@ -47,7 +47,7 @@ void /*? me.interface.name ?*/__run(void) {
         struct pbuf *p;
         seL4_Word badge;
         seL4_Wait(/*? ep ?*/, &badge);
-        result = seL4_CNode_SaveCaller(/*? cnode ?*/, /*? reply_cap_slot ?*/, 32);
+        result = seL4_CNode_SaveCaller(/*? cnode ?*/, /*? reply_cap_slot ?*/, CONFIG_WORD_SIZE);
         assert(result == seL4_NoError);
 
         len = seL4_GetMR(0);

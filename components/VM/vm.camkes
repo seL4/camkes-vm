@@ -30,7 +30,6 @@ import <RTC/RTC.camkes>;
 import <SerialServer/SerialServer.camkes>;
 import <Ethdriver/Ethdriver.camkes>;
 import <UDPServer/UDPServer.camkes>;
-import <PicoUDPServer/PicoUDPServer.camkes>;
 import <FileServer/FileServer.camkes>;
 
 import <Echo/Echo.camkes>;
@@ -41,16 +40,6 @@ connector seL4UDPSend {
 }
 
 connector seL4UDPRecv {
-    from Procedure;
-    to Procedure;
-}
-
-connector seL4PicoUDPSend {
-    from Procedure;
-    to Procedure;
-}
-
-connector seL4PicoUDPRecv {
     from Procedure;
     to Procedure;
 }

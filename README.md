@@ -40,8 +40,6 @@ This repo provides a series of useful CAmkES components that can be used to deve
 - `StringReverse`
 - `Echo`
 - `Firewall`
-- `PicoTCPServer`
-- `PicoUDPServer`
 - `StringReverse`
 - `UDPServer`
 

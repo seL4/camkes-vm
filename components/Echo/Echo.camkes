@@ -30,10 +30,10 @@ import <UDPSend.idl4>;
 import <Timer.idl4>;
 
 component Echo {
+    control;
     uses UDPRecv echo_recv;
-    consumes Notification echo_recv_ready;
     uses UDPSend echo_send;
     uses UDPRecv echo2_recv;
-    consumes Notification echo2_recv_ready;
     uses UDPSend echo2_send;
+
 }

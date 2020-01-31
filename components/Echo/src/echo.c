@@ -20,7 +20,8 @@
 extern volatile void *echo_recv_buf;
 extern volatile void *echo2_recv_buf;
 
-void echo_recv_ready_callback() {
+void echo_recv_ready_callback()
+{
     int status = 0;
     while (status == 0) {
         unsigned int len;
@@ -33,7 +34,8 @@ void echo_recv_ready_callback() {
     }
 }
 
-void echo2_recv_ready_callback() {
+void echo2_recv_ready_callback()
+{
     int status = 0;
     while (status == 0) {
         unsigned int len;
@@ -42,6 +44,22 @@ void echo2_recv_ready_callback() {
         status = echo2_recv_poll(&len, &port, &ip4addr);
         if (status != -1) {
             echo2_send_send((uintptr_t)echo2_recv_buf, len, ip4addr);
+        }
+    }
+}
+
+
+int run(void)
+{
+
+    while (1) {
+        seL4_Word badge;
+        seL4_Wait(echo2_recv_notification(), &badge);
+        if (badge & echo_recv_notification_badge()) {
+            echo_recv_ready_callback();
+        }
+        if (badge & echo2_recv_notification_badge()) {
+            echo2_recv_ready_callback();
         }
     }
 }

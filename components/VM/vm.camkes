@@ -35,12 +35,12 @@ import <FileServer/FileServer.camkes>;
 import <Echo/Echo.camkes>;
 
 connector seL4UDPSend {
-    from Procedure;
+    from Procedure with 0 threads;
     to Procedure;
 }
 
 connector seL4UDPRecv {
-    from Procedure;
+    from Procedure with 0 threads;
     to Procedure;
 }
 

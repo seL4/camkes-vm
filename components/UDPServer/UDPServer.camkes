@@ -25,6 +25,5 @@ component UDPServer {
     attribute int num_client_recv_bufs;
 
     provides UDPRecv client_recv;
-    emits Notification client_recv_ready;
     provides UDPSend client_send;
 }

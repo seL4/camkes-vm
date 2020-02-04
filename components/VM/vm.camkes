@@ -42,6 +42,7 @@ connector seL4UDPSend {
 connector seL4UDPRecv {
     from Procedure with 0 threads;
     to Procedure;
+    attribute bool from_global_endpoint = True;
 }
 
 connector seL4MultiSharedData {

@@ -19,6 +19,7 @@
 #include <string.h>
 
 /*- from 'rpc-connector.c' import allocate_badges with context -*/
+/*- from 'global-endpoint.template.c' import allocate_cap with context -*/
 
 /*- set client_ids = namespace() -*/
 /*- do allocate_badges(client_ids) -*/
@@ -37,11 +38,7 @@ void lwip_unlock();
 
     /*- set port = configuration[c.instance.name].get('%s_port' % c.interface.name) -*/
     /*- set client = badges[loop.index0] -*/
-
-    /*- set is_reader = False -*/
-    /*- set instance = c.instance.name -*/
-    /*- set interface = c.interface.name -*/
-    /*- include 'global-endpoint.template.c' -*/
+    /*- do allocate_cap(c, is_reader=False) -*/
     /*- set notification = pop('notification') -*/
 
     /*- do clients.append( (client, port, notification) ) -*/

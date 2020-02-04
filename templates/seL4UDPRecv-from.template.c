@@ -47,12 +47,4 @@ int /*? me.interface.name ?*/_poll(unsigned int *len, uint16_t *port, ip_addr_t 
     return status;
 }
 
-/*- set is_reader = True -*/
-/*- set instance = me.instance.name -*/
-/*- set interface = me.interface.name -*/
-/*- include 'global-endpoint.template.c' -*/
-/*- set notification = pop('notification') -*/
-
-seL4_CPtr /*? me.interface.name ?*/_notification(void) {
-    return /*? notification ?*/;
-}
+/*- include 'get-notification.template.c' -*/

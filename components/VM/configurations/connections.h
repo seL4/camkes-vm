@@ -148,7 +148,7 @@
  * VM_CONNECTION_COMPONENT_DEF(vm_id, topology): Defines interfaces for vm_id and topology.
  * VM_CONNECTION_CONNECT_VMS(to_end, topology): Creates connection between all instances of the given topology.
  * VM_CONNECTION_CONFIG(to_end, topology): Applies configuration for cross vm connection.
- * VM_CONNECTION_INIT_HANDLER: Add init handler to vmm to create the cross_vm virtio_net device
+ * VM_CONNECTION_INIT_HANDLER(to_end, topology): Add init handler to vmm to create the cross_vm virtio_net device
  *
  */
 #define VM_CONNECTION_COMPONENT_DEF(vm_id, topology) \
@@ -164,5 +164,13 @@
     topology(__CONFIG_EXPAND_PERVM) \
     to_end##_topology = [topology(__CONFIG_EXPAND_TOPOLOGY)];
 
-#define VM_CONNECTION_INIT_HANDLER \
-    {"init":"make_virtio_net_vswitch", "badge":CONNECTION_BADGE, "irq":"virtio_net_notify_vswitch"}
+#define __INIT_ADD_INTERFACE_END(base_id, target_id) \
+    {"init":"make_virtio_net_vswitch_driver_dummy", "badge":"ether_" # target_id "_send_notification_badge()", "irq":"virtio_net_notify_vswitch"}, \
+    {"init":"make_virtio_net_vswitch_driver_dummy", "badge":"ether_" # target_id "_recv_notification_badge()", "irq":"virtio_net_notify_vswitch"},
+
+#define __CONNECTION_PERVM_ADD_INIT(base_id, vm_ids...) \
+    __CALL_SINGLE(__INIT_ADD_INTERFACE_END, base_id, vm_ids)
+
+#define VM_CONNECTION_INIT_HANDLER(vm_id, topology) \
+    VM##vm_id##_##topology(__CONNECTION_PERVM_ADD_INIT) \
+    {"init":"make_virtio_net_vswitch"}

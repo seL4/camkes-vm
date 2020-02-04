@@ -79,13 +79,6 @@
 #define __CONNECTION_PERVM_ADD_INTERFACES(base_id, vm_ids...) \
     __CALL_SINGLE(__CONNECTION_ADD_INTERFACE_END, base_id, vm_ids)
 
-/* All the async sources on the VMM's endpoint use the high bit,
- * BIT(27), to indicate an async event has occured. The low bit of
- * CONNECTION_BADGE, BIT(19), identifies it as a virtqueue async event */
-#define BASE_BADGE 134217728 /* BIT(27) */
-#define BADGE_NUMBER 19
-#define CONNECTION_BADGE (BASE_BADGE | (1 << BADGE_NUMBER))
-
 /**
  * Expands the config attributes of a VMs send and recv queue
  * Called once per connection per vm
@@ -99,12 +92,8 @@
 #define __CONFIG_PER_CONNECTION(base_id, target_id, idx) \
     vm##base_id.ether_##target_id##_send_id = idx *2; \
     vm##base_id.ether_##target_id##_send_attributes = VAR_STRINGIZE(base_id##target_id); \
-    vm##base_id.ether_##target_id##_send_global_endpoint = VAR_STRINGIZE(vm##target_id); \
-    vm##base_id.ether_##target_id##_send_badge = CONNECTION_BADGE; \
     vm##base_id.ether_##target_id##_recv_id = idx *2 + 1; \
     vm##base_id.ether_##target_id##_recv_attributes = VAR_STRINGIZE(target_id##base_id); \
-    vm##base_id.ether_##target_id##_recv_global_endpoint = VAR_STRINGIZE(vm##target_id); \
-    vm##base_id.ether_##target_id##_recv_badge = CONNECTION_BADGE; \
     vm##base_id.ether_##target_id##_send_shmem_size = 32768; \
     vm##base_id.ether_##target_id##_recv_shmem_size = 32768; \
 

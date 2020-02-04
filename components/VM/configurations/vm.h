@@ -20,9 +20,6 @@
  * is set to indicate that an async event occured, and the low bits
  * indicate which async events */
 
-/* The timer completions are also on the interrupt manager badge */
-#define VM_INIT_TIMER_BADGE 134217729 /* BIT(27) | BIT(0) */
-
 #define VM_PIC_BADGE_IRQ_0 134217730 /* BIT(27) | BIT(1) */
 #define VM_PIC_BADGE_IRQ_1 134217732 /* BIT(27) | BIT(2) */
 #define VM_PIC_BADGE_IRQ_2 134217736 /* BIT(27) | BIT(3) */
@@ -39,11 +36,6 @@
 #define VM_PIC_BADGE_IRQ_13 134234112 /* BIT(27) | BIT(14) */
 #define VM_PIC_BADGE_IRQ_14 134250496 /* BIT(27) | BIT(15) */
 #define VM_PIC_BADGE_IRQ_15 134283264 /* BIT(27) | BIT(16) */
-
-#define VM_PIC_BADGE_SERIAL_HAS_DATA 134348800 /* BIT(27) | BIT(17) */
-
-/* First available badge for user bits */
-#define VM_FIRST_BADGE_BIT 18
 
 /* Base definition of the Init component. This gets
  * extended in the per Vm configuration */
@@ -97,21 +89,13 @@
 #define VM_MAYBE_ZONE_DMA(num)
 
 #define VM_PER_VM_CONFIG_DEF(num) \
-    vm##num.fs_attributes = VAR_STRINGIZE(num); \
     vm##num.fs_shmem_size = 0x1000; \
-    vm##num.init_timer_global_endpoint = VAR_STRINGIZE(vm##num); \
-    vm##num.init_timer_badge = VAR_STRINGIZE(VM_INIT_TIMER_BADGE); \
-    vm##num.init_timer_attributes = num + 2; \
-    vm##num.intready_global_endpoint = VAR_STRINGIZE(vm##num); \
-    vm##num.intready_connector_global_endpoint = VAR_STRINGIZE(vm##num); \
-    vm##num.putchar_attributes = VAR_STRINGIZE(num); \
-    vm##num.guest_putchar_attributes = VAR_STRINGIZE(num); \
-    vm##num.serial_getchar_global_endpoint = VAR_STRINGIZE(vm##num); \
-    vm##num.serial_getchar_badge = VAR_STRINGIZE(VM_PIC_BADGE_SERIAL_HAS_DATA); \
     vm##num.serial_getchar_attributes = VAR_STRINGIZE(num); \
     vm##num.serial_getchar_shmem_size = 0x1000; \
     vm##num.simple = true; \
     vm##num.asid_pool = true; \
+    vm##num.global_endpoint_mask = 0x1fffffff & ~0x1fffe; \
+    vm##num.global_endpoint_base = 1 << 27; \
     VM_MAYBE_ZONE_DMA(num) \
     /**/
 
@@ -138,11 +122,7 @@
 
 #define VM_CONFIGURATION_DEF() \
     fserv.heap_size = 165536; \
-    serial.timeout_attributes = 1; \
-    time_server.putchar_attributes = 0; \
     time_server.timers_per_client = 9; \
-    pci_config.putchar_attributes = 0; \
-    rtc.putchar_attributes = 0; \
     /* Put the entire time server at the highest priority */ \
     time_server.priority = 255; \
     /* The timer server runs better if it can get the true tsc frequency from the kernel */ \

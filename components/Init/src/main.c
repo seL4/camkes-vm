@@ -891,6 +891,8 @@ void *main_continued(void *arg)
                                              guest_boot_info_structure_addr);
     ZF_LOGF_IF(error, "Failed to finalise VMM");
 
+    vcpu_start(vm_vcpu);
+
     /* Now go run the event loop */
     vm_run(&vm);
 

@@ -488,7 +488,7 @@ static int handle_async_event(vm_t *vm, seL4_Word badge, UNUSED seL4_MessageInfo
         }
         for (int i = 0; i < 16; i++) {
             if ((badge & irq_badges[i]) == irq_badges[i]) {
-                vm_inject_irq(vm, i);
+                vm_inject_irq(vm->vcpus[BOOT_VCPU], i);
             }
         }
         for (int i = 0; i < device_notify_list_len; i++) {
@@ -532,7 +532,7 @@ static seL4_CPtr create_async_event_notification_cap(vm_t *vm, seL4_Word badge)
     return minted_ntfn_path.capPtr;
 }
 
-static void irq_ack_hw_irq_handler(vm_t *vm, int irq, void *cookie)
+static void irq_ack_hw_irq_handler(vm_vcpu_t *vcpu, int irq, void *cookie)
 {
     seL4_CPtr handler = (seL4_CPtr) cookie;
     int UNUSED error = seL4_IRQHandler_Ack(handler);
@@ -568,7 +568,7 @@ static void init_irqs(vm_t *vm)
         ZF_LOGF_IF(error, "Failed to set notification for irq handler");
         error = seL4_IRQHandler_Ack(irq_handler);
         ZF_LOGF_IF(error, "Failed to ack irq handler");
-        error = vm_register_irq(vm, dest, irq_ack_hw_irq_handler, (void *)irq_handler);
+        error = vm_register_irq(vm->vcpus[BOOT_VCPU], dest, irq_ack_hw_irq_handler, (void *)irq_handler);
         ZF_LOGF_IF(error, "Failed to register irq ack handler");
     }
 }

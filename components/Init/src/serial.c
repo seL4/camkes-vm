@@ -37,6 +37,7 @@
 #include <camkes.h>
 #include <sel4vm/arch/ioports.h>
 #include <sel4vm/guest_irq_controller.h>
+#include <sel4vm/boot.h>
 #include "timers.h"
 #include <platsupport/arch/tsc.h>
 
@@ -272,10 +273,10 @@ static void serial_update_irq(SerialState *s)
 
     if (tmp_iir != UART_IIR_NO_INT) {
 
-        vm_set_irq_level(&vm, 4, 1);
+        vm_set_irq_level(vm.vcpus[BOOT_VCPU], 4, 1);
 //        qemu_irq_raise(s->irq);
     } else {
-        vm_set_irq_level(&vm, 4, 0);
+        vm_set_irq_level(vm.vcpus[BOOT_VCPU], 4, 0);
 //        qemu_irq_lower(s->irq);
     }
 }

@@ -32,6 +32,7 @@
 #include <sel4vm/guest_vm.h>
 #include <sel4vm/guest_memory.h>
 #include <sel4vm/guest_irq_controller.h>
+#include <sel4vm/boot.h>
 
 #include <sel4vmmplatsupport/drivers/pci.h>
 #include <sel4vmmplatsupport/drivers/virtio_pci_emul.h>
@@ -89,7 +90,7 @@ static int emul_raw_tx(struct eth_driver *driver, unsigned int num, uintptr_t *p
 
 static void emul_raw_handle_irq(struct eth_driver *driver, int irq)
 {
-    vm_inject_irq(emul_vm, 6);
+    vm_inject_irq(emul_vm->vcpus[BOOT_VCPU], 6);
 }
 
 static void emul_low_level_init(struct eth_driver *driver, uint8_t *mac, int *mtu)

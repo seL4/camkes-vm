@@ -57,6 +57,7 @@
 #include "vm.h"
 #include "timers.h"
 #include "fsclient.h"
+#include "virtio_net.h"
 #include "virtio_net_vswitch.h"
 
 #define BRK_VIRTUAL_SIZE 400000000
@@ -695,7 +696,7 @@ void *main_continued(void *arg)
     ZF_LOGI("RTC pre init");
     rtc_pre_init();
 
-    error = vmm_io_port_init(&io_ports);
+    error = vmm_io_port_init(&io_ports, FREE_IOPORT_START);
     if (error) {
         ZF_LOGF_IF(error, "Failed to initialise VMM ioport management");
     }

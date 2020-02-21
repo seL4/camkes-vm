@@ -287,7 +287,9 @@ void make_virtio_net_vswitch_driver(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_
     emul_vm = vm;
 
     make_vswitch_net();
-    virtio_net = common_make_virtio_net(vm, pci, io_ports, 0x9040, MASK(6), 6, 6, backend,
+
+    ioport_range_t virtio_port_range = {0, 0, VIRTIO_IOPORT_SIZE};
+    virtio_net = common_make_virtio_net(vm, pci, io_ports, virtio_port_range, IOPORT_FREE, 6, 6, backend,
                                         true);
     assert(virtio_net);
 }

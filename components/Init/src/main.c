@@ -645,8 +645,7 @@ void *main_continued(void *arg)
     seL4_CPtr ready_notification_cap = intready_notification();
     /* Construct a new VM */
     ZF_LOGI("VMM init");
-    error = vm_init(&vm, &vka, &camkes_simple, allocman, vspace,
-                    &io_ops, ready_notification_cap, "X86 VM");
+    error = vm_init(&vm, &vka, &camkes_simple, vspace, &io_ops, ready_notification_cap, "X86 VM");
     ZF_LOGF_IF(error, "VMM init failed");
 
 #ifdef CONFIG_CAMKES_VM_GUEST_DMA_IOMMU

@@ -658,7 +658,7 @@ void *main_continued(void *arg)
         uint8_t fun;
         seL4_CPtr iospace_cap;
         pci_devices_get_device(i, &bus, &dev, &fun, &iospace_cap);
-        error = vm_guest_add_iospace(&vm.mem.vmm_vspace, &vm.mem.vm_vspace, iospace_cap);
+        error = vm_guest_add_iospace(&vm, &vm.mem.vmm_vspace, iospace_cap);
         ZF_LOGF_IF(error, "failed to add iospace to vspace");
     }
 #endif

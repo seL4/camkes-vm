@@ -9,3 +9,4 @@ apps/vm/cma34cr_centos/centos-kernel-config
 liblwip/include/arch/perf.h
 liblwip/include/lwip/arch/cc.h
 components/PicoServer/include/khash.h
+.gitignore

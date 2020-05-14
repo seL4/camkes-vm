@@ -18,6 +18,7 @@
 #include <sel4vm/guest_vm.h>
 #include <sel4vmmplatsupport/drivers/pci_helper.h>
 #include <sel4vmmplatsupport/ioports.h>
+#include <camkes.h>
 
 /*- set cons = configuration[me.name].get("init_cons") -*/
 /*- set cons = lambda('x: [] if x is None else x')(cons) -*/

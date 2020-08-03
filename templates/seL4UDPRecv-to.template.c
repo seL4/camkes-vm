@@ -69,7 +69,7 @@ static udp_client_t udp_clients[/*? len(clients) ?*/] = {
 /*- endfor -*/
 };
 
-static void udprecv(void *arg, struct udp_pcb *pcb, struct pbuf *p, ip_addr_t *addr, u16_t port) {
+static void udprecv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr, u16_t port) {
     udp_client_t *client = (udp_client_t*)arg;
     if (!client->free_head) {
         pbuf_free(p);

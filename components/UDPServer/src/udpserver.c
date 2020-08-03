@@ -120,7 +120,7 @@ static struct netif _netif;
 static lwip_iface_t _lwip_driver;
 
 void pre_init(void) {
-    struct ip_addr netmask, ipaddr, gw, multicast;
+    ip_addr_t netmask, ipaddr, gw, multicast;
     struct netif *netif;
     int UNUSED error;
     lwip_iface_t *lwip_driver;

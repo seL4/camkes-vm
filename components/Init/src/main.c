@@ -67,9 +67,9 @@
 
 extern void *fs_buf;
 
-reservation_t muslc_brk_reservation;
-void *muslc_brk_reservation_start;
-vspace_t  *muslc_this_vspace;
+extern reservation_t muslc_brk_reservation;
+extern void *muslc_brk_reservation_start;
+extern vspace_t  *muslc_this_vspace;
 static sel4utils_res_t muslc_brk_reservation_memory;
 
 seL4_CPtr intready_notification();

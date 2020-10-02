@@ -27,7 +27,8 @@ set(RELEASE OFF CACHE BOOL "Performance optimized build")
 # capDL settings
 set(CapDLLoaderMaxObjects 900000 CACHE STRING "" FORCE)
 # Our components will all define their own heaps if needed
-set(CAmkESDefaultHeapSize 0 CACHE STRING "" FORCE)
+# Otherwise we provide enough of a heap to initialise libc
+set(CAmkESDefaultHeapSize 4096 CACHE STRING "" FORCE)
 # We need to pre-process our specs
 set(CAmkESCPP ON CACHE BOOL "" FORCE)
 

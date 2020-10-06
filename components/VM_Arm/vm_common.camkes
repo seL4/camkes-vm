@@ -1,0 +1,45 @@
+/*
+ * Copyright 2017, Data61
+ * Commonwealth Scientific and Industrial Research Organisation (CSIRO)
+ * ABN 41 687 119 230.
+ *
+ * This software may be distributed and modified according to the terms of
+ * the BSD 2-Clause license. Note that NO WARRANTY is provided.
+ * See "LICENSE_BSD2.txt" for details.
+ *
+ * @TAG(DATA61_BSD)
+ */
+import <std_connector.camkes>;
+import <global-connectors.camkes>;
+
+import <FileServerInterface.camkes>;
+import <FileServer/FileServer.camkes>;
+import <SerialServer/SerialServer.camkes>;
+import <TimeServer/TimeServer.camkes>;
+import "VM.camkes";
+
+assembly {
+    composition {
+        component VM vm;
+        component FileServer fserv;
+
+        connection seL4RPCDataport fs(from vm.fs, to fserv.fs_ctrl);
+        connection seL4GlobalAsynch vm_notify_read_conn(from vm.notification_ready_connector, to vm.notification_ready);
+    }
+    configuration {
+        fserv.heap_size = 165536;
+        vm.fs_shmem_size = 0x1000;
+
+        vm.asid_pool = true;
+
+        vm.simple = true;
+        vm.cnode_size_bits = 23;
+        vm.simple_untyped24_pool = 12;
+
+        vm.base_prio = 100;
+
+        vm._priority = 101;
+        vm.sem_value = 0;
+
+    }
+}

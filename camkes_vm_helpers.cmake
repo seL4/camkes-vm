@@ -58,8 +58,14 @@ function(DeclareCAmkESVM init_component)
         ${VM_COMP_EXTRA_LD_FLAGS}
         C_FLAGS
         ${VM_COMP_EXTRA_C_FLAGS}
-        TEMPLATE_SOURCES seL4ExtraRAM.template.c seL4ExcludeGuestPAddr.template.c seL4InitConnection.template.c
-            seL4VMIOPorts.template.c seL4GuestMaps.template.c seL4VMIRQs.template.c seL4VMPCIDevices.template.c
+        TEMPLATE_SOURCES
+        seL4ExtraRAM.template.c
+        seL4ExcludeGuestPAddr.template.c
+        seL4InitConnection.template.c
+        seL4VMIOPorts.template.c
+        seL4GuestMaps.template.c
+        seL4VMIRQs.template.c
+        seL4VMPCIDevices.template.c
     )
 endfunction(DeclareCAmkESVM)
 

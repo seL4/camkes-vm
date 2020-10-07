@@ -159,12 +159,12 @@ static void rtc_coalesced_timer_update(RTCState *s)
         init_timer_stop(TIMER_COALESCED_TIMER);
     } else {
         /* divide each RTC interval to 2 - 8 smaller intervals */
-        int c = MIN(s->irq_coalesced, 7) + 1; 
+        int c = MIN(s->irq_coalesced, 7) + 1;
 //        int64_t next_clock = qemu_get_clock_ns(rtc_clock) +
 //            muldiv64(s->period / c, get_ticks_per_sec(), 32768);
 //        qemu_mod_timer(s->coalesced_timer, next_clock);
         int64_t next_clock = init_timer_time() +
-            muldiv64(s->period / c, get_ticks_per_sec(), 32768);
+                             muldiv64(s->period / c, get_ticks_per_sec(), 32768);
         init_timer_oneshot_absolute(TIMER_COALESCED_TIMER, next_clock);
     }
 }
@@ -199,8 +199,9 @@ static void rtc_timer_update(RTCState *s, int64_t current_time)
     if (period_code != 0
         && ((s->cmos_data[RTC_REG_B] & REG_B_PIE)
             || ((s->cmos_data[RTC_REG_B] & REG_B_SQWE) && /*s->sqw_irq*/ 0))) {
-        if (period_code <= 2)
+        if (period_code <= 2) {
             period_code += 7;
+        }
         /* period in 32 Khz cycles */
         period = 1 << (period_code - 1);
 #ifdef TARGET_I386
@@ -234,9 +235,10 @@ static void rtc_periodic_timer(void *opaque)
     if (s->cmos_data[RTC_REG_B] & REG_B_PIE) {
         s->cmos_data[RTC_REG_C] |= 0xc0;
 #ifdef TARGET_I386
-        if(rtc_td_hack) {
-            if (s->irq_reinject_on_ack_count >= RTC_REINJECT_ON_ACK_COUNT)
+        if (rtc_td_hack) {
+            if (s->irq_reinject_on_ack_count >= RTC_REINJECT_ON_ACK_COUNT) {
                 s->irq_reinject_on_ack_count = 0;
+            }
 //            apic_reset_irq_delivered();
 //            qemu_irq_raise(s->irq);
             vm_set_irq_level(vm.vcpus[BOOT_VCPU], 8, 1);
@@ -268,7 +270,7 @@ static void cmos_ioport_write(void *opaque, uint32_t addr, uint32_t data)
     } else {
         CMOS_DPRINTF("cmos: write index=0x%02x val=0x%02x\n",
                      s->cmos_index, data);
-        switch(s->cmos_index) {
+        switch (s->cmos_index) {
         case RTC_SECONDS_ALARM:
         case RTC_MINUTES_ALARM:
         case RTC_HOURS_ALARM:
@@ -290,7 +292,7 @@ static void cmos_ioport_write(void *opaque, uint32_t addr, uint32_t data)
         case RTC_REG_A:
             /* UIP bit is read only */
             s->cmos_data[RTC_REG_A] = (data & ~REG_A_UIP) |
-                (s->cmos_data[RTC_REG_A] & REG_A_UIP);
+                                      (s->cmos_data[RTC_REG_A] & REG_A_UIP);
 //            rtc_timer_update(s, qemu_get_clock_ns(rtc_clock));
             rtc_timer_update(s, init_timer_time());
             break;
@@ -380,16 +382,18 @@ static void rtc_copy_date(RTCState *s)
     } else {
         /* 12 hour format */
         s->cmos_data[RTC_HOURS] = rtc_to_bcd(s, tm->hour % 12);
-        if (tm->hour >= 12)
+        if (tm->hour >= 12) {
             s->cmos_data[RTC_HOURS] |= 0x80;
+        }
     }
 //    s->cmos_data[RTC_DAY_OF_WEEK] = rtc_to_bcd(s, tm->wday + 1);
 //    s->cmos_data[RTC_DAY_OF_MONTH] = rtc_to_bcd(s, tm->mday);
     s->cmos_data[RTC_DAY_OF_MONTH] = rtc_to_bcd(s, tm->day);
     s->cmos_data[RTC_MONTH] = rtc_to_bcd(s, tm->month);
     year = (tm->year - s->base_year) % 100;
-    if (year < 0)
+    if (year < 0) {
         year += 100;
+    }
     s->cmos_data[RTC_YEAR] = rtc_to_bcd(s, year);
 }
 
@@ -400,12 +404,14 @@ static int get_days_in_month(int month, int year)
         31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
     };
     int d;
-    if ((unsigned )month >= 12)
+    if ((unsigned)month >= 12) {
         return 31;
+    }
     d = days_tab[month];
     if (month == 1) {
-        if ((year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0))
+        if ((year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0)) {
             d++;
+        }
     }
     return d;
 }
@@ -426,9 +432,9 @@ static void rtc_next_second(rtc_time_date_t *tm)
             if ((unsigned)tm->hour >= 24) {
                 tm->hour = 0;
                 /* next day */
-/*                tm->tm_wday++;
-                if ((unsigned)tm->tm_wday >= 7)
-                    tm->tm_wday = 0;*/
+                /*                tm->tm_wday++;
+                                if ((unsigned)tm->tm_wday >= 7)
+                                    tm->tm_wday = 0;*/
                 days_in_month = get_days_in_month(tm->month,
                                                   tm->year + 1900);
                 tm->day++;
@@ -467,11 +473,12 @@ static void rtc_update_second(void *opaque)
         /* should be 244 us = 8 / 32768 seconds, but currently the
            timers do not have the necessary resolution. */
         delay = (get_ticks_per_sec() * 1) / 100;
-        if (delay < 1)
+        if (delay < 1) {
             delay = 1;
+        }
 //        qemu_mod_timer(s->second_timer2,
 //                       s->next_second_time + delay);
-            init_timer_oneshot_absolute(TIMER_SECOND_TIMER2, s->next_second_time + delay);
+        init_timer_oneshot_absolute(TIMER_SECOND_TIMER2, s->next_second_time + delay);
     }
 }
 
@@ -521,7 +528,7 @@ static uint32_t cmos_ioport_read(void *opaque, uint32_t addr)
     if ((addr & 1) == 0) {
         return 0xff;
     } else {
-        switch(s->cmos_index) {
+        switch (s->cmos_index) {
         case RTC_SECONDS:
         case RTC_MINUTES:
         case RTC_HOURS:
@@ -539,8 +546,8 @@ static uint32_t cmos_ioport_read(void *opaque, uint32_t addr)
 //            qemu_irq_lower(s->irq);
             vm_set_irq_level(vm.vcpus[BOOT_VCPU], 8, 0);
 #ifdef TARGET_I386
-            if(s->irq_coalesced &&
-                    s->irq_reinject_on_ack_count < RTC_REINJECT_ON_ACK_COUNT) {
+            if (s->irq_coalesced &&
+                s->irq_reinject_on_ack_count < RTC_REINJECT_ON_ACK_COUNT) {
                 s->irq_reinject_on_ack_count++;
 //                apic_reset_irq_delivered();
                 DPRINTF_C("cmos: injecting on ack\n");
@@ -571,8 +578,9 @@ static uint32_t cmos_ioport_read(void *opaque, uint32_t addr)
 static void rtc_set_memory(RTCState *s, int addr, int val)
 {
 //    RTCState *s = DO_UPCAST(RTCState, dev, dev);
-    if (addr >= 0 && addr <= 127)
+    if (addr >= 0 && addr <= 127) {
         s->cmos_data[addr] = val;
+    }
 }
 
 //void rtc_set_date(ISADevice *dev, const struct tm *tm)
@@ -631,7 +639,8 @@ static const VMStateDescription vmstate_rtc = {
     .minimum_version_id = 1,
     .minimum_version_id_old = 1,
     .post_load = rtc_post_load,
-    .fields      = (VMStateField []) {
+    .fields      = (VMStateField [])
+    {
         VMSTATE_BUFFER(cmos_data, RTCState),
         VMSTATE_UINT8(cmos_index, RTCState),
         VMSTATE_INT32(current_tm.tm_sec, RTCState),
@@ -681,8 +690,9 @@ static void rtc_reset(void *opaque)
     vm_set_irq_level(vm.vcpus[BOOT_VCPU], 8, 0);
 
 #ifdef TARGET_I386
-    if (rtc_td_hack)
-	    s->irq_coalesced = 0;
+    if (rtc_td_hack) {
+        s->irq_coalesced = 0;
+    }
 #endif
 }
 
@@ -763,7 +773,8 @@ static ISADeviceInfo mc146818rtc_info = {
     .qdev.no_user  = 1,
     .qdev.vmsd     = &vmstate_rtc,
     .init          = rtc_initfn,
-    .qdev.props    = (Property[]) {
+    .qdev.props    = (Property[])
+    {
         DEFINE_PROP_INT32("base_year", RTCState, base_year, 1980),
         DEFINE_PROP_END_OF_LIST(),
     }
@@ -779,7 +790,8 @@ device_init(mc146818rtc_register)
 
 static RTCState rtc_state;
 
-void rtc_timer_interrupt(uint32_t completed) {
+void rtc_timer_interrupt(uint32_t completed)
+{
     RTCState *s = &rtc_state;
     if (completed & BIT(TIMER_PERIODIC_TIMER)) {
         rtc_periodic_timer(s);
@@ -795,14 +807,17 @@ void rtc_timer_interrupt(uint32_t completed) {
     }
 }
 
-void rtc_pre_init(void) {
+void rtc_pre_init(void)
+{
     /* set the base year */
     rtc_state.base_year = 1900;
     rtc_initfn(&rtc_state);
     rtc_reset(&rtc_state);
 }
 
-ioport_fault_result_t cmos_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
+ioport_fault_result_t cmos_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size,
+                                   unsigned int *result)
+{
     if (size != 1) {
         assert(!"Reads to CMOS ports must be of size 1");
         return IO_FAULT_ERROR;
@@ -811,7 +826,9 @@ ioport_fault_result_t cmos_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int p
     return IO_FAULT_HANDLED;
 }
 
-ioport_fault_result_t cmos_port_out(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int value) {
+ioport_fault_result_t cmos_port_out(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size,
+                                    unsigned int value)
+{
     if (size != 1) {
         assert(!"Writes to CMOS ports must be of size 1");
         return IO_FAULT_ERROR;

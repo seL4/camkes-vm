@@ -102,7 +102,8 @@ static void pit_irq_timer_update(PITChannelState *s, int64_t current_time);
 
 static uint64_t tsc_frequency = 0;
 
-static uint64_t current_time_ns() {
+static uint64_t current_time_ns()
+{
     return muldivu64(rdtsc_pure(), NS_IN_S, tsc_frequency);
 }
 
@@ -113,8 +114,8 @@ static int pit_get_count(PITChannelState *s)
     int counter;
 
     d = muldivu64(current_time_ns()/*qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL)*/ - s->count_load_time, PIT_FREQ,
-                 NS_IN_S);
-    switch(s->mode) {
+                  NS_IN_S);
+    switch (s->mode) {
     case 0:
     case 1:
     case 4:
@@ -184,7 +185,7 @@ int pit_get_out(PITChannelState *s, int64_t current_time)
     int out;
 
     d = muldivu64(current_time - s->count_load_time, PIT_FREQ,
-                 NS_IN_S);
+                  NS_IN_S);
     switch (s->mode) {
     default:
     case 0:
@@ -218,7 +219,7 @@ int64_t pit_get_next_transition_time(PITChannelState *s, int64_t current_time)
     int period2;
 
     d = muldivu64(current_time - s->count_load_time, PIT_FREQ,
-                 NS_IN_S);
+                  NS_IN_S);
     switch (s->mode) {
     default:
     case 0:
@@ -259,7 +260,7 @@ int64_t pit_get_next_transition_time(PITChannelState *s, int64_t current_time)
     }
     /* convert to timer units */
     next_time = s->count_load_time + muldivu64(next_time, NS_IN_S,
-                                              PIT_FREQ);
+                                               PIT_FREQ);
     /* fix potential rounding problems */
     /* XXX: better solution: use a clock at PIT_FREQ Hz */
     if (next_time <= current_time) {
@@ -307,8 +308,9 @@ void pit_reset_common(PITCommonState *pit)
 }
 static inline void pit_load_count(PITChannelState *s, int val)
 {
-    if (val == 0)
+    if (val == 0) {
         val = 0x10000;
+    }
     s->count_load_time = current_time_ns()/*qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL)*/;
     s->count = val;
     pit_irq_timer_update(s, s->count_load_time);
@@ -335,7 +337,7 @@ static void pit_ioport_write(void *opaque, uintptr_t addr,
         channel = val >> 6;
         if (channel == 3) {
             /* read back command */
-            for(channel = 0; channel < 3; channel++) {
+            for (channel = 0; channel < 3; channel++) {
                 s = &pit->channels[channel];
                 if (val & (2 << channel)) {
                     if (!(val & 0x20)) {
@@ -371,7 +373,7 @@ static void pit_ioport_write(void *opaque, uintptr_t addr,
         }
     } else {
         s = &pit->channels[addr];
-        switch(s->write_state) {
+        switch (s->write_state) {
         default:
         case RW_STATE_LSB:
             pit_load_count(s, val);
@@ -410,7 +412,7 @@ static uint64_t pit_ioport_read(void *opaque, uintptr_t addr,
         s->status_latched = 0;
         ret = s->status;
     } else if (s->count_latched) {
-        switch(s->count_latched) {
+        switch (s->count_latched) {
         default:
         case RW_STATE_LSB:
             ret = s->latched_count & 0xff;
@@ -426,7 +428,7 @@ static uint64_t pit_ioport_read(void *opaque, uintptr_t addr,
             break;
         }
     } else {
-        switch(s->read_state) {
+        switch (s->read_state) {
         default:
         case RW_STATE_LSB:
             count = pit_get_count(s);
@@ -469,12 +471,14 @@ static void pit_irq_timer_update(PITChannelState *s, int64_t current_time)
            (double)(expire_time - current_time) / NS_IN_S);
 #endif
     s->next_transition_time = expire_time;
-    if (expire_time != -1)
+    if (expire_time != -1) {
         init_timer_oneshot_absolute(TIMER_PIT, expire_time);
-        //timer_mod(s->irq_timer, expire_time);
-    else
+    }
+    //timer_mod(s->irq_timer, expire_time);
+    else {
         init_timer_stop(TIMER_PIT);
-        //timer_del(s->irq_timer);
+    }
+    //timer_del(s->irq_timer);
 }
 
 static void pit_irq_timer(void *opaque)
@@ -595,21 +599,25 @@ static void pit_register_types(void)
 type_init(pit_register_types)
 #endif
 
-void pit_timer_interrupt(void) {
+void pit_timer_interrupt(void)
+{
     PITCommonState *pit = &pit_state;
     PITChannelState *s;
     s = &pit->channels[0];
     pit_irq_timer(s);
 }
 
-void pit_pre_init(void) {
+void pit_pre_init(void)
+{
     tsc_frequency = init_timer_tsc_frequency();
     pit_state.channels[0].irq_timer = 1;
     pit_irq_control(&pit_state, 0, 1);
     pit_reset(&pit_state);
 }
 
-ioport_fault_result_t i8254_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int *result) {
+ioport_fault_result_t i8254_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size,
+                                    unsigned int *result)
+{
     if (size != 1) {
         LOG_ERROR("i8254 only supports reads of size 1");
         return IO_FAULT_ERROR;
@@ -618,7 +626,9 @@ ioport_fault_result_t i8254_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int 
     return IO_FAULT_HANDLED;
 }
 
-ioport_fault_result_t i8254_port_out(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size, unsigned int value) {
+ioport_fault_result_t i8254_port_out(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size,
+                                     unsigned int value)
+{
     if (size != 1) {
         LOG_ERROR("i8254 only supports writes of size 1");
         return IO_FAULT_ERROR;

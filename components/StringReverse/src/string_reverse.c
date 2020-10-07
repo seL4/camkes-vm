@@ -15,9 +15,10 @@
 #include <camkes.h>
 #include <string_reverse.h>
 
-static void reverse_dataport_string(volatile char *src, volatile char *dest, size_t n) {
+static void reverse_dataport_string(volatile char *src, volatile char *dest, size_t n)
+{
 
-    int len = strnlen((char*)src, n - 1);
+    int len = strnlen((char *)src, n - 1);
 
     for (int i = 0; i < len; i++) {
         dest[i] = src[len - i - 1];
@@ -26,7 +27,8 @@ static void reverse_dataport_string(volatile char *src, volatile char *dest, siz
     dest[len] = '\0';
 }
 
-int run(void) {
+int run(void)
+{
 
     set_putchar(putchar_putchar);
 

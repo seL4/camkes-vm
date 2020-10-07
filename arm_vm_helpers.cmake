@@ -58,7 +58,9 @@ function(DeclareCAmkESARMVM init_component)
     list(APPEND vm_src ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/init_ram.c)
 
     if(Tk1DeviceFwd)
-        list(APPEND vm_src ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/plat/tk1/device_fwd.c)
+        list(
+            APPEND vm_src ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/plat/tk1/device_fwd.c
+        )
     endif()
 
     # A module that is expected to exist for each platform but not required.
@@ -77,7 +79,9 @@ function(DeclareCAmkESARMVM init_component)
     endif()
 
     if(VmVirtioNetVirtqueue)
-        list(APPEND vm_src ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/virtio_net_virtqueue.c)
+        list(
+            APPEND vm_src ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/virtio_net_virtqueue.c
+        )
     endif()
 
     if(VmVirtioConsole)
@@ -85,12 +89,17 @@ function(DeclareCAmkESARMVM init_component)
     endif()
 
     if(KernelPlatformExynos5410)
-        list(APPEND vm_src ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/plat/exynos5410/init.c)
+        list(
+            APPEND vm_src ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/plat/exynos5410/init.c
+        )
         set(vm_plat_include "${ARM_VM_PROJECT_DIR}/components/VM_Arm/plat_include/exynos5410")
     elseif(KernelPlatformExynos5422)
         set(vm_plat_include "${ARM_VM_PROJECT_DIR}/components/VM_Arm/plat_include/exynos5422")
     else()
-        set(vm_plat_include "${ARM_VM_PROJECT_DIR}/components/VM_Arm/plat_include/${KernelPlatform}")
+        set(
+            vm_plat_include
+            "${ARM_VM_PROJECT_DIR}/components/VM_Arm/plat_include/${KernelPlatform}"
+        )
     endif()
     # Declare the CAmkES VM component
     DeclareCAmkESComponent(

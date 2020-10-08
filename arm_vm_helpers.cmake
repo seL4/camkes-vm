@@ -142,4 +142,8 @@ function(DeclareCAmkESARMVM init_component)
         DeclareCAmkESComponent(${init_component} LIBS usbdrivers)
     endif()
 
+    if("${KernelArmSMMUV2}")
+        DeclareCAmkESComponent(${init_component} TEMPLATE_SOURCES seL4SMMUV2.template.c)
+    endif()
+
 endfunction()

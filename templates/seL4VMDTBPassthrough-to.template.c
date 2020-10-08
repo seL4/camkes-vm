@@ -36,16 +36,15 @@
 /*- set dtb_node_paths = [] -*/
 
 /*# Extract the relevant fields from the DTB (regs, interrupts, etc) #*/
-/*- for i in range(0, len(dtb)) -*/
-    /*- set node = dtb[i] -*/
+/*- for i, node in enumerate(dtb) -*/
 
     /*? dtb_macros.parse_dtb_node_reg(node) ?*/
     /*- set reg_set = pop('reg_set') -*/
 
-    /*- for (paddr, size) in reg_set -*/
+    /*- for paddr, size in reg_set -*/
         /*- set paddr = macros.ROUND_DOWN(paddr, 4096) -*/
         /*- set size = macros.ROUND_UP(size, 4096) -*/
-        /*- for (paddr_alloc, size_bits) in macros.get_untypeds_from_range(paddr, size) -*/
+        /*- for paddr_alloc, size_bits in macros.get_untypeds_from_range(paddr, size) -*/
             /*- set cap = alloc('dtb_untyped_cap_0x%x' % paddr_alloc, seL4_UntypedObject, paddr = paddr_alloc, size_bits = size_bits) -*/
             /*- do untyped_dtb_mmio.append( (paddr_alloc, size_bits, cap) ) -*/
         /*- endfor -*/

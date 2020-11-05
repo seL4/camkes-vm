@@ -1067,7 +1067,7 @@ int main_continued(void)
     assert(!err);
     err = vm_register_notification_callback(&vm, handle_async_event, NULL);
     assert(!err);
-#ifdef CONFIG_ARM_SMMU
+#ifdef CONFIG_TK1_SMMU
     /* install any iospaces */
     int iospace_caps;
     err = simple_get_iospace_cap_count(&_simple, &iospace_caps);

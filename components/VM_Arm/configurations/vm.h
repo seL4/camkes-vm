@@ -137,10 +137,13 @@
     time_server.simple = true;
 
 #define PER_VM_VIRTUAL_SERIAL_CONFIGURATION_DEF(num) \
+    vm##num.serial_getchar_attributes = num + 1; \
+    Vm##num.guest_putchar_attributes = num + 1; \
+    vm##num.putchar_attributes = num + 1; \
+    vm##num.batch_attributes = num + 1; \
     vm##num.serial_getchar_shmem_size = 0x1000; \
     vm##num.batch_shmem_size = 0x1000; \
 
 #define VM_VIRTUAL_SERIAL_CONFIGURATION_DEF(vm_ids...) \
     VM_VIRTUAL_SERIAL_GENERAL_CONFIGURATION_DEF() \
     __CALL(PER_VM_VIRTUAL_SERIAL_CONFIGURATION_DEF, vm_ids) \
-

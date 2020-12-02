@@ -1,8 +1,4 @@
 /*
- * @TAG(OTHER_BSD)
- */
-
-/*
  * QEMU 16550A UART emulation
  *
  * Copyright (c) 2003-2004 Fabrice Bellard
@@ -26,6 +22,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
+// SPDX-License-Identifier: MIT
 
 #include <autoconf.h>
 #include <assert.h>

@@ -83,5 +83,5 @@ ameliorate this, it is recommended to use a terminal multiplexer such
 as `screen` inside the VMs, providing a redraw function.
 
 Some debug features are also built in (activated via the `@d` escape);
-see the online help (`@?`) and [the source code](/components/SerialServer/src/serial.c)
+see the online help (`@?`) and [the source code](components/Init/src/serial.c)
 for details.

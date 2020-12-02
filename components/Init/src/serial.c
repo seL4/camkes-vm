@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 /*
  * QEMU 16550A UART emulation
  *
@@ -22,8 +24,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-// SPDX-License-Identifier: MIT
 
 #include <autoconf.h>
 #include <assert.h>

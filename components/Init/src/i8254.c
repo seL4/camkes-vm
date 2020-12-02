@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 /*
  * QEMU 8253/8254 interval timer emulation
  *
@@ -21,8 +23,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-// SPDX-License-Identifier: MIT
 
 //#include "qemu/osdep.h"
 //#include "hw/hw.h"

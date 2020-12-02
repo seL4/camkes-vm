@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 /*
  * QEMU MC146818 RTC emulation
  *
@@ -21,8 +23,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-// SPDX-License-Identifier: MIT
 
 #include <autoconf.h>
 #include <stdint.h>

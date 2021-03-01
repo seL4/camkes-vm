@@ -487,7 +487,7 @@ static int vmm_init(void)
     assert(!err);
 
     /* Initialise MUX subsystem for platforms that need it */
-#ifdef CONFIG_PLAT_EXYNOS5
+#ifdef CONFIG_PLAT_EXYNOS5410
     err = mux_sys_init(&_io_ops, NULL, &_io_ops.mux_sys);
     assert(!err);
 #endif
@@ -935,8 +935,10 @@ static int alloc_vm_device_cap(uintptr_t addr, vm_t *vm, vm_frame_t *frame_resul
     seL4_Word cookie;
     err = vka_utspace_alloc_at(vm->vka, &frame, kobject_get_type(KOBJECT_FRAME, 12), 12, addr, &cookie);
     if (err) {
+        ZF_LOGE("Grabbing the entire cap for device memory");
         err = simple_get_frame_cap(vm->simple, (void *)addr, 12, &frame);
         if (err) {
+            ZF_LOGE("Failed to grab the entire cap");
             return -1;
         }
     }
@@ -1003,6 +1005,7 @@ memory_fault_result_t unhandled_mem_fault_callback(vm_t *vm, vm_vcpu_t *vcpu,
     case 0:
         return FAULT_ERROR;
     default:
+        ZF_LOGE("VM_ONDEMAND_DEVICE_INSTALL @ paddr 0x%lx len = %zu", paddr, len);
         reservation = vm_reserve_memory_at(vm, addr, 0x1000,
                                            handle_on_demand_fault_callback, NULL);
         mapped = vm_map_reservation(vm, reservation, on_demand_iterator, (void *)vm);

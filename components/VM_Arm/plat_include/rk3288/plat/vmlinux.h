@@ -11,12 +11,11 @@
  */
 #pragma once
 
-#define IRQ_SPI_OFFSET 32
 #define GIC_IRQ_PHANDLE 0x01
 
-static const int linux_pt_irqs[] = {};
+static const int linux_pt_irqs[] = {30};
 
-static const int free_plat_interrupts[] =  { 50 + IRQ_SPI_OFFSET };
+static const int free_plat_interrupts[] =  { -1 };
 static const char *plat_keep_devices[] = {};
 static const char *plat_keep_device_and_disable[] = {};
 static const char *plat_keep_device_and_subtree[] = {};

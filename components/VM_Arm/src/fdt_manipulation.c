@@ -25,7 +25,7 @@ int fdt_generate_memory_node(void *fdt, unsigned long base, size_t size)
 {
     int root_offset = fdt_path_offset(fdt, "/");
     int address_cells = fdt_address_cells(fdt, root_offset);
-    int size_cells = fdt_address_cells(fdt, root_offset);
+    int size_cells = fdt_size_cells(fdt, root_offset);
 
     int this = fdt_add_subnode(fdt, root_offset, "memory");
     if (this < 0) {

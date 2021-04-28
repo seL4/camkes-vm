@@ -11,3 +11,5 @@
 
 virtio_con_t *virtio_console_init(vm_t *vm, console_putchar_fn_t putchar,
                                   vmm_pci_space_t *pci, vmm_io_port_list_t *io_ports);
+
+void virtio_console_putchar(virtio_emul_t *con, char *buf, int len);

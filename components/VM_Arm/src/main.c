@@ -826,6 +826,9 @@ static int load_linux(vm_t *vm, const char *kernel_name, const char *dtb_name, c
         printf("Error: Failed to install Linux devices\n");
         return -1;
     }
+
+    printf("Loading Kernel: \'%s\'\n", kernel_name);
+
     /* Load kernel */
     guest_kernel_image_t kernel_image_info;
     err = vm_load_guest_kernel(vm, kernel_name, linux_ram_base, 0, &kernel_image_info);
@@ -837,6 +840,7 @@ static int load_linux(vm_t *vm, const char *kernel_name, const char *dtb_name, c
     /* Attempt to load initrd if provided */
     guest_image_t initrd_image;
     if (config_set(CONFIG_VM_INITRD_FILE)) {
+        printf("Loading Initrd: \'%s\'\n", initrd_name);
         err = vm_load_guest_module(vm, initrd_name, initrd_addr, 0, &initrd_image);
         void *initrd = (void *)initrd_image.load_paddr;
         if (!initrd || err) {
@@ -876,9 +880,11 @@ static int load_linux(vm_t *vm, const char *kernel_name, const char *dtb_name, c
         }
         vm_ram_mark_allocated(vm, dtb_addr, size_gen);
         vm_ram_touch(vm, dtb_addr, size_gen, load_generated_dtb, gen_fdt);
-
+        printf("Loading Generated DTB");
         dtb = dtb_addr;
     } else {
+        printf("Loading DTB: \'%s\'\n", dtb_name);
+
         /* Load device tree */
         guest_image_t dtb_image;
         err = vm_load_guest_module(vm, dtb_name, dtb_addr, 0, &dtb_image);
@@ -1156,7 +1162,6 @@ int main_continued(void)
     }
 
     /* Load system images */
-    printf("Loading Linux: \'%s\' dtb: \'%s\'\n", linux_image_config.linux_name, linux_image_config.dtb_name);
     err = load_linux(&vm, linux_image_config.linux_name, linux_image_config.dtb_name, linux_image_config.initrd_name);
     if (err) {
         printf("Failed to load VM image\n");

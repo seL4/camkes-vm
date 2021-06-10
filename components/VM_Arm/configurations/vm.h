@@ -14,6 +14,10 @@
 #define __CALL2(f,a,b) f(a) f(b)
 #define __CALL3(f,a,b,c) f(a) f(b) f(c)
 #define __CALL4(f,a,b,c,d) f(a) f(b) f(c) f(d)
+#define __CALL5(f,a,b,c,d,e) f(a) f(b) f(c) f(d) f(e)
+#define __CALL6(f,a,b,c,d,e,g) f(a) f(b) f(c) f(d) f(e) f(g)
+#define __CALL7(f,a,b,c,d,e,g,h) f(a) f(b) f(c) f(d) f(e) f(g) f(h)
+#define __CALL8(f,a,b,c,d,e,g,h,i) f(a) f(b) f(c) f(d) f(e) f(g) f(h) f(i)
 
 #define __CALL_NARGS_X(a,b,c,d,e,f,g,h,n,...) n
 #define __CALL_CONCAT_X(a,b) a##b

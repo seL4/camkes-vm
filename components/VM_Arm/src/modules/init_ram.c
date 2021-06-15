@@ -12,17 +12,17 @@
 #include <sel4vmmplatsupport/guest_memory_util.h>
 #include <vmlinux.h>
 
-extern unsigned long linux_ram_base;
-extern unsigned long linux_ram_size;
+extern unsigned long ram_base;
+extern unsigned long ram_size;
 
 void WEAK init_ram_module(vm_t *vm, void *cookie)
 {
     int err;
 
     if (config_set(CONFIG_PLAT_EXYNOS5) || config_set(CONFIG_PLAT_QEMU_ARM_VIRT) || config_set(CONFIG_PLAT_TX2)) {
-        err = vm_ram_register_at(vm, linux_ram_base, linux_ram_size, true);
+        err = vm_ram_register_at(vm, ram_base, ram_size, true);
     } else {
-        err = vm_ram_register_at(vm, linux_ram_base, linux_ram_size, false);
+        err = vm_ram_register_at(vm, ram_base, ram_size, false);
     }
     assert(!err);
 }

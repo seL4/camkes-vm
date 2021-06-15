@@ -64,22 +64,22 @@
     attribute int num_extra_frame_caps; \
     attribute int extra_frame_map_address; \
     attribute { \
-        string linux_ram_base; \
-        string linux_ram_paddr_base; \
-        string linux_ram_size; \
-        string linux_ram_offset; \
+        string ram_base; \
+        string ram_paddr_base; \
+        string ram_size; \
+        string ram_offset; \
         string dtb_addr; \
         string initrd_max_size; \
         string initrd_addr; \
-    } linux_address_config; \
+    } vm_address_config; \
     attribute { \
-        string linux_name = "linux"; \
+        string kernel_name = "linux"; \
         string dtb_name = "linux-dtb"; \
         string initrd_name = "linux-initrd"; \
-        string linux_bootcmdline = ""; \
-        string linux_stdout = ""; \
+        string kernel_bootcmdline = ""; \
+        string kernel_stdout = ""; \
         string dtb_base_name = ""; \
-    } linux_image_config; \
+    } vm_image_config; \
 
 
 #define VM_COMPONENT_DEF(num) \
@@ -139,4 +139,3 @@
 #define VM_VIRTUAL_SERIAL_CONFIGURATION_DEF(vm_ids...) \
     VM_VIRTUAL_SERIAL_GENERAL_CONFIGURATION_DEF() \
     __CALL(PER_VM_VIRTUAL_SERIAL_CONFIGURATION_DEF, vm_ids) \
-

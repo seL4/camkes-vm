@@ -110,10 +110,10 @@ struct ps_io_ops _io_ops;
 
 static jmp_buf restart_jmp_buf;
 
-unsigned long linux_ram_base;
-unsigned long linux_ram_paddr_base;
-unsigned long linux_ram_size;
-unsigned long linux_ram_offset;
+unsigned long ram_base;
+unsigned long ram_paddr_base;
+unsigned long ram_size;
+unsigned long ram_offset;
 unsigned long dtb_addr;
 unsigned long initrd_max_size;
 unsigned long initrd_addr;
@@ -456,7 +456,7 @@ static int vmm_init(void)
         vka_cspace_make_path(vka, cap, &path);
         int utType = device ? ALLOCMAN_UT_DEV : ALLOCMAN_UT_KERNEL;
         if (utType == ALLOCMAN_UT_DEV &&
-            paddr >= linux_ram_paddr_base && paddr <= (linux_ram_paddr_base + (linux_ram_size - 1))) {
+            paddr >= ram_paddr_base && paddr <= (ram_paddr_base + (ram_size - 1))) {
             utType = ALLOCMAN_UT_DEV_MEM;
         }
         err = allocman_utspace_add_uts(allocman, 1, &path, &size, &paddr, utType);
@@ -471,8 +471,8 @@ static int vmm_init(void)
             cspacepath_t path;
             vka_cspace_make_path(vka, cap, &path);
             int utType = ALLOCMAN_UT_DEV;
-            if (paddr >= linux_ram_paddr_base &&
-                paddr <= (linux_ram_paddr_base + (linux_ram_size - 1))) {
+            if (paddr >= ram_paddr_base &&
+                paddr <= (ram_paddr_base + (ram_size - 1))) {
                 utType = ALLOCMAN_UT_DEV_MEM;
             }
             err = allocman_utspace_add_uts(allocman, 1, &path, &size, &paddr, utType);
@@ -636,7 +636,7 @@ static USED SECTION("_vmm_module") struct {} dummy_module;
 extern vmm_module_t __start__vmm_module[];
 extern vmm_module_t __stop__vmm_module[];
 
-int install_linux_devices(vm_t *vm)
+int install_vm_devices(vm_t *vm)
 {
     int err;
 
@@ -775,14 +775,14 @@ static int generate_fdt(vm_t *vm, void *fdt_ori, void *gen_fdt, int buf_size, si
         return -1;
     }
 
-    /* generate a memory node (linux_ram_base and linux_ram_size) */
-    err = fdt_generate_memory_node(gen_fdt, linux_ram_base, linux_ram_size);
+    /* generate a memory node (ram_base and ram_size) */
+    err = fdt_generate_memory_node(gen_fdt, ram_base, ram_size);
     if (err) {
         return -1;
     }
 
-    /* generate a chosen node (linux_image_config.linux_bootcmdline, linux_stdout) */
-    err = fdt_generate_chosen_node(gen_fdt, linux_image_config.linux_stdout, linux_image_config.linux_bootcmdline,
+    /* generate a chosen node (vm_image_config.kernel_bootcmdline, kernel_stdout) */
+    err = fdt_generate_chosen_node(gen_fdt, vm_image_config.kernel_stdout, vm_image_config.kernel_bootcmdline,
                                    NUM_VCPUS);
     if (err) {
         return -1;
@@ -814,14 +814,14 @@ static int load_generated_dtb(vm_t *vm, uintptr_t paddr, void *addr, size_t size
     return 0;
 }
 
-static int load_linux(vm_t *vm, const char *kernel_name, const char *dtb_name, const char *initrd_name)
+static int load_vm(vm_t *vm, const char *kernel_name, const char *dtb_name, const char *initrd_name)
 {
     seL4_Word entry;
     seL4_Word dtb;
     int err;
 
     /* Install devices */
-    err = install_linux_devices(vm);
+    err = install_vm_devices(vm);
     if (err) {
         printf("Error: Failed to install Linux devices\n");
         return -1;
@@ -831,7 +831,7 @@ static int load_linux(vm_t *vm, const char *kernel_name, const char *dtb_name, c
 
     /* Load kernel */
     guest_kernel_image_t kernel_image_info;
-    err = vm_load_guest_kernel(vm, kernel_name, linux_ram_base, 0, &kernel_image_info);
+    err = vm_load_guest_kernel(vm, kernel_name, ram_base, 0, &kernel_image_info);
     entry = kernel_image_info.kernel_image.load_paddr;
     if (!entry || err) {
         return -1;
@@ -858,7 +858,7 @@ static int load_linux(vm_t *vm, const char *kernel_name, const char *dtb_name, c
             paths = camkes_dtb_get_node_paths(&num_paths);
         }
 
-        int dtb_fd = open(linux_image_config.dtb_base_name, 0);
+        int dtb_fd = open(vm_image_config.dtb_base_name, 0);
 
         /* If dtb_base_name is in the file server, grab it and use it as a base */
         if (dtb_fd >= 0) {
@@ -904,15 +904,15 @@ static int load_linux(vm_t *vm, const char *kernel_name, const char *dtb_name, c
     return 0;
 }
 
-void parse_camkes_linux_attributes(void)
+static void parse_camkes_vm_attributes(void)
 {
-    linux_ram_base = strtoul(linux_address_config.linux_ram_base, NULL, 0);
-    linux_ram_paddr_base = strtoul(linux_address_config.linux_ram_paddr_base, NULL, 0);
-    linux_ram_size = strtoul(linux_address_config.linux_ram_size, NULL, 0);
-    linux_ram_offset = strtoul(linux_address_config.linux_ram_offset, NULL, 0);
-    dtb_addr = strtoul(linux_address_config.dtb_addr, NULL, 0);
-    initrd_max_size = strtoul(linux_address_config.initrd_max_size, NULL, 0);
-    initrd_addr = strtoul(linux_address_config.initrd_addr, NULL, 0);
+    ram_base = strtoul(vm_address_config.ram_base, NULL, 0);
+    ram_paddr_base = strtoul(vm_address_config.ram_paddr_base, NULL, 0);
+    ram_size = strtoul(vm_address_config.ram_size, NULL, 0);
+    ram_offset = strtoul(vm_address_config.ram_offset, NULL, 0);
+    dtb_addr = strtoul(vm_address_config.dtb_addr, NULL, 0);
+    initrd_max_size = strtoul(vm_address_config.initrd_max_size, NULL, 0);
+    initrd_addr = strtoul(vm_address_config.initrd_addr, NULL, 0);
 }
 
 /* Async event handling registration implementation */
@@ -1071,7 +1071,7 @@ int main_continued(void)
     vm_t vm;
     int err;
 
-    parse_camkes_linux_attributes();
+    parse_camkes_vm_attributes();
 
     /* setup for restart with a setjmp */
     while (setjmp(restart_jmp_buf) != 0) {
@@ -1162,7 +1162,7 @@ int main_continued(void)
     }
 
     /* Load system images */
-    err = load_linux(&vm, linux_image_config.linux_name, linux_image_config.dtb_name, linux_image_config.initrd_name);
+    err = load_vm(&vm, vm_image_config.kernel_name, vm_image_config.dtb_name, vm_image_config.initrd_name);
     if (err) {
         printf("Failed to load VM image\n");
         seL4_DebugHalt();

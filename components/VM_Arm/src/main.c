@@ -1005,7 +1005,6 @@ memory_fault_result_t unhandled_mem_fault_callback(vm_t *vm, vm_vcpu_t *vcpu,
     case 0:
         return FAULT_ERROR;
     default:
-        ZF_LOGE("VM_ONDEMAND_DEVICE_INSTALL @ paddr 0x%lx len = %zu", paddr, len);
         reservation = vm_reserve_memory_at(vm, addr, 0x1000,
                                            handle_on_demand_fault_callback, NULL);
         mapped = vm_map_reservation(vm, reservation, on_demand_iterator, (void *)vm);

@@ -23,6 +23,7 @@ import <TimeServer/TimeServer.camkes>;
 import <RTC/RTC.camkes>;
 import <SerialServer/SerialServer.camkes>;
 import <Ethdriver/Ethdriver.camkes>;
+import <Sataserver/Sataserver.camkes>;
 import <UDPServer/UDPServer.camkes>;
 import <FileServer/FileServer.camkes>;
 
@@ -37,6 +38,11 @@ connector seL4UDPRecv {
     from Procedure with 0 threads;
     to Procedure;
     attribute bool from_global_endpoint = True;
+}
+
+connector seL4Sataserver {
+    from Procedures with 0 threads;
+    to Procedure;
 }
 
 connector seL4MultiSharedData {

@@ -90,7 +90,7 @@ static int emul_raw_tx(struct eth_driver *driver,
         /* Set up the bounds of the loop below that copies the frames into the
          * destination Guest's virtqueue.
          */
-        if (mac802_addr_eq_bcast(destaddr)) {
+        if (mac802_addr_eq_bcast(destaddr) || mac802_addr_eq_ipv6_mcast(destaddr)) {
             /* Send to all nodes on the VLAN if destaddr is bcast addr. */
             destnode_n_idxs = g_vswitch.n_connected;
             destnode_start_idx = 0;

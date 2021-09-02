@@ -13,7 +13,7 @@
 #define GIC_LIC_INTID_BASE      (32)
 #define TX2_IRQ_PPI_VTIMER      (27)
 
-enum IRQConstants {
+typedef enum IRQConstants {
     TX2_TOP_TKE_SHARED0 = GIC_LIC_INTID_BASE,
     TX2_TOP_TKE_SHARED1,
     TX2_TOP_TKE_SHARED2,

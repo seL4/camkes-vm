@@ -5,7 +5,7 @@
  */
 #pragma once
 
-enum IRQConstants {
+typedef enum IRQConstants {
     INTERRUPT_VTIMER                = 27,
     INTERRUPT_PPI_15                = 31,
     INTERRUPT_TMR1                  = 32,

@@ -44,7 +44,7 @@
         /*- endfor -*/
     /*- endfor -*/
 
-    /*? dtb_macros.parse_dtb_node_interrupts(node, -1) ?*/
+    /*? dtb_macros.parse_dtb_node_interrupts(node, -1, options.architecture) ?*/
     /*- set irq_set = pop('irq_set') -*/
     /*- for irq in irq_set -*/
         /*- if irq['irq'] not in dtb_irqs_map -*/

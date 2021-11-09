@@ -48,6 +48,7 @@
 #include <sel4vmmplatsupport/arch/guest_reboot.h>
 #include <sel4vmmplatsupport/arch/guest_vcpu_fault.h>
 #include <sel4vmmplatsupport/guest_vcpu_util.h>
+#include <sel4vmmplatsupport/arch/smc.h>
 
 #include <sel4utils/process.h>
 #include <sel4utils/irq_server.h>
@@ -125,6 +126,10 @@ char **WEAK camkes_dtb_get_plat_keep_devices_and_subtree(int *num_nodes);
 #ifdef CONFIG_ARM_SMMU
 seL4_CPtr camkes_get_smmu_cb_cap();
 seL4_CPtr camkes_get_smmu_sid_cap();
+#endif
+
+#ifdef CONFIG_ALLOW_SMC_CALLS
+seL4_CPtr camkes_get_smc_cap(seL4_Word smc_call);
 #endif
 
 int get_crossvm_irq_num(void)
@@ -1141,6 +1146,20 @@ memory_fault_result_t unhandled_mem_fault_callback(vm_t *vm, vm_vcpu_t *vcpu,
     return FAULT_ERROR;
 }
 
+#ifdef CONFIG_ALLOW_SMC_CALLS
+int vm_smc_handler(vm_vcpu_t *vcpu, seL4_UserContext *regs)
+{
+    int err;
+    seL4_Word id = smc_get_function_id(regs);
+    seL4_ARM_SMC smc_cap = camkes_get_smc_cap(id);
+    if (smc_cap) {
+        return smc_forward(vcpu, regs, smc_cap);
+    } else {
+        return vm_smc_handle_default(vcpu, regs);
+    }
+}
+#endif
+
 static int main_continued(void)
 {
     vm_t vm;
@@ -1232,6 +1251,11 @@ static int main_continued(void)
 
     err = vm_create_default_irq_controller(&vm);
     assert(!err);
+
+#ifdef CONFIG_ALLOW_SMC_CALLS
+    err = vm_register_smc_handler_callback(&vm, vm_smc_handler);
+    assert(!err);
+#endif
 
     /* Create CPUs and DTB node */
     for (int i = 0; i < NUM_VCPUS; i++) {

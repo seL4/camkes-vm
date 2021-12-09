@@ -97,6 +97,9 @@ sel4utils_alloc_data_t _alloc_data;
 allocman_t *allocman;
 static char allocator_mempool[83886080];
 seL4_CPtr _fault_endpoint;
+#ifdef CONFIG_KERNEL_MCS
+seL4_CPtr _fault_reply;
+#endif
 irq_server_t *_irq_server;
 
 vmm_pci_space_t *pci;
@@ -415,6 +418,11 @@ static int vmm_init(void)
     simple = &_simple;
     fault_ep_obj.cptr = 0;
 
+#ifdef CONFIG_KERNEL_MCS
+	vka_object_t fault_reply_obj;
+	fault_reply_obj.cptr = 0;
+#endif
+
     /* Camkes adds nothing to our address space, so this array is empty */
     void *existing_frames[] = {
         NULL
@@ -500,6 +508,12 @@ static int vmm_init(void)
     err = vka_alloc_endpoint(vka, &fault_ep_obj);
     assert(!err);
     _fault_endpoint = fault_ep_obj.cptr;
+
+#ifdef CONFIG_KERNEL_MCS
+    err = vka_alloc_reply(vka, &fault_reply_obj);
+    assert(!err);
+    _fault_reply= fault_reply_obj.cptr;
+#endif
 
     err = sel4platsupport_new_malloc_ops(&_io_ops.malloc_ops);
     assert(!err);
@@ -1057,7 +1071,11 @@ int main_continued(void)
     assert(!err);
 
     /* Create the VM */
+#ifdef CONFIG_KERNEL_MCS
+    err = vm_init(&vm, &_vka, &_simple, _vspace, &_io_ops, _fault_endpoint, _fault_reply, VM_NAME);
+#else
     err = vm_init(&vm, &_vka, &_simple, _vspace, &_io_ops, _fault_endpoint, VM_NAME);
+#endif
     assert(!err);
     err = vm_register_unhandled_mem_fault_callback(&vm, unhandled_mem_fault_callback, NULL);
     assert(!err);

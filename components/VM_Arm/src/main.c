@@ -129,6 +129,8 @@ char **WEAK camkes_dtb_get_node_paths(int *num_nodes);
 #ifdef CONFIG_ARM_SMMU
 seL4_CPtr camkes_get_smmu_cb_cap();
 seL4_CPtr camkes_get_smmu_sid_cap();
+int camkes_get_smmu_num_caps();
+int camkes_get_sid_at_index(int index);
 #endif
 
 int get_crossvm_irq_num(void)
@@ -1081,16 +1083,21 @@ int main_continued(void)
 #ifdef CONFIG_ARM_SMMU
     /* configure the smmu */
     ZF_LOGD("Getting sid and cb caps");
-    seL4_CPtr cb_cap = camkes_get_smmu_cb_cap();
-    seL4_CPtr sid_cap = camkes_get_smmu_sid_cap();
+    for(int i = 0; i < camkes_get_smmu_num_caps(); i++){
+        int sid = camkes_get_sid_at_index(i);
+        seL4_CPtr cb_cap = camkes_get_smmu_cb_cap(sid);
+        seL4_CPtr sid_cap = camkes_get_smmu_sid_cap(sid);
 
-    ZF_LOGD("Assigning vspace to context bank");
-    err = seL4_ARM_CB_AssignVspace(cb_cap, vspace_get_root(&vm.mem.vm_vspace));
-    ZF_LOGF_IF(err, "Failed to assign vspace to CB");
+        if((cb_cap != seL4_CapNull) && (sid_cap != seL4_CapNull)){
+            ZF_LOGD("Assigning vspace to context bank");
+            err = seL4_ARM_CB_AssignVspace(cb_cap, vspace_get_root(&vm.mem.vm_vspace));
+            ZF_LOGF_IF(err, "Failed to assign vspace to CB");
 
-    ZF_LOGD("Binding stream id to context bank");
-    err = seL4_ARM_SID_BindCB(sid_cap, cb_cap);
-    ZF_LOGF_IF(err, "Failed to bind CB to SID");
+            ZF_LOGD("Binding stream id to context bank");
+            err = seL4_ARM_SID_BindCB(sid_cap, cb_cap);
+            ZF_LOGF_IF(err, "Failed to bind CB to SID");
+        }
+    }
 #endif /* CONFIG_ARM_SMMU */
 
     err = vm_create_default_irq_controller(&vm);

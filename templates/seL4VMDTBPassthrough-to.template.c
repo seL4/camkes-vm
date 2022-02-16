@@ -86,9 +86,39 @@ static char *camkes_dtb_node_paths[] = {
     /*- endfor -*/
 };
 
+/*- set plat_keep_devices = configuration[me.instance.name].get('plat_keep_devices') -*/
+
+static char *camkes_dtb_keep_devices[] = {
+    /*- if plat_keep_devices -*/
+    /*- for path in plat_keep_devices -*/
+            "/*? path ?*/",
+    /*- endfor -*/
+    /*- endif -*/
+};
+
+/*- set plat_keep_devices_and_subtree = configuration[me.instance.name].get('plat_keep_devices_and_subtree') -*/
+
+static char *camkes_dtb_keep_devices_and_subtree[] = {
+    /*- if plat_keep_devices_and_subtree -*/
+    /*- for path in plat_keep_devices_and_subtree -*/
+            "/*? path ?*/",
+    /*- endfor -*/
+    /*- endif -*/
+};
+
 char **camkes_dtb_get_node_paths(int *num_nodes) {
     *num_nodes = ARRAY_SIZE(camkes_dtb_node_paths);
     return camkes_dtb_node_paths;
+}
+
+char **camkes_dtb_get_plat_keep_devices(int *num_nodes) {
+    *num_nodes = ARRAY_SIZE(camkes_dtb_keep_devices);
+    return camkes_dtb_keep_devices;
+}
+
+char **camkes_dtb_get_plat_keep_devices_and_subtree(int *num_nodes) {
+    *num_nodes = ARRAY_SIZE(camkes_dtb_keep_devices_and_subtree);
+    return camkes_dtb_keep_devices_and_subtree;
 }
 
 int *camkes_dtb_get_irqs(int *num_irqs) {

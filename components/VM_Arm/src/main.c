@@ -124,6 +124,8 @@ seL4_Error WEAK camkes_dtb_get_irq_cap(int irq, seL4_CNode cnode, seL4_Word inde
 simple_get_IRQ_handler_fn original_simple_get_irq_fn;
 int *WEAK camkes_dtb_get_irqs(int *num_irqs);
 char **WEAK camkes_dtb_get_node_paths(int *num_nodes);
+char **WEAK camkes_dtb_get_plat_keep_devices(int *num_nodes);
+char **WEAK camkes_dtb_get_plat_keep_devices_and_subtree(int *num_nodes);
 
 #ifdef CONFIG_ARM_SMMU
 seL4_CPtr camkes_get_smmu_cb_cap();
@@ -718,15 +720,42 @@ static int generate_fdt(vm_t *vm, void *fdt_ori, void *gen_fdt, int buf_size, si
                         int num_paths)
 {
     int err = 0;
+
+    int num_keep_devices = 0;
+    char **keep_devices;
+    if (camkes_dtb_get_plat_keep_devices) {
+        keep_devices = camkes_dtb_get_plat_keep_devices(&num_keep_devices);
+    }
+
+    int num_keep_devices_and_subtree = 0;
+    char **keep_devices_and_subtree;
+    if (camkes_dtb_get_plat_keep_devices_and_subtree) {
+        keep_devices_and_subtree = camkes_dtb_get_plat_keep_devices_and_subtree(&num_keep_devices_and_subtree);
+    }
+
     fdtgen_context_t *context = fdtgen_new_context(gen_fdt, buf_size);
     if (context == NULL) {
         return -1;
     }
 
-    fdtgen_keep_nodes(context, plat_keep_devices, ARRAY_SIZE(plat_keep_devices));
-    for (int i = 0; i < ARRAY_SIZE(plat_keep_device_and_subtree); i++) {
-        fdtgen_keep_node_subtree(context, fdt_ori, plat_keep_device_and_subtree[i]);
+    /* If VM has "plat_keep_devices" set, use it! Else, just use the default */
+    if (num_keep_devices) {
+        fdtgen_keep_nodes(context, (const char **)keep_devices, num_keep_devices);
+    } else {
+        fdtgen_keep_nodes(context, plat_keep_devices, ARRAY_SIZE(plat_keep_devices));
     }
+
+    /* If VM has "plat_keep_devices and subtree" set, use it! Else, just use the default */
+    if (num_keep_devices_and_subtree) {
+        for (int i = 0; i < num_keep_devices_and_subtree; i++) {
+            fdtgen_keep_node_subtree(context, fdt_ori, keep_devices_and_subtree[i]);
+        }
+    } else {
+        for (int i = 0; i < ARRAY_SIZE(plat_keep_device_and_subtree); i++) {
+            fdtgen_keep_node_subtree(context, fdt_ori, plat_keep_device_and_subtree[i]);
+        }
+    }
+
     for (int i = 0; i < ARRAY_SIZE(plat_keep_device_and_subtree_and_disable); i++) {
         fdtgen_keep_node_subtree_disable(context, fdt_ori, plat_keep_device_and_subtree_and_disable[i]);
     }
@@ -1163,4 +1192,3 @@ int run(void)
 
     return main_continued();
 }
-

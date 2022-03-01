@@ -901,7 +901,7 @@ static int handle_async_event(vm_t *vm, seL4_Word badge, seL4_MessageInfo_t tag,
         if (label == IRQ_MESSAGE_LABEL) {
             irq_server_handle_irq_ipc(_irq_server, tag);
         } else {
-            ZF_LOGE("Unknown label (%d)", label);
+            ZF_LOGE("Unknown label (%"SEL4_PRId_word")", label);
         }
 #ifdef FEATURE_VUSB
     } else if (badge == VUSB_NBADGE) {
@@ -917,7 +917,7 @@ static int handle_async_event(vm_t *vm, seL4_Word badge, seL4_MessageInfo_t tag,
             }
         }
         if (!found_handler) {
-            ZF_LOGE("Unknown badge (%d)", badge);
+            ZF_LOGE("Unknown badge (%"SEL4_PRId_word")", badge);
         }
     }
     return 0;
@@ -981,7 +981,7 @@ static vm_frame_t on_demand_iterator(uintptr_t addr, void *cookie)
     /* Attempt allocating ram memory */
     err = alloc_vm_ram_cap(paddr, vm, &frame_result);
     if (err) {
-        ZF_LOGE("Failed to create on demand memory for addr 0x%x", addr);
+        ZF_LOGE("Failed to create on demand memory for addr 0x%"PRIxPTR, addr);
     }
     return frame_result;
 }
@@ -990,7 +990,7 @@ static memory_fault_result_t handle_on_demand_fault_callback(vm_t *vm, vm_vcpu_t
                                                              size_t fault_length,
                                                              void *cookie)
 {
-    ZF_LOGE("Fault for on demand memory region: 0x%x", fault_addr);
+    ZF_LOGE("Fault for on demand memory region: 0x%"PRIxPTR, fault_addr);
     return FAULT_ERROR;
 }
 
@@ -1011,7 +1011,7 @@ memory_fault_result_t unhandled_mem_fault_callback(vm_t *vm, vm_vcpu_t *vcpu,
         if (!mapped) {
             return FAULT_RESTART;
         }
-        ZF_LOGW("Unhandled fault on address 0x%x\n", (uintptr_t)addr);
+        ZF_LOGW("Unhandled fault on address 0x%"PRIxPTR, addr);
     }
 #endif
     return FAULT_ERROR;

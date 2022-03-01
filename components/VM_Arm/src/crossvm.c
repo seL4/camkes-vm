@@ -26,7 +26,7 @@ static int setup_connection(crossvm_handle_t *crossvm_connections, size_t index,
 {
     crossvm_dataport_handle_t *dp_handle = calloc(1, sizeof(crossvm_dataport_handle_t));
     if (!dp_handle) {
-        ZF_LOGE("Failed to initialse cross vm connection dataport %d", index);
+        ZF_LOGE("Failed to initialize cross vm connection dataport %zd", index);
         return -1;
     }
 

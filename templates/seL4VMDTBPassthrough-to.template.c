@@ -80,7 +80,9 @@ static int camkes_dtb_irqs[] = {
 
 static char *camkes_dtb_node_paths[] = {
     /*- for path in dtb_node_paths -*/
+    /*- if path -*/
             "/*? path ?*/",
+    /*- endif -*/
     /*- endfor -*/
 };
 

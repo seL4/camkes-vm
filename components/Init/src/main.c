@@ -225,8 +225,10 @@ typedef struct memory_range {
 
 static memory_range_t guest_ram_regions[] = {
     /* Allocate all the standard low memory areas */
-    {0x500, 0x7c00 - 0x500},
-    {0x7e00, 0x80000 - 0x7e00},
+    /* On x86 the BIOS loads the MBR to 0x7c00. But for this VMM,
+     * we don't use MBR, so there is no need to exclude the MBR
+     * bootstrap code region */
+    {0x500, 0x80000 - 0x500},
     {0x80000, 0x9fc00 - 0x80000},
 };
 

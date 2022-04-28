@@ -737,6 +737,7 @@ static int generate_fdt(vm_t *vm, void *fdt_ori, void *gen_fdt, int buf_size, si
 
     fdtgen_context_t *context = fdtgen_new_context(gen_fdt, buf_size);
     if (context == NULL) {
+        ZF_LOGE("Couldn't create fdtgen context\n");
         return -1;
     }
 
@@ -768,16 +769,19 @@ static int generate_fdt(vm_t *vm, void *fdt_ori, void *gen_fdt, int buf_size, si
     err = fdtgen_generate(context, fdt_ori);
     fdtgen_free_context(context);
     if (err) {
+        ZF_LOGE("Couldn't generate fdt_ori (%d)\n", err);
         return -1;
     }
     err = fdt_generate_plat_vcpu_node(vm, gen_fdt);
     if (err) {
+        ZF_LOGE("Couldn't generate plat_vcpu_node (%d)\n", err);
         return -1;
     }
 
     /* generate a memory node (linux_ram_base and linux_ram_size) */
     err = fdt_generate_memory_node(gen_fdt, linux_ram_base, linux_ram_size);
     if (err) {
+        ZF_LOGE("Couldn't generate memory_node (%d)\n", err);
         return -1;
     }
 
@@ -785,12 +789,14 @@ static int generate_fdt(vm_t *vm, void *fdt_ori, void *gen_fdt, int buf_size, si
     err = fdt_generate_chosen_node(gen_fdt, linux_image_config.linux_stdout, linux_image_config.linux_bootcmdline,
                                    NUM_VCPUS);
     if (err) {
+        ZF_LOGE("Couldn't generate chosen_node (%d)\n", err);
         return -1;
     }
 
     if (config_set(CONFIG_VM_INITRD_FILE)) {
         err = fdt_append_chosen_node_with_initrd_info(gen_fdt, initrd_addr, initrd_size);
         if (err) {
+            ZF_LOGE("Couldn't generate chosen_node_with_initrd_info (%d)\n", err);
             return -1;
         }
     }
@@ -798,6 +804,7 @@ static int generate_fdt(vm_t *vm, void *fdt_ori, void *gen_fdt, int buf_size, si
     if (config_set(CONFIG_VM_PCI_SUPPORT)) {
         err = fdt_generate_vpci_node(vm, pci, gen_fdt, GIC_IRQ_PHANDLE);
         if (err) {
+            ZF_LOGE("Couldn't generate vpci_node (%d)\n", err);
             return -1;
         }
     }

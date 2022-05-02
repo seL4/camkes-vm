@@ -1127,7 +1127,6 @@ int main_continued(void)
         return -1;
     }
 
-    int vm_exit_reason;
     while (1) {
         err = vm_run(&vm);
         if (err) {

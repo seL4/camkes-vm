@@ -36,9 +36,9 @@
 #define ALLOCATOR_POOL_SIZE 8388608
 
 /* Global variables to create the seL4 CSpace/Vspace environment for DMA */
-reservation_t muslc_brk_reservation;
-void *muslc_brk_reservation_start;
-vspace_t  *muslc_this_vspace;
+extern reservation_t muslc_brk_reservation;
+extern void *muslc_brk_reservation_start;
+extern vspace_t  *muslc_this_vspace;
 static sel4utils_res_t muslc_brk_reservation_memory;
 static allocman_t *allocman;
 static char allocator_mempool[ALLOCATOR_POOL_SIZE];

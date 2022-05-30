@@ -191,7 +191,7 @@ void make_virtio_blk(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_port
 
     ioport_range_t virtio_port_range = {VIRTIO_BLK_IOBASE, VIRTIO_BLK_IOBASE + VIRTIO_IOPORT_SIZE, VIRTIO_IOPORT_SIZE};
     virtio_blk = common_make_virtio_blk(vm, pci, io_ports, virtio_port_range, IOPORT_ADDR,
-                                        VIRTIO_BLK_IRQ, VIRTIO_BLK_IRQ, backend, true);
+                                        VIRTIO_BLK_IRQ, VIRTIO_BLK_IRQ, backend);
 
     assert(virtio_blk);
 }

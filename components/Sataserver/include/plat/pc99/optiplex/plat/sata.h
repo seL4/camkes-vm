@@ -19,5 +19,5 @@
 
 #define HARDWARE_SATA_CONFIG                                                       \
     /* In AHCI mode the PCI device has an associated memory space */               \
-    HWsata.mmio_paddr = 0xfebd5000;                                                \
+    HWsata.mmio_paddr = 0xfebd6000;                                                \
     HWsata.mmio_size = 0x1000;

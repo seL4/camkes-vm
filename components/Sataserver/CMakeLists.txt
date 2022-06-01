@@ -15,7 +15,7 @@ config_option(
     SATASERVER_USE_AHCI
     "Enables the use of SATA AHCI interface for the Sataserver."
     DEFAULT
-    ON
+    OFF
 )
 
 add_config_library(sataserver "${configure_string}")

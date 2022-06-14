@@ -1,0 +1,1 @@
+../../zynqmp/plat/smc.h

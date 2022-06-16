@@ -21,7 +21,7 @@ assembly {
         connection seL4GlobalAsynch vm_notify_read_conn(from vm.notification_ready_connector, to vm.notification_ready);
     }
     configuration {
-        fserv.heap_size = 165536;
+        fserv.heap_size = 0x30000;
         vm.fs_shmem_size = 0x1000;
 
         vm.asid_pool = true;

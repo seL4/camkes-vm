@@ -115,7 +115,7 @@
     /**/
 
 #define VM_CONFIGURATION_DEF() \
-    fserv.heap_size = 165536; \
+    fserv.heap_size = 0x30000; \
     time_server.timers_per_client = 9; \
     /* Put the entire time server at the highest priority */ \
     time_server.priority = 255; \

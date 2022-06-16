@@ -96,7 +96,7 @@
     VM_COMPONENT_CONNECTIONS_DEF(num) \
 
 #define VM_GENERAL_CONFIGURATION_DEF() \
-    fserv.heap_size = 165536; \
+    fserv.heap_size = 0x30000; \
 
 #define VM_CONFIGURATION_DEF(num) \
     vm##num.fs_shmem_size = 0x100000; \

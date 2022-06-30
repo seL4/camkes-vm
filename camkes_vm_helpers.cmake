@@ -107,7 +107,6 @@ endfunction(DeclareCAmkESVMRootServer)
 # DEPENDS: Any additional dependencies for the file/image the caller is adding to the
 # file server
 function(AddToFileServer filename_pref file_dest)
-    get_filename_component(basename ${file_dest} NAME)
     # Get any existing dependencies when adding the image into the file server archive
     cmake_parse_arguments(PARSE_ARGV 2 CAMKES_FILESERVER "" "" "DEPENDS")
     if(NOT "${CAMKES_FILESERVER_UNPARSED_ARGUMENTS}" STREQUAL "")

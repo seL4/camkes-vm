@@ -7,9 +7,6 @@
 cmake_minimum_required(VERSION 3.8.2)
 
 set(VM_PROJECT_DIR "${CMAKE_CURRENT_LIST_DIR}" CACHE INTERNAL "")
-if(NOT TARGET vm_fserver_config)
-    add_custom_target(vm_fserver_config)
-endif()
 
 # Function for declaring a CAmkESVM. This is called for each Init component in the applications
 # camkes config.
@@ -63,22 +60,173 @@ function(DeclareCAmkESVM init_component)
     )
 endfunction(DeclareCAmkESVM)
 
+#
 # Function defines a CAmkESVMFileServer using the declared fileserver images
 # and fileserver dependencies. These images are placed into a CPIO archive.
+#
+# Parameters:
+#
+# TYPE <type>
+#   Type of the file server CAmkES component.
+#   Optional, defaults to "FileServer"
+#
+# INSTANCE <name>
+#   Instance name of the file server CAmkES component.
+#   Optional, defaults to "fserv"
+#
+# FILES <item>[ <item>[...]]
+#   The files to be added. Each item has the form [<NAME>:]<FILE_NAME>, where
+#   the optional <NAME> allows using a different name for the file in the
+#   archive than on the disk. The build will abort if <FILE_NAME> is not found.
+#   Each item can either be a single file item or a CMake list of items (such a
+#   CMake list is basically a string with elements separated by ';'). This
+#   allows building lists of files in advance, which may contain different files
+#   for different configurations. An empty string as item is also explicitly
+#   allowed for convenience reasons. Thus supports cases where a an item does
+#   not exist in every configuration and the respective CMake variable used for
+#   the item is just left empty.
+#
+# DEPENDS <dep>[ <dep>[...]]
+#   Any additional dependencies for the file/image the caller is adding to the
+#   file server
+#
+#
 function(DefineCAmkESVMFileServer)
-    # Retrieve defined kernel images, rootfs images and extraction dependencies
-    get_target_property(fileserver_images vm_fserver_config FILES)
-    get_target_property(fileserver_deps vm_fserver_config DEPS)
-    # Build CPIO archive given the defined kernel and rootfs images
-    set(CPIO_ARCHIVE "file_server_archive.o")
+
+    cmake_parse_arguments(
+        PARSE_ARGV
+        0
+        PARAM # variable prefix
+        "" # option arguments
+        "TYPE;INSTANCE" # optional single value arguments
+        "FILES;DEPENDS" # optional multi value arguments
+    )
+
+    if(PARAM_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "Unknown arguments: ${PARAM_UNPARSED_ARGUMENTS}")
+    endif()
+
+    if(NOT PARAM_TYPE)
+        set(PARAM_TYPE "FileServer")
+    endif()
+
+    if(NOT PARAM_INSTANCE)
+        set(PARAM_INSTANCE "fserv")
+    endif()
+
+    # The target might exist already when AddToFileServer() was called.
+    set(FSRV_TARGET "vm_fileserver_config_${PARAM_INSTANCE}")
+    if(NOT TARGET ${FSRV_TARGET})
+        add_custom_target(${FSRV_TARGET})
+    endif()
+
+    # For dependencies and files, both lists and lists of list are supported for
+    # convenience reasons. Furthermore, empty entries are also allowed. This
+    # can happen when the caller uses variables for the lists, when in some
+    # configurations the lists remain empty.
+
+    foreach(element IN LISTS PARAM_DEPENDS)
+        foreach(item IN LISTS element)
+            if(item)
+                set_property(TARGET ${FSRV_TARGET} APPEND PROPERTY DEPS ${item})
+            endif()
+        endforeach()
+    endforeach()
+
+    foreach(element IN LISTS PARAM_FILES)
+        foreach(item IN LISTS element) # [<CPIO_NAME>:]<FILENAME>
+            if(item)
+                string(
+                    REGEX
+                        MATCH
+                        "^([^:]+)(:([^:]+))?$"
+                        cpio_item
+                        "${item}"
+                )
+                if(NOT cpio_item)
+                    message(FATAL_ERROR "invalid parameter format: '${item}'")
+                endif()
+                if(CMAKE_MATCH_3)
+                    set(CPIO_NAME "${CMAKE_MATCH_1}")
+                    set(FILE_NAME "${CMAKE_MATCH_3}")
+                else()
+                    set(FILE_NAME "${CMAKE_MATCH_1}")
+                    get_filename_component(CPIO_NAME "${FILE_NAME}" NAME)
+                endif()
+                set_property(
+                    TARGET ${FSRV_TARGET}
+                    APPEND
+                    PROPERTY FILES "${CPIO_NAME}:${FILE_NAME}"
+                )
+            endif()
+        endforeach()
+    endforeach()
+
+    # now process the file/deps list
+    get_target_property(files ${FSRV_TARGET} FILES)
+    if(NOT files) # this also catches "files-NOTFOUND" if property is not set
+        set(files "")
+    endif()
+    get_target_property(deps ${FSRV_TARGET} DEPS)
+    if(NOT deps) # this also catches "deps-NOTFOUND" if property is not set
+        set(deps "")
+    endif()
+
+    set(CPIO_FILES "")
+    foreach(item IN LISTS files) # <CPIO_NAME>:<FILENAME>
+        string(
+            REGEX
+                MATCH
+                "^([^:]+):([^:]+)$"
+                cpio_item
+                "${item}"
+        )
+        if(NOT cpio_item)
+            message(FATAL_ERROR "invalid CPIO file format: '${item}'")
+        endif()
+        set(CPIO_NAME "${CMAKE_MATCH_1}")
+        set(FILE_NAME "${CMAKE_MATCH_2}")
+        set(CPIO_FILE "${PARAM_INSTANCE}/files/${CPIO_NAME}")
+        add_custom_command(
+            OUTPUT "${CPIO_FILE}"
+            COMMENT "copy: ${FILE_NAME} -> ${CPIO_FILE}"
+            COMMAND
+                ${CMAKE_COMMAND} -E copy "${FILE_NAME}" "${CPIO_FILE}"
+            VERBATIM
+            DEPENDS ${FILE_NAME} ${deps}
+        )
+        # There is no need to create an explicit target for the command above,
+        # the archive creation depends on all files in CPIO_FILES, where the
+        # command above is the creation rule for each one.
+        list(APPEND CPIO_FILES "${CPIO_FILE}")
+    endforeach()
+
+    # Build CPIO archive. It implicitly depends on all files in CPIO_FILES,
+    # which have their own dependencies each from above. So we don't have any
+    # additional explicit dependencies here.
+    # Unfortunately MakeCPIO() currently allows passing plain file names only,
+    # it does not support paths. Thus, the archive will be created in the built
+    # output root folder, having it the instance specific subfolder would be a
+    # bit cleaner actually.
+    set(CPIO_ARCHIVE "${PARAM_INSTANCE}_cpio_archive.o")
     include(cpio)
-    MakeCPIO("${CPIO_ARCHIVE}" "${fileserver_images}" DEPENDS "${fileserver_deps}")
-    # Build a library from the CPIO archive
-    set(FILESERVER_LIB "fileserver_cpio")
+    # Due to the way MakeCPIO() is implemented, the file list must have absolute
+    # paths. Since we don't require CMake 3.12+ yet, we can't use the list
+    # transformation functions, but have to prepend each element manually.
+    set(CPIO_FILES_FQN "")
+    foreach(f IN LISTS CPIO_FILES)
+        list(APPEND CPIO_FILES_FQN "${CMAKE_CURRENT_BINARY_DIR}/${f}")
+    endforeach()
+    MakeCPIO("${CPIO_ARCHIVE}" "${CPIO_FILES_FQN}")
+
+    # Build a library from the CPIO archive. Ensure the lib has a unique name
+    # within the project, as there could be more than one file server.
+    set(FILESERVER_LIB "${PARAM_INSTANCE}_file_archive_cpio")
     add_library("${FILESERVER_LIB}" STATIC EXCLUDE_FROM_ALL "${CPIO_ARCHIVE}")
     set_property(TARGET "${FILESERVER_LIB}" PROPERTY LINKER_LANGUAGE C)
     # Add the CPIO-library to the FileServer component
-    ExtendCAmkESComponentInstance(FileServer fserv LIBS "${FILESERVER_LIB}")
+    ExtendCAmkESComponentInstance("${PARAM_TYPE}" "${PARAM_INSTANCE}" LIBS "${FILESERVER_LIB}")
+
 endfunction(DefineCAmkESVMFileServer)
 
 # Function for declaring the CAmkESVM root server. Taking the camkes application
@@ -105,40 +253,55 @@ function(DeclareCAmkESVMRootServer camkes_config)
 endfunction(DeclareCAmkESVMRootServer)
 
 # Function for adding a file/image to the vm file server.
-# filename_pref: The name the caller wishes to use to reference the file in the CPIO archive. This
-# corresponds with the name set in the 'kernel_image' camkes variable for a given instance vm.
-# file_dest: The location of the file/image the caller is adding to the file server
-# DEPENDS: Any additional dependencies for the file/image the caller is adding to the
-# file server
+#
+# Parameters:
+#
+# <filename_pref>
+#   The name the caller wishes to use to reference the file in the CPIO archive.
+#   This corresponds with the name set in the 'kernel_image' camkes variable for
+#   a given instance vm.
+#
+# <file_dest>
+#   The location of the file/image the caller is adding to the file server
+#
+# INSTANCE <name>
+#   File server instance to add the file(s) to. Optional parameter, the default
+#   instance is "fserv"
+#
+# DEPENDS <dep>[ <dep>[...]]
+#   Any additional dependencies for the file/image the caller is adding to the
+#   file server
+#
 function(AddToFileServer filename_pref file_dest)
-    # Get any existing dependencies when adding the image into the file server archive
-    cmake_parse_arguments(PARSE_ARGV 2 CAMKES_FILESERVER "" "" "DEPENDS")
-    if(NOT "${CAMKES_FILESERVER_UNPARSED_ARGUMENTS}" STREQUAL "")
-        message(FATAL_ERROR "Unknown arguments to AddToFileServer")
+
+    cmake_parse_arguments(
+        PARSE_ARGV
+        2
+        PARAM # variable prefix
+        "" # option arguments
+        "INSTANCE" # optional single value arguments
+        "DEPENDS" # optional multi value arguments
+    )
+
+    if(PARAM_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "Unknown arguments: ${PARAM_UNPARSED_ARGUMENTS}")
     endif()
-    # Create a copy of the file in the binary directory to the callers
-    # preferred name
-    add_custom_command(
-        OUTPUT file_server/${filename_pref}
-        COMMAND
-            ${CMAKE_COMMAND} -E copy "${file_dest}"
-            "${CMAKE_CURRENT_BINARY_DIR}/file_server/${filename_pref}"
-        VERBATIM
-        DEPENDS ${file_dest} ${CAMKES_FILESERVER_DEPENDS}
-    )
-    #Create custom target for copy command
-    add_custom_target(
-        copy_${filename_pref}
-        DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/file_server/${filename_pref}"
-    )
-    # Store the rootfs file location. Used when building the CPIO at a later stage
-    set_property(
-        TARGET vm_fserver_config
-        APPEND
-        PROPERTY FILES "${CMAKE_CURRENT_BINARY_DIR}/file_server/${filename_pref}"
-    )
-    # Append soft link dependency
-    set_property(TARGET vm_fserver_config APPEND PROPERTY DEPS "copy_${filename_pref}")
+
+    if(NOT PARAM_INSTANCE)
+        set(PARAM_INSTANCE "fserv")
+    endif()
+
+    set(FSRV_TARGET "vm_fileserver_config_${PARAM_INSTANCE}")
+    if(NOT TARGET ${FSRV_TARGET})
+        add_custom_target(${FSRV_TARGET})
+    endif()
+
+    set_property(TARGET ${FSRV_TARGET} APPEND PROPERTY FILES "${filename_pref}:${file_dest}")
+
+    if(PARAM_DEPENDS)
+        set_property(TARGET ${FSRV_TARGET} APPEND PROPERTY DEPS ${PARAM_DEPENDS})
+    endif()
+
 endfunction(AddToFileServer)
 
 # Function for decompressing/extracting a vmlinux file from a given kernel image

@@ -79,6 +79,10 @@
         string linux_bootcmdline = ""; \
         string linux_stdout = ""; \
     } linux_image_config; \
+    attribute { \
+        int send_id; \
+        int recv_id; \
+    } serial_layout[] = []; \
 
 
 #define VM_COMPONENT_DEF(num) \

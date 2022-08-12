@@ -28,7 +28,7 @@ component Sataserver {
     attribute int num_bdfs;
     attribute int drive;
 
-    uses PutChar putchar;
+    maybe uses PutChar putchar;
 
 #ifdef SATADRIVER_AHCI_ENABLE
     HARDWARE_SATA_INTERFACES

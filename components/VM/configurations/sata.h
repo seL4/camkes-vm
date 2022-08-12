@@ -9,7 +9,7 @@
 
 #define SATA_COMPOSITION_DEF()                                                                         \
     component Sataserver sataserver;                                                                   \
-    connection seL4RPCCall sata_serial(from sataserver.putchar, to serial.processed_putchar);
+    // connection seL4RPCCall sata_serial(from sataserver.putchar, to serial.processed_putchar);
 
 /* Convenience wrapper for connecting VMs to the SataServer component
  * num: vm instance number

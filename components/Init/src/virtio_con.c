@@ -8,7 +8,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <autoconf.h>
-#include <vmlinux.h>
 
 #include <utils/util.h>
 
@@ -17,13 +16,16 @@
 
 #include <sel4vmmplatsupport/drivers/virtio_con.h>
 #include <sel4vmmplatsupport/device.h>
-#include <sel4vmmplatsupport/arch/vpci.h>
+
+#include <sel4vm/guest_irq_controller.h>
+#include <sel4vm/boot.h>
 
 #include <platsupport/serial.h>
-#include <virtio/virtio_console.h>
 
 #include <virtqueue.h>
 #include <camkes/virtqueue.h>
+
+#include "virtio_con.h"
 
 #define NUM_PORTS ARRAY_SIZE(serial_layout)
 
@@ -39,11 +41,13 @@ typedef struct serial_conn {
 static virtio_con_t *virtio_con = NULL;
 static serial_conn_t connections[NUM_PORTS];
 
+typedef struct virtio_con_cookie {
+    virtio_con_t *virtio_con;
+    vm_t *vm;
+} virtio_con_cookie_t;
+
 /* This matches the size of the buffer in serial server */
 #define BUFSIZE 4088
-
-extern vmm_pci_space_t *pci;
-extern vmm_io_port_list_t *io_ports;
 
 struct staging_buf {
     uint32_t end;
@@ -55,7 +59,7 @@ static struct staging_buf staging_area[NUM_PORTS];
 static void virtio_con_notify_free_send(virtqueue_driver_t *queue)
 {
     void *buf = NULL;
-    size_t buf_size = 0, wr_len = 0;
+    uint32_t buf_size = 0, wr_len = 0;
     vq_flags_t flag;
     virtqueue_ring_object_t handle;
     while (virtqueue_get_used_buf(queue, &handle, &wr_len)) {
@@ -88,7 +92,7 @@ static int virtio_con_notify_recv(int port, virtqueue_device_t *queue)
     }
 }
 
-static int handle_serial_console(vm_t *vmm, void *cookie UNUSED)
+int handle_serial_console(vm_t *vmm, void *cookie UNUSED)
 {
     for (int i = 0; i < NUM_PORTS; i++) {
         if (connections[i].recv_queue && VQ_DEV_POLL(connections[i].recv_queue)) {
@@ -125,14 +129,8 @@ static void tx_virtcon_forward(int port, char c)
 #endif
 }
 
-extern seL4_Word serial_getchar_notification_badge(void);
-void make_virtio_con(vm_t *vm, void *cookie)
+static void make_virtio_con_virtqueues(void)
 {
-    ZF_LOGF_IF((NUM_PORTS > VIRTIO_CON_MAX_PORTS), "Too many ports configured (up the constant)");
-
-    virtio_con = virtio_console_init(vm, tx_virtcon_forward, pci, io_ports);
-    ZF_LOGF_IF(!virtio_con, "Failed to initialise virtio console");
-
     int err;
     for (int i = 0; i < NUM_PORTS; i++) {
         virtqueue_driver_t *vq_send;
@@ -150,20 +148,58 @@ void make_virtio_con(vm_t *vm, void *cookie)
         /* Initialise send virtqueue */
         err = camkes_virtqueue_driver_init_with_recv(vq_send, serial_layout[i].send_id, &ntfn, &badge);
         ZF_LOGF_IF(err, "Unable to initialise send camkes-virtqueue for port: %d", i);
-        err = register_async_event_handler(badge, handle_serial_console, NULL);
-        ZF_LOGF_IF(err, "Failed to register_async_event_handler for send channel on port: %d", i);
 
         /* Initialise recv virtqueue */
         err = camkes_virtqueue_device_init_with_recv(vq_recv, serial_layout[i].recv_id, &ntfn, &badge);
         ZF_LOGF_IF(err, "Unable to initialise recv camkes-virtqueue for port: %d", i);
-        err = register_async_event_handler(badge, handle_serial_console, NULL);
-        ZF_LOGF_IF(err, "Failed to register_async_event_handler for recv channel on port: %d", i);
 
 
         connections[i].recv_queue = vq_recv;
         connections[i].send_queue = vq_send;
     }
-
 }
 
-DEFINE_MODULE(virtio_con, NULL, make_virtio_con)
+static void console_handle_irq(void *cookie)
+{
+    virtio_con_cookie_t *virtio_cookie = (virtio_con_cookie_t *)cookie;
+    if (!virtio_cookie) {
+        ZF_LOGE("NULL virtio cookie given to raw irq handler");
+        return;
+    }
+
+    int err = vm_inject_irq(virtio_cookie->vm->vcpus[BOOT_VCPU], 9);
+    if (err) {
+        ZF_LOGE("Failed to inject irq");
+        return;
+    }
+}
+
+void make_virtio_con_driver(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_ports)
+{
+    ZF_LOGF_IF((NUM_PORTS > VIRTIO_CON_MAX_PORTS), "Too many ports configured (up the constant)");
+
+    int err;
+    struct console_passthrough backend;
+    virtio_con_cookie_t *console_cookie;
+    virtio_con_t *virtio_con;
+
+    backend.handleIRQ = console_handle_irq;
+    backend.putchar = tx_virtcon_forward;
+
+    console_cookie = (virtio_con_cookie_t *)calloc(1, sizeof(struct virtio_con_cookie));
+    if (console_cookie == NULL) {
+        ZF_LOGE("Failed to allocated virtio console cookie");
+        return;
+    }
+
+    backend.console_data = (void *)console_cookie;
+    ioport_range_t virtio_port_range = {0, 0, VIRTIO_IOPORT_SIZE};
+    virtio_con = common_make_virtio_con(vm, pci, io_ports, virtio_port_range, IOPORT_FREE,
+                                        9, 9, backend);
+    console_cookie->virtio_con = virtio_con;
+    console_cookie->vm = vm;
+
+    make_virtio_con_virtqueues();
+}
+
+void make_virtio_con_driver_dummy(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_ports) {}

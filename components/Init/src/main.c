@@ -53,6 +53,7 @@
 #include "fsclient.h"
 #include "virtio_net.h"
 #include "virtio_net_vswitch.h"
+#include "virtio_con.h"
 
 #define BRK_VIRTUAL_SIZE 400000000
 #define ALLOCMAN_VIRTUAL_SIZE 400000000
@@ -133,8 +134,6 @@ void serial_pre_init(void);
 void pre_init(void)
 {
     int error;
-
-    set_putchar(putchar_putchar);
 
     /* Camkes adds nothing to our address space, so this array is empty */
     void *existing_frames[] = {
@@ -307,13 +306,13 @@ ioport_fault_result_t cmos_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int p
 ioport_fault_result_t cmos_port_out(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size,
                                     unsigned int value);
 
-ioport_fault_result_t serial_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size,
-                                     unsigned int *result);
-ioport_fault_result_t serial_port_out(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size,
-                                      unsigned int value);
+// ioport_fault_result_t serial_port_in(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size,
+//                                      unsigned int *result);
+// ioport_fault_result_t serial_port_out(vm_vcpu_t *vcpu, void *cookie, unsigned int port_no, unsigned int size,
+//                                       unsigned int value);
 
 ioport_desc_t ioport_handlers[] = {
-    {X86_IO_SERIAL_1_START,   X86_IO_SERIAL_1_END,   serial_port_in, serial_port_out, "COM1 Serial Port"},
+    // {X86_IO_SERIAL_1_START,   X86_IO_SERIAL_1_END,   serial_port_in, serial_port_out, "COM1 Serial Port"},
 //    {X86_IO_SERIAL_3_START,   X86_IO_SERIAL_3_END,   NULL, NULL, "COM3 Serial Port"},
     /* PCI config requires a cookie and is specced dynamically in code */
 //    {X86_IO_PCI_CONFIG_START, X86_IO_PCI_CONFIG_END, vmm_pci_io_port_in, vmm_pci_io_port_out, "PCI Configuration"},
@@ -433,7 +432,7 @@ static device_notify_t *device_notify_list = NULL;
 
 void pit_timer_interrupt(void);
 void rtc_timer_interrupt(uint32_t);
-void serial_timer_interrupt(uint32_t);
+// void serial_timer_interrupt(uint32_t);
 
 static seL4_Word irq_badges[16] = {
     VM_PIC_BADGE_IRQ_0,
@@ -461,7 +460,7 @@ void serial_character_interrupt(void);
  * or serial.
  */
 extern seL4_Word init_timer_notification_badge(void);
-extern seL4_Word serial_getchar_notification_badge(void);
+// extern seL4_Word serial_getchar_notification_badge(void);
 
 static int handle_async_event(vm_t *vm, seL4_Word badge, UNUSED seL4_MessageInfo_t tag, void *cookie)
 {
@@ -475,14 +474,14 @@ static int handle_async_event(vm_t *vm, seL4_Word badge, UNUSED seL4_MessageInfo
                                  TIMER_SECOND_TIMER2))) {
                 rtc_timer_interrupt(completed);
             }
-            if (completed & (BIT(TIMER_FIFO_TIMEOUT) | BIT(TIMER_TRANSMIT_TIMER) | BIT(TIMER_MODEM_STATUS_TIMER) | BIT(
-                                 TIMER_MORE_CHARS))) {
-                serial_timer_interrupt(completed);
-            }
+            // if (completed & (BIT(TIMER_FIFO_TIMEOUT) | BIT(TIMER_TRANSMIT_TIMER) | BIT(TIMER_MODEM_STATUS_TIMER) | BIT(
+            //                      TIMER_MORE_CHARS))) {
+                // serial_timer_interrupt(completed);
+            // }
         }
-        if ((badge & serial_getchar_notification_badge()) == serial_getchar_notification_badge()) {
-            serial_character_interrupt();
-        }
+        // if ((badge & serial_getchar_notification_badge()) == serial_getchar_notification_badge()) {
+        //     serial_character_interrupt();
+        // }
         for (int i = 0; i < 16; i++) {
             if ((badge & irq_badges[i]) == irq_badges[i]) {
                 vm_inject_irq(vm->vcpus[BOOT_VCPU], i);
@@ -615,6 +614,11 @@ void make_virtio_net_vswitch(vm_t *vm)
     return make_virtio_net_vswitch_driver(vm, pci, io_ports);
 }
 
+void make_virtio_con(vm_t *vm)
+{
+    return make_virtio_con_driver(vm, pci, io_ports);
+}
+
 void *main_continued(void *arg)
 {
     int error;
@@ -685,7 +689,7 @@ void *main_continued(void *arg)
     ZF_LOGF_IF(error, "IRQ Controller init failed");
 
     ZF_LOGI("serial pre init");
-    serial_pre_init();
+    // serial_pre_init();
 
     ZF_LOGI("Pit pre init");
     pit_pre_init();

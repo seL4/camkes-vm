@@ -9,16 +9,5 @@
 #include <sel4vmmplatsupport/drivers/virtio_con.h>
 #include <virtqueue.h>
 
-/*
- * Represents the virtqueues used in a given link between
- * two VMs.
- */
-typedef struct serial_conn {
-    virtqueue_driver_t *send_queue;
-    virtqueue_device_t *recv_queue;
-} serial_conn_t;
-
-#define MAX_SERIAL_CONN 4
-
 virtio_con_t *virtio_console_init(vm_t *vm, console_putchar_fn_t putchar,
                                   vmm_pci_space_t *pci, vmm_io_port_list_t *io_ports);

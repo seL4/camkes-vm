@@ -35,8 +35,6 @@
  * extended in the per Vm configuration */
 #define VM_INIT_DEF() \
     control; \
-    uses PutChar putchar; \
-    uses PutChar guest_putchar; \
     uses PCIConfig pci_config; \
     uses RTC system_rtc; \
     consumes HaveInterrupt intready; \
@@ -44,7 +42,6 @@
     uses Timer init_timer; \
     /* File Server */ \
     uses FileServerInterface fs; \
-    uses GetChar serial_getchar; \
     attribute string kernel_cmdline; \
     attribute string kernel_image; \
     attribute string kernel_relocs; \
@@ -54,6 +51,10 @@
     attribute int cnode_size_bits = 21; \
     attribute vswitch_mapping vswitch_layout[] = []; \
     attribute string vswitch_mac_address = ""; \
+    attribute { \
+        int send_id; \
+        int recv_id; \
+    } serial_layout[] = []; \
     /**/
 
 /* VM and per VM componenents */
@@ -67,11 +68,6 @@
     connection seL4GlobalAsynch intreadycon##num(from vm##num.intready_connector, to vm##num.intready); \
     /* Connect all Init components to the fileserver */ \
     connection seL4RPCDataport fs##num(from vm##num.fs, to fserv.fs_ctrl); \
-    /* Connect all the components to the serial server */ \
-    connection seL4RPCCall serial_vm##num(from vm##num.putchar, to serial.processed_putchar); \
-    connection seL4RPCCall serial_guest_vm##num(from vm##num.guest_putchar, to serial.raw_putchar); \
-    /* Connect the emulated serial input to the serial server */ \
-    connection seL4SerialServer serial_input##num(from vm##num.serial_getchar, to serial.getchar); \
     /* Temporarily connect the VM directly to the RTC */ \
     connection seL4RPCCall rtctest##num(from vm##num.system_rtc, to rtc.rtc); \
     /* Connect the VM to the timer server */ \
@@ -84,8 +80,6 @@
 
 #define VM_PER_VM_CONFIG_DEF(num) \
     vm##num.fs_shmem_size = 0x1000; \
-    vm##num.serial_getchar_attributes = VAR_STRINGIZE(num); \
-    vm##num.serial_getchar_shmem_size = 0x1000; \
     vm##num.simple = true; \
     vm##num.asid_pool = true; \
     vm##num.global_endpoint_mask = 0x1fffffff & ~0x1fffe; \
@@ -100,12 +94,7 @@
     component PCIConfigIO pci_config; \
     component TimeServer time_server; \
     component RTC rtc; \
-    /* These components don't do much output, but just in case they can pretend to \
-     * be vm0 */ \
-    connection seL4RPCCall serial_pci_config(from pci_config.putchar, to serial.processed_putchar); \
-    connection seL4RPCCall serial_time_server(from time_server.putchar, to serial.processed_putchar); \
-    connection seL4RPCCall serial_rtc(from rtc.putchar, to serial.processed_putchar); \
-    /* COnnect the serial server to the timer server */ \
+    /* Connect the serial server to the timer server */ \
     connection seL4TimeServer serialserver_timer(from serial.timeout, to time_server.the_timer); \
     /**/
 

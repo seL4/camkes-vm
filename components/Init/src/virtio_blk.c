@@ -17,10 +17,10 @@
 #include <camkes.h>
 #include <camkes/dataport.h>
 
-#include <ethdrivers/virtio/virtio_pci.h>
-#include <ethdrivers/virtio/virtio_net.h>
-#include <ethdrivers/virtio/virtio_ring.h>
-#include <satadrivers/virtio/virtio_blk.h>
+#include <virtio/virtio_pci.h>
+#include <virtio/virtio_net.h>
+#include <virtio/virtio_ring.h>
+#include <virtio/virtio_blk.h>
 
 #include <sel4vm/guest_vm.h>
 #include <sel4vm/guest_memory.h>

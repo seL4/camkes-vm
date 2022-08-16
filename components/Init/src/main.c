@@ -584,11 +584,16 @@ void init_con_irq_init(void)
     device_notify_list_len = irqs;
     device_notify_list = malloc(sizeof(*device_notify_list) * irqs);
     ZF_LOGF_IF(device_notify_list == NULL, "Malloc failed");
-    for (i = 0; i < irqs; i++) {
-        init_cons_has_interrupt(i, &badge, &fun);
-        device_notify_list[i].badge = badge;
-        device_notify_list[i].func = (void (*)(vm_t *))fun;
+
+    int notify_idx = 0;
+    for (i = 0; i < init_cons_num_connections(); i++) {
+        if (init_cons_has_interrupt(i, &badge, &fun)) {
+            device_notify_list[notify_idx].badge = badge;
+            device_notify_list[notify_idx].func = (void (*)(vm_t *))fun;
+            notify_idx++;
+        }
     }
+    assert(notify_idx == irqs);
 }
 
 ioport_fault_result_t ioport_callback_handler(vm_vcpu_t *vcpu, unsigned int port_no, bool is_in, unsigned int *value,

@@ -38,7 +38,7 @@ typedef struct serial_conn {
     virtqueue_device_t *recv_queue;
 } serial_conn_t;
 
-static virtio_con_t *virtio_con = NULL;
+static virtio_con_t *virtio_con;
 static serial_conn_t connections[NUM_PORTS];
 
 typedef struct virtio_con_cookie {
@@ -92,7 +92,7 @@ static int virtio_con_notify_recv(int port, virtqueue_device_t *queue)
     }
 }
 
-int handle_serial_console(vm_t *vmm, void *cookie UNUSED)
+void handle_serial_console(vm_t *vmm)
 {
     for (int i = 0; i < NUM_PORTS; i++) {
         if (connections[i].recv_queue && VQ_DEV_POLL(connections[i].recv_queue)) {
@@ -102,7 +102,6 @@ int handle_serial_console(vm_t *vmm, void *cookie UNUSED)
             virtio_con_notify_free_send(connections[i].send_queue);
         }
     }
-    return 0;
 }
 
 static void tx_virtcon_forward(int port, char c)
@@ -136,9 +135,6 @@ static void make_virtio_con_virtqueues(void)
         virtqueue_driver_t *vq_send;
         virtqueue_device_t *vq_recv;
 
-        seL4_CPtr ntfn;
-        seL4_CPtr badge;
-
         vq_recv = malloc(sizeof(*vq_recv));
         ZF_LOGF_IF(!vq_recv, "Unable to alloc recv camkes-virtqueue for port: %d", i);
 
@@ -146,11 +142,11 @@ static void make_virtio_con_virtqueues(void)
         ZF_LOGF_IF(!vq_send, "Unable to alloc send camkes-virtqueue for port: %d", i);
 
         /* Initialise send virtqueue */
-        err = camkes_virtqueue_driver_init_with_recv(vq_send, serial_layout[i].send_id, &ntfn, &badge);
+        err = camkes_virtqueue_driver_init(vq_send, serial_layout[i].send_id);
         ZF_LOGF_IF(err, "Unable to initialise send camkes-virtqueue for port: %d", i);
 
         /* Initialise recv virtqueue */
-        err = camkes_virtqueue_device_init_with_recv(vq_recv, serial_layout[i].recv_id, &ntfn, &badge);
+        err = camkes_virtqueue_device_init(vq_recv, serial_layout[i].recv_id);
         ZF_LOGF_IF(err, "Unable to initialise recv camkes-virtqueue for port: %d", i);
 
 
@@ -181,7 +177,6 @@ void make_virtio_con_driver(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *
     int err;
     struct console_passthrough backend;
     virtio_con_cookie_t *console_cookie;
-    virtio_con_t *virtio_con;
 
     backend.handleIRQ = console_handle_irq;
     backend.putchar = tx_virtcon_forward;
@@ -200,6 +195,7 @@ void make_virtio_con_driver(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *
     console_cookie->vm = vm;
 
     make_virtio_con_virtqueues();
+    assert(virtio_con);
 }
 
 void make_virtio_con_driver_dummy(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_ports) {}

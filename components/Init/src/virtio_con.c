@@ -27,79 +27,62 @@
 
 #include "virtio_con.h"
 
-#define NUM_PORTS ARRAY_SIZE(serial_layout)
-
-/*
- * Represents the virtqueues used in a given link between
- * two VMs.
- */
-typedef struct serial_conn {
-    virtqueue_driver_t *send_queue;
-    virtqueue_device_t *recv_queue;
-} serial_conn_t;
-
 static virtio_con_t *virtio_con;
-static serial_conn_t connections[NUM_PORTS];
 
 typedef struct virtio_con_cookie {
     virtio_con_t *virtio_con;
     vm_t *vm;
 } virtio_con_cookie_t;
 
-/* This matches the size of the buffer in serial server */
+/* Configured in camkes */
+#define NUM_PORTS ARRAY_SIZE(serial_layout)
+
+/* 4088 because the serial_shmem_t struct has to be 0x1000 bytes big */
 #define BUFSIZE 4088
 
-struct staging_buf {
-    uint32_t end;
+/* This struct occupies exactly 1 page and represents the data in the shmem region */
+typedef struct serial_shmem {
+    uint32_t head;
+    uint32_t tail;
     char buf[BUFSIZE];
-} ;
+} serial_shmem_t;
+compile_time_assert(serial_shmem_1k_size, sizeof(serial_shmem_t) == 0x1000);
 
-static struct staging_buf staging_area[NUM_PORTS];
+/*
+ * Represents the virtqueues used in a given link between
+ * two VMs.
+ */
+typedef struct serial_conn {
+    void (*notify)(void);
+    volatile serial_shmem_t *recv_buf;
+    volatile serial_shmem_t *send_buf;
+} serial_conn_t;
+static serial_conn_t connections[NUM_PORTS];
 
-static void virtio_con_notify_free_send(virtqueue_driver_t *queue)
-{
-    void *buf = NULL;
-    uint32_t buf_size = 0, wr_len = 0;
-    vq_flags_t flag;
-    virtqueue_ring_object_t handle;
-    while (virtqueue_get_used_buf(queue, &handle, &wr_len)) {
-        while (camkes_virtqueue_driver_gather_buffer(queue, &handle, &buf, &buf_size, &flag) >= 0) {
-            /* Clean up and free the buffer we allocated */
-            camkes_virtqueue_buffer_free(queue, buf);
-        }
-    }
-}
+/* This is a temporary buffer used to stage data before completing the virtio RX */
+char temp_rx_buf[BUFSIZE];
 
 void virtio_console_putchar(int port, virtio_emul_t *con, char *buf, int len) WEAK;
-static int virtio_con_notify_recv(int port, virtqueue_device_t *queue)
+static int virtio_con_notify_recv(int port)
 {
-    int err;
-    void *buf = NULL;
-    size_t buf_size = 0;
-    vq_flags_t flag;
-    virtqueue_ring_object_t handle;
-
-    while (virtqueue_get_available_buf(queue, &handle)) {
-        char temp_buf[BUFSIZE];
-        size_t len = virtqueue_scattered_available_size(queue, &handle);
-        if (camkes_virtqueue_device_gather_copy_buffer(queue, &handle, (void *)temp_buf, len) < 0) {
-            ZF_LOGW("Dropping data for port %d: Can't gather vq buffer.", port);
-            continue;
-        }
-
-        virtio_console_putchar(port, virtio_con->emul, temp_buf, len);
-        queue->notify();
+    volatile serial_shmem_t *buffer = connections[port].recv_buf;
+    int count = 0;
+    while (buffer->head != buffer->tail) {
+        temp_rx_buf[count] = buffer->buf[buffer->head];
+        buffer->head = (buffer->head + 1) % BUFSIZE;
+        count++;
     }
+
+    assert(count <= BUFSIZE);
+    virtio_console_putchar(port, virtio_con->emul, temp_rx_buf, count);
 }
 
 void handle_serial_console(vm_t *vmm)
 {
+    /* Poll each ring buffer to see if data was added */
     for (int i = 0; i < NUM_PORTS; i++) {
-        if (connections[i].recv_queue && VQ_DEV_POLL(connections[i].recv_queue)) {
-            virtio_con_notify_recv(i, connections[i].recv_queue);
-        }
-        if (connections[i].send_queue && VQ_DRV_POLL(connections[i].send_queue)) {
-            virtio_con_notify_free_send(connections[i].send_queue);
+        if (connections[i].recv_buf->head != connections[i].recv_buf->tail) {
+            virtio_con_notify_recv(i);
         }
     }
 }
@@ -113,45 +96,35 @@ static void tx_virtcon_forward(int port, char c)
         return;
     }
 
-    struct staging_buf *batch_buf = &staging_area[port];
-    batch_buf->buf[batch_buf->end] = c;
-    batch_buf->end = (batch_buf->end + 1);
+    volatile serial_shmem_t *batch_buf = connections[port].send_buf;
+    batch_buf->buf[batch_buf->tail] = c;
+    batch_buf->tail = (batch_buf->tail + 1) % BUFSIZE;
 
     /* If newline or staging area full, it's time to send */
-    if (c == '\n' || batch_buf->end == BUFSIZE) {
-        int err = camkes_virtqueue_driver_scatter_send_buffer(connections[port].send_queue, (void *) batch_buf->buf, batch_buf->end);
-        ZF_LOGE_IF(err < 0, "Unknown error while enqueuing available buffer for port %d", port);
-        batch_buf->end = 0;
+    if (c == '\n' || (batch_buf->tail + 1) % BUFSIZE == batch_buf->head) {
+        connections[port].notify();
     }
-
-    connections[port].send_queue->notify();
 #endif
 }
-
 static void make_virtio_con_virtqueues(void)
 {
     int err;
     for (int i = 0; i < NUM_PORTS; i++) {
-        virtqueue_driver_t *vq_send;
-        virtqueue_device_t *vq_recv;
+        camkes_virtqueue_channel_t *recv_channel = get_virtqueue_channel(VIRTQUEUE_DEVICE, serial_layout[i].recv_id);
+        camkes_virtqueue_channel_t *send_channel = get_virtqueue_channel(VIRTQUEUE_DRIVER, serial_layout[i].send_id);
 
-        vq_recv = malloc(sizeof(*vq_recv));
-        ZF_LOGF_IF(!vq_recv, "Unable to alloc recv camkes-virtqueue for port: %d", i);
+        if (!recv_channel || !send_channel) {
+            ZF_LOGE("Failed to get channel");
+            return;
+        }
 
-        vq_send = malloc(sizeof(*vq_send));
-        ZF_LOGF_IF(!vq_send, "Unable to alloc send camkes-virtqueue for port: %d", i);
-
-        /* Initialise send virtqueue */
-        err = camkes_virtqueue_driver_init(vq_send, serial_layout[i].send_id);
-        ZF_LOGF_IF(err, "Unable to initialise send camkes-virtqueue for port: %d", i);
-
-        /* Initialise recv virtqueue */
-        err = camkes_virtqueue_device_init(vq_recv, serial_layout[i].recv_id);
-        ZF_LOGF_IF(err, "Unable to initialise recv camkes-virtqueue for port: %d", i);
-
-
-        connections[i].recv_queue = vq_recv;
-        connections[i].send_queue = vq_send;
+        connections[i].notify = send_channel->notify;
+        connections[i].recv_buf = (serial_shmem_t *) recv_channel->channel_buffer;
+        connections[i].send_buf = (serial_shmem_t *) send_channel->channel_buffer;
+        connections[i].recv_buf->head = 0;
+        connections[i].recv_buf->tail = 0;
+        connections[i].send_buf->head = 0;
+        connections[i].send_buf->tail = 0;
     }
 }
 

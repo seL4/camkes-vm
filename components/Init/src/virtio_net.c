@@ -34,6 +34,7 @@
 
 #include "vm.h"
 #include "virtio_net.h"
+#include "virtio_irq.h"
 
 #define VIRTIO_VID 0x1af4
 #define VIRTIO_DID_START 0x1000
@@ -84,7 +85,7 @@ static int emul_raw_tx(struct eth_driver *driver, unsigned int num, uintptr_t *p
 
 static void emul_raw_handle_irq(struct eth_driver *driver, int irq)
 {
-    vm_inject_irq(emul_vm->vcpus[BOOT_VCPU], 6);
+    vm_inject_irq(emul_vm->vcpus[BOOT_VCPU], VIRTIO_NET_IRQ);
 }
 
 static void emul_low_level_init(struct eth_driver *driver, uint8_t *mac, int *mtu)
@@ -127,7 +128,7 @@ void make_virtio_net(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_port
     emul_vm = vm;
 
     ioport_range_t virtio_port_range = {0, 0, VIRTIO_IOPORT_SIZE};
-    virtio_net = common_make_virtio_net(vm, pci, io_ports, virtio_port_range, IOPORT_FREE, 6, 6, backend);
+    virtio_net = common_make_virtio_net(vm, pci, io_ports, virtio_port_range, IOPORT_FREE, VIRTIO_NET_IRQ, VIRTIO_NET_IRQ, backend);
     assert(virtio_net);
     int len;
     while (ethdriver_rx(&len) != -1);

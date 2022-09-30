@@ -548,13 +548,14 @@ static void init_irqs(vm_t *vm)
 
     for (int i = 0; i < num_irqs; i++) {
         seL4_CPtr irq_handler;
+        uint8_t ioapic;
         uint8_t source;
         int level_trig;
         int active_low;
         uint8_t dest;
         cspacepath_t badge_path;
         cspacepath_t async_path;
-        irqs_get_irq(i, &irq_handler, &source, &level_trig, &active_low, &dest);
+        irqs_get_irq(i, &irq_handler, &ioapic, &source, &level_trig, &active_low, &dest);
         vka_cspace_make_path(&vka, intready_notification(), &async_path);
         error = vka_cspace_alloc_path(&vka, &badge_path);
         ZF_LOGF_IF(error, "Failed to alloc cspace path");
@@ -776,12 +777,13 @@ void *main_continued(void *arg)
         /* search for the irq */
         for (int j = 0; j < irqs_num_irqs(); j++) {
             seL4_CPtr cap;
+            uint8_t ioapic;
             uint8_t source;
             int level_trig;
             int active_low;
             uint8_t dest;
             const char *this_name;
-            this_name = irqs_get_irq(j, &cap, &source, &level_trig, &active_low, &dest);
+            this_name = irqs_get_irq(j, &cap, &ioapic, &source, &level_trig, &active_low, &dest);
             if (strcmp(irq_name, this_name) == 0) {
                 irq = dest;
                 break;

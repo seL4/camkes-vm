@@ -15,7 +15,7 @@
 #include <camkes/dataport.h>
 
 #include <sel4vmmplatsupport/drivers/virtio_net.h>
-#include <virtio/virtio_net.h>
+#include <virtioarm/virtio_net.h>
 
 #include <netinet/in.h>
 #include <netinet/in_systm.h>

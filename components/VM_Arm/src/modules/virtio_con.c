@@ -20,7 +20,7 @@
 #include <sel4vmmplatsupport/arch/vpci.h>
 
 #include <platsupport/serial.h>
-#include <virtio/virtio_console.h>
+#include <virtioarm/virtio_console.h>
 
 static virtio_con_t *virtio_con = NULL;
 extern void *serial_getchar_buf;

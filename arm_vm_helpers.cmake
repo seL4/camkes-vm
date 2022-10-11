@@ -138,7 +138,7 @@ function(DeclareCAmkESARMVM init_component)
     )
 
     if(VmVirtioNetArping OR VmVirtioNetVirtqueue OR VmVirtioConsole)
-        DeclareCAmkESComponent(${init_component} LIBS virtio vswitch)
+        DeclareCAmkESComponent(${init_component} LIBS virtioarm vswitch)
     endif()
 
     # Append the USB driver library if building for exynos

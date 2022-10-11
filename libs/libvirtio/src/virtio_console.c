@@ -16,9 +16,9 @@
 #include <sel4vmmplatsupport/device.h>
 #include <sel4vmmplatsupport/arch/vpci.h>
 
-#include <virtio/virtio.h>
-#include <virtio/virtio_plat.h>
-#include <virtio/virtio_console.h>
+#include <virtioarm/virtio.h>
+#include <virtioarm/virtio_plat.h>
+#include <virtioarm/virtio_console.h>
 
 typedef struct virtio_con_cookie {
     virtio_con_t *virtio_con;

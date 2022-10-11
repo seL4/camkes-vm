@@ -12,8 +12,8 @@ add_compile_options(-std=gnu99)
 
 set(sources src/virtio_net.c src/virtio_console.c)
 
-add_library(virtio STATIC EXCLUDE_FROM_ALL ${sources})
+add_library(virtioarm STATIC EXCLUDE_FROM_ALL ${sources})
 
-target_include_directories(virtio PUBLIC include plat_include/${KernelPlatform})
+target_include_directories(virtioarm PUBLIC include plat_include/${KernelPlatform})
 
-target_link_libraries(virtio muslc sel4 sel4camkes sel4vm sel4vmmplatsupport sel4_autoconf)
+target_link_libraries(virtioarm muslc sel4 sel4camkes sel4vm sel4vmmplatsupport sel4_autoconf)

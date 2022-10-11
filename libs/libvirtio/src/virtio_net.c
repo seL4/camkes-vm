@@ -23,9 +23,9 @@
 #include <sel4vmmplatsupport/device.h>
 #include <sel4vmmplatsupport/arch/vpci.h>
 
-#include <virtio/virtio.h>
-#include <virtio/virtio_net.h>
-#include <virtio/virtio_plat.h>
+#include <virtioarm/virtio.h>
+#include <virtioarm/virtio_net.h>
+#include <virtioarm/virtio_plat.h>
 
 typedef struct virtio_net_cookie {
     virtio_net_t *virtio_net;

@@ -78,6 +78,7 @@
         string initrd_name = "linux-initrd"; \
         string linux_bootcmdline = ""; \
         string linux_stdout = ""; \
+        string dtb_base_name = ""; \
     } linux_image_config; \
 
 

@@ -51,6 +51,10 @@ function(DeclareCAmkESARMVM init_component)
     list(APPEND vm_src ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/map_frame_hack.c)
     list(APPEND vm_src ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/init_ram.c)
 
+    if(VmVirtUart)
+        list(APPEND vm_src ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/vuart_init.c)
+    endif()
+
     if(Tk1DeviceFwd)
         list(
             APPEND vm_src ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/plat/tk1/device_fwd.c

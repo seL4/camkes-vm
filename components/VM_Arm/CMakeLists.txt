@@ -127,6 +127,16 @@ config_option(
     OFF
 )
 
+config_option(
+    VmVirtUart
+    VM_VIRT_UART
+    "Option for virtualizing console"
+    DEFAULT
+    OFF
+    DEPENDS
+    "KernelPlatformExynos5410 OR KernelPlatformExynos5422 OR KernelPlatformZynqmp"
+)
+
 add_config_library(arm_vm "${configure_string}")
 
 DeclareCAmkESARMVM(VM)

@@ -125,6 +125,10 @@ function(DeclareCAmkESARMVM init_component)
         ${VM_COMP_EXTRA_LD_FLAGS}
         C_FLAGS
         ${VM_COMP_EXTRA_C_FLAGS}
+        TEMPLATE_SOURCES
+        seL4AllocatorMempool.template.c
+        TEMPLATE_HEADERS
+        seL4AllocatorMempool.template.h
     )
 
     if(VmVirtioNetArping OR VmVirtioNetVirtqueue OR VmVirtioConsole)

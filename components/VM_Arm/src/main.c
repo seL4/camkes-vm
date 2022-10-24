@@ -101,8 +101,10 @@ irq_server_t *_irq_server;
 vmm_pci_space_t *pci;
 vmm_io_port_list_t *io_ports;
 reboot_hooks_list_t reboot_hooks_list;
+
 #define PLAT_LINUX_DTB_SIZE 0x50000
 static char linux_gen_dtb_buf[PLAT_LINUX_DTB_SIZE];
+static char linux_gen_dtb_base_buf[PLAT_LINUX_DTB_SIZE];
 
 struct ps_io_ops _io_ops;
 
@@ -843,15 +845,28 @@ static int load_linux(vm_t *vm, const char *kernel_name, const char *dtb_name, c
     }
 
     if (!config_set(CONFIG_VM_DTB_FILE)) {
-        camkes_io_fdt(&(_io_ops.io_fdt));
-        void *fdt_ori = ps_io_fdt_get(&_io_ops.io_fdt);
-
+        void *fdt_ori;
         void *gen_fdt = linux_gen_dtb_buf;
         int size_gen = PLAT_LINUX_DTB_SIZE;
         int num_paths = 0;
         char **paths = NULL;
         if (camkes_dtb_get_node_paths) {
             paths = camkes_dtb_get_node_paths(&num_paths);
+        }
+
+        int dtb_fd = open(linux_image_config.dtb_base_name, 0);
+
+        /* If dtb_base_name is in the file server, grab it and use it as a base */
+        if (dtb_fd >= 0) {
+            size_t dtb_len = read(dtb_fd, linux_gen_dtb_base_buf, PLAT_LINUX_DTB_SIZE);
+            if (dtb_len <= 0) {
+                return -1;
+            }
+            close(dtb_fd);
+            fdt_ori = (void *)linux_gen_dtb_base_buf;
+        } else {
+            camkes_io_fdt(&(_io_ops.io_fdt));
+            fdt_ori = (void *)ps_io_fdt_get(&_io_ops.io_fdt);
         }
 
         err = generate_fdt(vm, fdt_ori, gen_fdt, size_gen, initrd_image.size, paths, num_paths);

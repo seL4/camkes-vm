@@ -32,7 +32,7 @@ config_option(
     VM_PCI_SUPPORT
     "Enable virtual pci device support"
     DEPENDS
-    "KernelPlatformExynos5410 OR KernelPlatformExynos5422 OR KernelPlatformTx2 OR KernelPlatformQEMUArmVirt OR KernelPlatformOdroidc2"
+    "KernelPlatformExynos5410 OR KernelPlatformExynos5422 OR KernelPlatformTx2 OR KernelPlatformQEMUArmVirt OR KernelPlatformOdroidc2 OR KernelPlatformZynqmp"
     DEFAULT
     OFF
 )
@@ -52,7 +52,7 @@ config_option(
     VM_VIRTIO_NET_VIRTQUEUE
     "Enable virtio net virtqueue forwarding module"
     DEPENDS
-    "KernelPlatformExynos5410 OR KernelPlatformExynos5422 OR KernelPlatformTx2 OR KernelPlatformQEMUArmVirt;VmPCISupport"
+    "KernelPlatformExynos5410 OR KernelPlatformExynos5422 OR KernelPlatformTx2 OR KernelPlatformQEMUArmVirt OR KernelPlatformZynqmp;VmPCISupport"
     DEFAULT
     OFF
 )

@@ -865,7 +865,13 @@ static int load_linux(vm_t *vm, const char *kernel_name, const char *dtb_name, c
             paths = camkes_dtb_get_node_paths(&num_paths);
         }
 
-        int dtb_fd = open(linux_image_config.dtb_base_name, 0);
+        int dtb_fd = -1;
+
+        /* No point checking the file server if the string is empty! */
+        if ((NULL != linux_image_config.dtb_base_name) &&
+            (linux_image_config.dtb_base_name[0] != '\0')) {
+            dtb_fd = open(linux_image_config.dtb_base_name, 0);
+        }
 
         /* If dtb_base_name is in the file server, grab it and use it as a base */
         if (dtb_fd >= 0) {

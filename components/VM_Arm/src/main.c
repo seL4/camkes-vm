@@ -903,7 +903,7 @@ static int load_linux(vm_t *vm, const char *kernel_name, const char *dtb_name, c
         }
         vm_ram_mark_allocated(vm, dtb_addr, size_gen);
         vm_ram_touch(vm, dtb_addr, size_gen, load_generated_dtb, gen_fdt);
-        printf("Loading Generated DTB");
+        printf("Loading Generated DTB\n");
         dtb = dtb_addr;
     } else {
         printf("Loading DTB: \'%s\'\n", dtb_name);
@@ -1008,10 +1008,10 @@ static int alloc_vm_device_cap(uintptr_t addr, vm_t *vm, vm_frame_t *frame_resul
     err = vka_utspace_alloc_at(vm->vka, &frame, kobject_get_type(KOBJECT_FRAME, seL4_PageBits), seL4_PageBits, addr,
                                &cookie);
     if (err) {
-        ZF_LOGE("Grabbing the entire cap for device memory");
+        ZF_LOGV("Grabbing the entire cap for device memory");
         err = simple_get_frame_cap(vm->simple, (void *)addr, seL4_PageBits, &frame);
         if (err) {
-            ZF_LOGE("Failed to grab the entire cap");
+            ZF_LOGV("Failed to grab the entire cap for addr 0x%"PRIxPTR, addr);
             return -1;
         }
     }
@@ -1049,6 +1049,7 @@ static vm_frame_t on_demand_iterator(uintptr_t addr, void *cookie)
     /* Attempt allocating device memory */
     err = alloc_vm_device_cap(paddr, vm, &frame_result);
     if (!err) {
+        printf("OnDemandInstall: Created device-backed memory for addr 0x%"PRIxPTR"\n", addr);
         return frame_result;
     }
     /* Attempt allocating ram memory */
@@ -1056,6 +1057,7 @@ static vm_frame_t on_demand_iterator(uintptr_t addr, void *cookie)
     if (err) {
         ZF_LOGE("Failed to create on demand memory for addr 0x%"PRIxPTR, addr);
     }
+    printf("OnDemandInstall: Created RAM-backed memory for addr 0x%"PRIxPTR"\n", addr);
     return frame_result;
 }
 

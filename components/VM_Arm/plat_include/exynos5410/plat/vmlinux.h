@@ -10,7 +10,7 @@
 #define VUSB_NINDEX          5
 #define VUSB_NBADGE          0x123
 #define IRQ_SPI_OFFSET 32
-#define GIC_IRQ_PHANDLE 0x1
+#define GIC_NODE_PATH  "/soc/interrupt-controller@10481000"
 
 #define LINUX_RAM_BASE    0x40000000
 #define LINUX_RAM_PADDR_BASE LINUX_RAM_BASE

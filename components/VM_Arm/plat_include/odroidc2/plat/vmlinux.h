@@ -6,7 +6,7 @@
 #pragma once
 
 #define IRQ_SPI_OFFSET 32
-#define GIC_IRQ_PHANDLE 0x01
+#define GIC_NODE_PATH  "/interrupt-controller@c4301000"
 
 static const int linux_pt_irqs[] = {};
 

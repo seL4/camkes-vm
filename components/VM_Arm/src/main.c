@@ -531,6 +531,8 @@ static int vmm_init(void)
         assert(t_id >= 0);
     }
 
+    camkes_io_fdt(&(_io_ops.io_fdt));
+
     return 0;
 }
 
@@ -882,7 +884,6 @@ static int load_linux(vm_t *vm, const char *kernel_name, const char *dtb_name, c
             close(dtb_fd);
             fdt_ori = (void *)linux_gen_dtb_base_buf;
         } else {
-            camkes_io_fdt(&(_io_ops.io_fdt));
             fdt_ori = (void *)ps_io_fdt_get(&_io_ops.io_fdt);
         }
 
@@ -1155,6 +1156,9 @@ int main_continued(void)
     err = seL4_ARM_SID_BindCB(sid_cap, cb_cap);
     ZF_LOGF_IF(err, "Failed to bind CB to SID");
 #endif /* CONFIG_ARM_SMMU */
+
+    vm.fdt_ori = (void *)ps_io_fdt_get(&_io_ops.io_fdt);
+    vm.gic_path = GIC_NODE_PATH;
 
     err = vm_create_default_irq_controller(&vm);
     assert(!err);

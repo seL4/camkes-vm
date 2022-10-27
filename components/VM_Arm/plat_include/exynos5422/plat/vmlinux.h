@@ -14,7 +14,7 @@
 #define INITRD_ADDR       (DTB_ADDR - INITRD_MAX_SIZE) //0x4D700000
 
 #define IRQ_SPI_OFFSET 32
-#define GIC_IRQ_PHANDLE 0x1
+#define GIC_NODE_PATH  "/soc/interrupt-controller@10481000"
 
 static const int linux_pt_irqs[] = {
 };

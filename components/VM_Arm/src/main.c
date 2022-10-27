@@ -802,7 +802,17 @@ static int generate_fdt(vm_t *vm, void *fdt_ori, void *gen_fdt, int buf_size, si
     }
 
     if (config_set(CONFIG_VM_PCI_SUPPORT)) {
-        err = fdt_generate_vpci_node(vm, pci, gen_fdt, GIC_IRQ_PHANDLE);
+        int gic_offset = fdt_path_offset(fdt_ori, GIC_NODE_PATH);
+        if (gic_offset < 0) {
+            ZF_LOGE("Failed to find gic node from path: %s", GIC_NODE_PATH);
+            return -1;
+        }
+        int gic_phandle = fdt_get_phandle(fdt_ori, gic_offset);
+        if (0 == gic_phandle) {
+            ZF_LOGE("Failed to find phandle in gic node");
+            return -1;
+        }
+        err = fdt_generate_vpci_node(vm, pci, gen_fdt, gic_phandle);
         if (err) {
             ZF_LOGE("Couldn't generate vpci_node (%d)\n", err);
             return -1;

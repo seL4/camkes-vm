@@ -31,7 +31,6 @@
 #include <sel4vm/guest_memory_helpers.h>
 #include <sel4vm/guest_ram.h>
 #include <sel4vm/guest_iospace.h>
-#include <sel4vm/arch/ioports.h>
 #include <sel4vm/guest_irq_controller.h>
 
 #include <sel4vmmplatsupport/guest_memory_util.h>
@@ -41,6 +40,8 @@
 #include <sel4vmmplatsupport/drivers/cross_vm_connection.h>
 #include <sel4vmmplatsupport/arch/drivers/vmm_pci_helper.h>
 
+#include <sel4vm/arch/ioports.h>
+#include <sel4vm/arch/guest_x86_irq_controller.h>
 #include <sel4vm/arch/vmcall.h>
 
 #include <sel4vmmplatsupport/guest_image.h>
@@ -435,7 +436,7 @@ void pit_timer_interrupt(void);
 void rtc_timer_interrupt(uint32_t);
 void serial_timer_interrupt(uint32_t);
 
-static seL4_Word irq_badges[16] = {
+static seL4_Word irq_badges[VM_NUM_IRQS] = {
     VM_PIC_BADGE_IRQ_0,
     VM_PIC_BADGE_IRQ_1,
     VM_PIC_BADGE_IRQ_2,
@@ -451,7 +452,11 @@ static seL4_Word irq_badges[16] = {
     VM_PIC_BADGE_IRQ_12,
     VM_PIC_BADGE_IRQ_13,
     VM_PIC_BADGE_IRQ_14,
-    VM_PIC_BADGE_IRQ_15
+    VM_PIC_BADGE_IRQ_15,
+    VM_APIC_BADGE_IRQ_16,
+    VM_APIC_BADGE_IRQ_17,
+    VM_APIC_BADGE_IRQ_18,
+    VM_APIC_BADGE_IRQ_19,
 };
 
 void serial_character_interrupt(void);
@@ -483,9 +488,9 @@ static int handle_async_event(vm_t *vm, seL4_Word badge, UNUSED seL4_MessageInfo
         if ((badge & serial_getchar_notification_badge()) == serial_getchar_notification_badge()) {
             serial_character_interrupt();
         }
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < VM_NUM_IRQS; i++) {
             if ((badge & irq_badges[i]) == irq_badges[i]) {
-                vm_inject_irq(vm->vcpus[BOOT_VCPU], i);
+                int res = vm_inject_irq(vm->vcpus[BOOT_VCPU], i);
             }
         }
         for (int i = 0; i < device_notify_list_len; i++) {
@@ -529,45 +534,71 @@ static seL4_CPtr create_async_event_notification_cap(vm_t *vm, seL4_Word badge)
     return minted_ntfn_path.capPtr;
 }
 
-static void irq_ack_hw_irq_handler(vm_vcpu_t *vcpu, int irq, void *cookie)
+static void irq_ack_hw_irq_handler(UNUSED vm_vcpu_t *vcpu, int irq, void *cookie)
 {
-    seL4_CPtr handler = (seL4_CPtr) cookie;
-    int UNUSED error = seL4_IRQHandler_Ack(handler);
+    int UNUSED error = seL4_IRQHandler_Ack(((x86_irq_cookie_t *) cookie)->irq_cap);
     assert(!error);
+}
+
+static void init_irqs_common(vm_t *vm, seL4_CPtr irq_handler, int irq, bool is_msi)
+{
+    int error;
+    cspacepath_t badge_path;
+    cspacepath_t async_path;
+
+    vka_cspace_make_path(&vka, intready_notification(), &async_path);
+    error = vka_cspace_alloc_path(&vka, &badge_path);
+    ZF_LOGF_IF(error, "Failed to alloc cspace path");
+
+    error = vka_cnode_mint(&badge_path, &async_path, seL4_AllRights, irq_badges[irq]);
+    ZF_LOGF_IF(error, "Failed to mint cnode");
+    error = seL4_IRQHandler_SetNotification(irq_handler, badge_path.capPtr);
+    ZF_LOGF_IF(error, "Failed to set notification for irq handler");
+    error = seL4_IRQHandler_Ack(irq_handler);
+    ZF_LOGF_IF(error, "Failed to ack irq handler");
+
+    /* Set up the cookie */
+    x86_irq_cookie_t *cookie = malloc(sizeof(*cookie));
+    ZF_LOGF_IF(!cookie, "Malloc for irq cookie failed");
+    cookie->is_msi = is_msi;
+    cookie->irq_cap = irq_handler;
+
+    error = vm_register_irq(vm->vcpus[BOOT_VCPU], irq, irq_ack_hw_irq_handler, (void *) cookie);
+    ZF_LOGF_IF(error, "Failed to register irq ack handler");
 }
 
 static void init_irqs(vm_t *vm)
 {
-    int error UNUSED;
+    int ioapic_num_irqs = irqs_ioapic_num_irqs();
+    int msi_num_irqs = irqs_msi_num_irqs();
 
-    int num_irqs = irqs_num_irqs();
-
-    if (camkes_cross_vm_connections_init && num_irqs > get_crossvm_irq_num()) {
+    if (camkes_cross_vm_connections_init && (ioapic_num_irqs + msi_num_irqs) > get_crossvm_irq_num()) {
         ZF_LOGE("Cross vm event irq number not available");
     }
 
-    for (int i = 0; i < num_irqs; i++) {
-        seL4_CPtr irq_handler;
-        uint8_t ioapic;
-        uint8_t source;
-        int level_trig;
-        int active_low;
-        uint8_t dest;
-        cspacepath_t badge_path;
-        cspacepath_t async_path;
-        irqs_get_irq(i, &irq_handler, &ioapic, &source, &level_trig, &active_low, &dest);
-        vka_cspace_make_path(&vka, intready_notification(), &async_path);
-        error = vka_cspace_alloc_path(&vka, &badge_path);
-        ZF_LOGF_IF(error, "Failed to alloc cspace path");
+    seL4_CPtr irq_handler;
 
-        error = vka_cnode_mint(&badge_path, &async_path, seL4_AllRights, irq_badges[dest]);
-        ZF_LOGF_IF(error, "Failed to mint cnode");
-        error = seL4_IRQHandler_SetNotification(irq_handler, badge_path.capPtr);
-        ZF_LOGF_IF(error, "Failed to set notification for irq handler");
-        error = seL4_IRQHandler_Ack(irq_handler);
-        ZF_LOGF_IF(error, "Failed to ack irq handler");
-        error = vm_register_irq(vm->vcpus[BOOT_VCPU], dest, irq_ack_hw_irq_handler, (void *)irq_handler);
-        ZF_LOGF_IF(error, "Failed to register irq ack handler");
+    for (int i = 0; i < ioapic_num_irqs; i++) {
+        UNUSED uint8_t ioapic;
+        UNUSED uint8_t source;
+        UNUSED int level_trig;
+        UNUSED int active_low;
+        uint8_t dest;
+
+        irqs_ioapic_get_irq(i, &irq_handler, &ioapic, &source, &level_trig, &active_low, &dest);
+        init_irqs_common(vm, irq_handler, dest, false);
+    }
+
+    for (int i = 0; i < msi_num_irqs; i++) {
+        UNUSED uint8_t irq;
+        uint8_t source;
+        irqs_msi_get_irq(i, &irq_handler, &irq, &source);
+
+        /* Setting up MSIs are a bit different from regular PIC interrupts.
+         * "Source" is the irq number that gets triggered by the MSI, and is
+         * different from pci_line_irq, which serves as a placeholder in the
+         * PCI config space. */
+        init_irqs_common(vm, irq_handler, source, true);
     }
 }
 
@@ -609,6 +640,42 @@ ioport_fault_result_t ioport_callback_handler(vm_vcpu_t *vcpu, unsigned int port
         result = IO_FAULT_ERROR;
     }
     return result;
+}
+
+static int pci_device_find_irq(const char *irq_name, bool *is_msi, uint8_t *vmm_irq)
+{
+    /* search for the irq in the msi list first */
+    for (int i = 0; i < irqs_msi_num_irqs(); i++) {
+        seL4_CPtr cap;
+        uint8_t irq;
+        uint8_t source;
+
+        const char *this_name;
+        this_name = irqs_msi_get_irq(i, &cap, &irq, &source);
+        if (strcmp(irq_name, this_name) == 0) {
+            *is_msi = true;
+            *vmm_irq = source;
+            return irq;
+        }
+    }
+
+    /* if the pci device is not an MSI, then it must be a regular IOAPIC int */
+    for (int i = 0; i < irqs_ioapic_num_irqs(); i++) {
+        seL4_CPtr cap;
+        UNUSED uint8_t ioapic;
+        UNUSED uint8_t source;
+        UNUSED int level_trig;
+        UNUSED int active_low;
+        uint8_t dest;
+        const char *this_name;
+        this_name = irqs_ioapic_get_irq(i, &cap, &ioapic, &source, &level_trig, &active_low, &dest);
+        if (strcmp(irq_name, this_name) == 0) {
+            *is_msi = false;
+            return dest;
+        }
+    }
+
+    return -1;
 }
 
 void make_virtio_net_vswitch(vm_t *vm)
@@ -763,7 +830,6 @@ void *main_continued(void *arg)
         ZF_LOGF_IF(error, "Failed to initialise VMM PCI");
     }
 
-    /* Perform device discovery and give passthrough device information */
     ZF_LOGI("PCI device discovery");
     for (i = 0; i < pci_devices_num_devices(); i++) {
         uint8_t bus;
@@ -771,30 +837,22 @@ void *main_continued(void *arg)
         uint8_t fun;
         const char *irq_name;
         int irq = -1;
+
+        bool is_msi = false;
+        uint8_t vmm_irq;
+
         seL4_CPtr iospace_cap;
         pci_devices_get_device(i, &bus, &dev, &fun, &iospace_cap);
         irq_name = pci_devices_get_device_irq(i);
-        /* search for the irq */
-        for (int j = 0; j < irqs_num_irqs(); j++) {
-            seL4_CPtr cap;
-            uint8_t ioapic;
-            uint8_t source;
-            int level_trig;
-            int active_low;
-            uint8_t dest;
-            const char *this_name;
-            this_name = irqs_get_irq(j, &cap, &ioapic, &source, &level_trig, &active_low, &dest);
-            if (strcmp(irq_name, this_name) == 0) {
-                irq = dest;
-                break;
-            }
-        }
+        irq = pci_device_find_irq(irq_name, &is_msi, &vmm_irq);
+
         assert(irq != -1);
         libpci_device_t *device = libpci_find_device_bdf(bus, dev, fun);
         if (!device) {
             LOG_ERROR("Failed to find device %02x:%02x.%d\n", bus, dev, fun);
             return NULL;
         }
+
         /* Allocate resources */
         vmm_pci_bar_t bars[6];
         int num_bars = vmm_pci_helper_map_bars(&vm, &device->cfg, bars);
@@ -806,7 +864,7 @@ void *main_continued(void *arg)
             entry = vmm_pci_create_bar_emulation(entry, num_bars, bars);
         }
         entry = vmm_pci_create_irq_emulation(entry, irq);
-        entry = vmm_pci_no_msi_cap_emulation(entry);
+        entry = vmm_pci_cap_emulation(entry, is_msi, vmm_irq);
         error = vmm_pci_add_entry(pci, entry, NULL);
         assert(!error);
     }
@@ -835,15 +893,19 @@ void *main_continued(void *arg)
             assert(!error);
         }
     }
+
+    /* We only scan non-pci ioports as the pci ioports are picked up
+     * and set up via the pci emulation code.*/
     for (i = 0; i < ioports_num_nonpci_ioports(); i++) {
         uint16_t start;
         uint16_t end;
         const char *desc;
         seL4_CPtr cap;
         desc = ioports_get_nonpci_ioport(i, &cap, &start, &end);
-        error = vm_enable_passthrough_ioport(vm_vcpu, start, end);
+        error = vm_enable_passthrough_ioport(vm_vcpu, start, end - 1);
         assert(!error);
     }
+
     /* config start and end encomposes both addr and data ports */
     vm_ioport_range_t pci_config_range = {X86_IO_PCI_CONFIG_START, X86_IO_PCI_CONFIG_END};
     vm_ioport_interface_t pci_config_interface = {pci, vmm_pci_io_port_in, vmm_pci_io_port_out, "PCI Configuration Space"};

@@ -31,6 +31,7 @@
 #include <sel4vm/guest_memory_helpers.h>
 #include <sel4vm/guest_ram.h>
 #include <sel4vm/guest_iospace.h>
+#include <sel4vm/arch/ioports.h>
 #include <sel4vm/guest_irq_controller.h>
 
 #include <sel4vmmplatsupport/guest_memory_util.h>
@@ -41,12 +42,14 @@
 #include <sel4vmmplatsupport/arch/drivers/vmm_pci_helper.h>
 
 #include <sel4vm/arch/ioports.h>
+#include <sel4vm/arch/boot_arch.h>
 #include <sel4vm/arch/guest_x86_irq_controller.h>
 #include <sel4vm/arch/vmcall.h>
 
 #include <sel4vmmplatsupport/guest_image.h>
 #include <sel4vmmplatsupport/arch/guest_boot_init.h>
 #include <sel4vmmplatsupport/arch/ioport_defs.h>
+#include <sel4vmmplatsupport/arch/drivers/timer_emul.h>
 
 
 #include "vm.h"
@@ -66,6 +69,18 @@ extern reservation_t muslc_brk_reservation;
 extern void *muslc_brk_reservation_start;
 extern vspace_t  *muslc_this_vspace;
 static sel4utils_res_t muslc_brk_reservation_memory;
+
+uint64_t apic_tsc_freq(void);
+int apic_oneshot_absolute(uint64_t ns);
+int apic_oneshot_relative(uint64_t ns);
+int apic_timer_stop(void);
+
+static struct timer_functions timer_emul = {
+    .tsc_freq = apic_tsc_freq,
+    .oneshot_absolute = apic_oneshot_absolute,
+    .oneshot_relative = NULL,
+    .stop = apic_timer_stop
+};
 
 seL4_CPtr intready_notification();
 
@@ -473,9 +488,18 @@ static int handle_async_event(vm_t *vm, seL4_Word badge, UNUSED seL4_MessageInfo
     if (badge & BIT(27)) {
         if ((badge & init_timer_notification_badge()) == init_timer_notification_badge()) {
             uint32_t completed = init_timer_completed();
+
+            /*
+             * We need both the PIT and APIC timer emulated as the PIT is used
+             * for calibration during early stages of Linux booting
+             */
             if (completed & BIT(TIMER_PIT)) {
                 pit_timer_interrupt();
             }
+            if (completed & BIT(TIMER_APIC)) {
+                vm_inject_timer_irq(vm->vcpus[BOOT_VCPU]);
+            }
+
             if (completed & (BIT(TIMER_PERIODIC_TIMER) | BIT(TIMER_COALESCED_TIMER) | BIT(TIMER_SECOND_TIMER) | BIT(
                                  TIMER_SECOND_TIMER2))) {
                 rtc_timer_interrupt(completed);
@@ -760,6 +784,9 @@ void *main_continued(void *arg)
 
     ZF_LOGI("RTC pre init");
     rtc_pre_init();
+
+    /* Assign a timer to the boot vcpu */
+    vm_assign_vcpu_timer(vm_vcpu, &timer_emul);
 
     error = vmm_io_port_init(&io_ports, FREE_IOPORT_START);
     if (error) {

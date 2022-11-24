@@ -41,7 +41,8 @@
 #define VIRTIO_QUEUE_SIZE           128
 #define VIRTIO_BLK_DISK_BLK_SIZE    512
 #define VIRTIO_BLK_IRQ              7
-#define VIRTIO_BLK_SIZE_MAX         4096
+#define VIRTIO_BLK_DATAPORT_SIZE    8192
+#define VIRTIO_BLK_SIZE_MAX         (VIRTIO_BLK_DATAPORT_SIZE - (sizeof(guest_sataserver_method_t) + 2 * sizeof(unsigned int)))
 #define VIRTIO_BLK_SEG_MAX          1
 
 #define CACHE_LINE_SIZE             64
@@ -53,6 +54,33 @@
 static virtio_blk_t *virtio_blk = NULL;
 static vm_t *emul_vm = NULL;
 
+typedef enum {
+    // used by the server
+    SERVER_TX,
+    SERVER_RX,
+    SERVER_CAPACITY,
+    SERVER_STATUS,
+
+    // use by the clients (me)
+    CLIENT_TX,
+    CLIENT_RX,
+    CLIENT_CAPACITY,
+    CLIENT_STATUS,
+
+    NUM_METHOD
+} guest_sataserver_method_t;
+
+typedef struct guest_sataserver_handler {
+    guest_sataserver_method_t method;
+    unsigned int value;                 /* sector/capacity/status, depends on the method */
+    unsigned int len;                   /* len/bytes read/bytes written, depends on the method */
+    char buffer[VIRTIO_BLK_SIZE_MAX];
+} __attribute__((packed)) guest_sataserver_handler_t;
+
+static_assert(sizeof(guest_sataserver_handler_t) == VIRTIO_BLK_DATAPORT_SIZE, "Something went wrong: ...");
+
+volatile static guest_sataserver_handler_t *handler = NULL;
+
 #define SATASERVER_STATUS_GOOD          0
 #define SATASERVER_STATUS_NOT_DONE      1
 #define SATASERVER_STATUS_INVALID_CONF  2
@@ -63,30 +91,85 @@ static vm_t *emul_vm = NULL;
  *    "sataserver") so the compiler needs these so the build doesn't fail; however, the "weak"
  *    attribute means they are overridden by the proper functions (tx, rx, get_capacity)
  */
-volatile Buf *sataserver_iface_buf WEAK;
+volatile void *sataserver_client_buf WEAK;
+size_t sataserver_client_buf_get_size(void) WEAK;
 
-int WEAK sataserver_iface_tx(unsigned int sector, unsigned int len)
+void done_emit(void) WEAK;
+void ready_wait(void) WEAK;
+
+/*
+ * @return  Number of bytes written
+ */
+int sataserver_iface_tx(unsigned int sector, unsigned int len, uintptr_t guest_buf_phys)
 {
-    assert(!"should not be here");
+    assert(len % VIRTIO_BLK_DISK_BLK_SIZE == 0);
+
+    memcpy(handler->buffer, (void *)guest_buf_phys, len);
+    handler->method = CLIENT_TX;
+    handler->value = sector;
+    handler->len = len;
+
+    done_emit();
+    ready_wait();
+
+    if (handler->method == SERVER_TX) {
+        return handler->len;
+    }
     return 0;
 }
 
-int WEAK sataserver_iface_rx(unsigned int sector, unsigned int len)
+/*
+ * @return  Number of bytes read
+ */
+int sataserver_iface_rx(unsigned int sector, unsigned int len, uintptr_t guest_buf_phys)
 {
-    assert(!"should not be here");
+    assert(len % VIRTIO_BLK_DISK_BLK_SIZE == 0);
+
+    handler->method = CLIENT_RX;
+    handler->value = sector;
+    handler->len = len;
+
+    done_emit();
+    ready_wait();
+
+    if (handler->method == SERVER_RX) {
+        memcpy((void *)guest_buf_phys, handler->buffer, len);
+        return handler->len;
+    }
     return 0;
 }
 
-unsigned int WEAK sataserver_iface_get_capacity(void)
+/*
+ * @return  #sector
+ */
+unsigned int sataserver_iface_get_capacity(void)
 {
-    assert(!"should not be here");
-    return 0;
+    while(true) {
+        handler->method = CLIENT_CAPACITY;
+
+        done_emit();
+        ready_wait();
+
+        if (handler->method == SERVER_CAPACITY) {
+            return handler->value;
+        }
+    }
 }
 
-unsigned int WEAK sataserver_iface_get_status(void)
+/*
+ * @return  status
+ */
+unsigned int sataserver_iface_get_status(void)
 {
-    assert(!"should not be here");
-    return 0;
+    handler->method = CLIENT_STATUS;
+
+    done_emit();
+    ready_wait();
+
+    if (handler->method == SERVER_STATUS) {
+        return handler->value;
+    }
+    return SATASERVER_STATUS_NOT_DONE;
 }
 
 /*
@@ -110,12 +193,10 @@ static int virtio_blk_emul_transfer(struct disk_driver *driver, uint8_t directio
 
     switch (direction) {
     case VIRTIO_BLK_T_IN:
-        status = sataserver_iface_rx(sector, len);
-        memcpy((void *)guest_buf_phys, (void *)sataserver_iface_buf, len);
+        status = sataserver_iface_rx(sector, len, guest_buf_phys);
         break;
     case VIRTIO_BLK_T_OUT:
-        memcpy((void *)sataserver_iface_buf, (void *)guest_buf_phys, len);
-        status = sataserver_iface_tx(sector, len);
+        status = sataserver_iface_tx(sector, len, guest_buf_phys);
         break;
     case VIRTIO_BLK_T_SCSI_CMD:
     case VIRTIO_BLK_T_FLUSH:
@@ -172,6 +253,8 @@ UNUSED void virtio_blk_notify(vm_t *vm)
 /* Initialization Function for Virtio Blk */
 void make_virtio_blk(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_ports)
 {
+    handler = (guest_sataserver_handler_t *) sataserver_client_buf;
+
     unsigned int status = sataserver_iface_get_status();
 
     while (SATASERVER_STATUS_NOT_DONE == status) {

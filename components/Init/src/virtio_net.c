@@ -128,7 +128,8 @@ void make_virtio_net(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_port
     emul_vm = vm;
 
     ioport_range_t virtio_port_range = {0, 0, VIRTIO_IOPORT_SIZE};
-    virtio_net = common_make_virtio_net(vm, pci, io_ports, virtio_port_range, IOPORT_FREE, VIRTIO_NET_IRQ, VIRTIO_NET_IRQ, backend);
+    virtio_net = common_make_virtio_net(vm, pci, io_ports, virtio_port_range, IOPORT_FREE, VIRTIO_NET_IRQ, VIRTIO_NET_IRQ,
+                                        backend);
     assert(virtio_net);
     int len;
     while (ethdriver_rx(&len) != -1);

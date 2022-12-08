@@ -618,11 +618,6 @@ ioport_fault_result_t ioport_callback_handler(vm_vcpu_t *vcpu, unsigned int port
     return result;
 }
 
-void make_virtio_net_vswitch(vm_t *vm)
-{
-    return make_virtio_net_vswitch_driver(vm, pci, io_ports);
-}
-
 void *main_continued(void *arg)
 {
     int error;

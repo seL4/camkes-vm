@@ -272,7 +272,7 @@ static void emul_raw_handle_irq(struct eth_driver *driver, int irq)
     vm_inject_irq(emul_vm->vcpus[BOOT_VCPU], VIRTIO_NET_IRQ);
 }
 
-void make_virtio_net_vswitch_driver(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_ports)
+void make_virtio_net_vswitch(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_ports)
 {
     struct raw_iface_funcs backend = virtio_net_default_backend();
     backend.raw_tx = emul_raw_tx;

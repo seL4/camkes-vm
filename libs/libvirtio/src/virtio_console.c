@@ -30,7 +30,7 @@ static void virtio_console_ack(vm_vcpu_t *vcpu, int irq, void *token) {}
 static void console_handle_irq(void *cookie)
 {
     virtio_con_cookie_t *virtio_cookie = (virtio_con_cookie_t *)cookie;
-    if (!virtio_cookie) {
+    if (!virtio_cookie || !virtio_cookie->vm) {
         ZF_LOGE("NULL virtio cookie given to raw irq handler");
         return;
     }
@@ -46,12 +46,12 @@ virtio_con_t *virtio_console_init(vm_t *vm, console_putchar_fn_t putchar,
 {
 
     int err;
-    struct console_passthrough backend;
+    struct virtio_console_passthrough backend;
     virtio_con_cookie_t *console_cookie;
     virtio_con_t *virtio_con;
 
     backend.handleIRQ = console_handle_irq;
-    backend.putchar = putchar;
+    backend.backend_putchar = putchar;
 
     console_cookie = (virtio_con_cookie_t *)calloc(1, sizeof(struct virtio_con_cookie));
     if (console_cookie == NULL) {

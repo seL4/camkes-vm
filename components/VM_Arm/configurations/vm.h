@@ -84,6 +84,10 @@
         string linux_stdout = ""; \
         string dtb_base_name = ""; \
     } linux_image_config; \
+    attribute { \
+        int send_id; \
+        int recv_id; \
+    } serial_layout[] = []; \
 
 
 #define VM_COMPONENT_DEF(num) \

@@ -54,6 +54,7 @@
 #include "virtio_net.h"
 #include "virtio_net_vswitch.h"
 #include "virtio_con.h"
+#include "virtio_vsock.h"
 
 #define BRK_VIRTUAL_SIZE 400000000
 #define ALLOCMAN_VIRTUAL_SIZE 400000000

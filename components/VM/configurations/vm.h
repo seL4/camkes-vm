@@ -54,6 +54,10 @@
     attribute int cnode_size_bits = 21; \
     attribute vswitch_mapping vswitch_layout[] = []; \
     attribute string vswitch_mac_address = ""; \
+    attribute { \
+        int send_id; \
+        int recv_id; \
+    } serial_layout[] = []; \
     /**/
 
 /* VM and per VM componenents */

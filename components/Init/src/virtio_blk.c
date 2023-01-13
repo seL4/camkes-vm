@@ -33,6 +33,7 @@
 
 #include "vm.h"
 #include "virtio_blk.h"
+#include "virtio_irq.h"
 
 #define VIRTIO_VENDOR_ID            0x1af4
 #define VIRTIO_DEVICE_ID            0x1001
@@ -40,7 +41,6 @@
 #define VIRTIO_BLK_IOBASE           0x8000
 #define VIRTIO_QUEUE_SIZE           128
 #define VIRTIO_BLK_DISK_BLK_SIZE    512
-#define VIRTIO_BLK_IRQ              7
 #define VIRTIO_BLK_SIZE_MAX         4096
 #define VIRTIO_BLK_SEG_MAX          1
 

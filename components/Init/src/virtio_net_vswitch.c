@@ -37,6 +37,7 @@
 
 #include "vm.h"
 #include "virtio_net.h"
+#include "virtio_irq.h"
 
 static vswitch_t g_vswitch;
 static virtio_net_t *virtio_net = NULL;
@@ -268,7 +269,7 @@ static int make_vswitch_net(void)
 
 static void emul_raw_handle_irq(struct eth_driver *driver, int irq)
 {
-    vm_inject_irq(emul_vm->vcpus[BOOT_VCPU], 6);
+    vm_inject_irq(emul_vm->vcpus[BOOT_VCPU], VIRTIO_NET_IRQ);
 }
 
 void make_virtio_net_vswitch_driver(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_ports)
@@ -283,7 +284,7 @@ void make_virtio_net_vswitch_driver(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_
     make_vswitch_net();
 
     ioport_range_t virtio_port_range = {0, 0, VIRTIO_IOPORT_SIZE};
-    virtio_net = common_make_virtio_net(vm, pci, io_ports, virtio_port_range, IOPORT_FREE, 6, 6, backend);
+    virtio_net = common_make_virtio_net(vm, pci, io_ports, virtio_port_range, IOPORT_FREE, VIRTIO_NET_IRQ, VIRTIO_NET_IRQ, backend);
     assert(virtio_net);
 }
 

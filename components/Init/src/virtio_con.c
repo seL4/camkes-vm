@@ -46,6 +46,7 @@
 #include <camkes/virtqueue.h>
 
 #include "virtio_con.h"
+#include "virtio_irq.h"
 
 static virtio_con_t *virtio_con;
 
@@ -198,7 +199,7 @@ static void console_handle_irq(void *cookie)
         return;
     }
 
-    int err = vm_inject_irq(virtio_cookie->vm->vcpus[BOOT_VCPU], 9);
+    int err = vm_inject_irq(virtio_cookie->vm->vcpus[BOOT_VCPU], VIRTIO_CON_IRQ);
     if (err) {
         ZF_LOGE("Failed to inject irq");
         return;
@@ -221,7 +222,7 @@ void make_virtio_con(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_port
     backend.console_data = (void *)console_cookie;
     ioport_range_t virtio_port_range = {0, 0, VIRTIO_IOPORT_SIZE};
     virtio_con = common_make_virtio_con(vm, pci, io_ports, virtio_port_range, IOPORT_FREE,
-                                        9, 9, backend);
+                                        VIRTIO_CON_IRQ, VIRTIO_CON_IRQ, backend);
     console_cookie->virtio_con = virtio_con;
     console_cookie->vm = vm;
 

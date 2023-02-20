@@ -131,6 +131,13 @@ int get_crossvm_irq_num(void)
     return free_plat_interrupts[0];
 }
 
+static vm_vcpu_t *vm_get_boot_vcpu(vm_t *vm, const vm_config_t *vm_config)
+{
+    assert(BOOT_VCPU < vm_config->num_vcpus);
+    assert(BOOT_VCPU < ARRAY_SIZE(vm->vcpus));
+    return vm->vcpus[BOOT_VCPU];
+}
+
 static int _dma_morecore(size_t min_size, int cached, struct dma_mem_descriptor *dma_desc)
 {
     static uint32_t _vaddr = DMA_VSTART;
@@ -666,8 +673,9 @@ static void irq_handler(void *data, ps_irq_acknowledge_fn_t acknowledge_fn, void
     /* Fill in the rest of the details */
     token->acknowledge_fn = acknowledge_fn;
     token->ack_data = ack_data;
-    int err;
-    err = vm_inject_irq(token->vm->vcpus[BOOT_VCPU], token->virq);
+    vm_vcpu_t *vcpu_boot = vm_get_boot_vcpu(token->vm, &vm_config);
+    assert(vcpu_boot);
+    int err = vm_inject_irq(vcpu_boot, token->virq);
     if (err) {
         ZF_LOGW("IRQ %d Dropped", token->virq);
     }
@@ -978,7 +986,8 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
     }
 
     /* Set boot arguments */
-    err = vcpu_set_bootargs(vm->vcpus[BOOT_VCPU], entry, MACH_TYPE, dtb);
+    vm_vcpu_t *vcpu_boot = vm_get_boot_vcpu(vm, vm_config);
+    err = vcpu_set_bootargs(vcpu_boot, entry, MACH_TYPE, dtb);
     if (err) {
         printf("Error: Failed to set boot arguments\n");
         return -1;
@@ -1246,14 +1255,15 @@ static int main_continued(void)
         }
     }
 
-    vm_vcpu_t *vm_vcpu = vm.vcpus[BOOT_VCPU];
-    err = vm_assign_vcpu_target(vm_vcpu, 0);
+    vm_vcpu_t *vcpu_boot = vm_get_boot_vcpu(&vm, &vm_config);
+    assert(vcpu_boot);
+    err = vm_assign_vcpu_target(vcpu_boot, 0);
     if (err) {
         return -1;
     }
 
     /* Route IRQs */
-    err = route_irqs(vm_vcpu, _irq_server);
+    err = route_irqs(vcpu_boot, _irq_server);
     if (err) {
         return -1;
     }
@@ -1274,7 +1284,7 @@ static int main_continued(void)
         return -1;
     }
 
-    err = vcpu_start(vm_vcpu);
+    err = vcpu_start(vcpu_boot);
     if (err) {
         ZF_LOGE("Failed to start Boot VCPU");
         return -1;

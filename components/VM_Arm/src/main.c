@@ -1306,7 +1306,7 @@ static int main_continued(void)
         return -1;
     }
 
-    while (1) {
+    for(;;) {
         err = vm_run(&vm);
         if (err) {
             ZF_LOGE("Failed to run VM");

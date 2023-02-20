@@ -626,7 +626,7 @@ static USED SECTION("_vmm_module") struct {} dummy_module;
 extern vmm_module_t __start__vmm_module[];
 extern vmm_module_t __stop__vmm_module[];
 
-int install_vm_devices(vm_t *vm)
+static int install_vm_devices(vm_t *vm)
 {
     int err;
 
@@ -1081,7 +1081,7 @@ memory_fault_result_t unhandled_mem_fault_callback(vm_t *vm, vm_vcpu_t *vcpu,
     return FAULT_ERROR;
 }
 
-int main_continued(void)
+static int main_continued(void)
 {
     vm_t vm;
     int err;

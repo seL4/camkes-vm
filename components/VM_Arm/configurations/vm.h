@@ -68,6 +68,23 @@
     attribute int num_extra_frame_caps; \
     attribute int extra_frame_map_address; \
     attribute { \
+        string ram_base; \
+        string ram_paddr_base; \
+        string ram_size; \
+        string ram_offset; \
+        string dtb_addr; \
+        string initrd_max_size; \
+        string initrd_addr; \
+    } vm_address_config; \
+    attribute { \
+        string kernel_name = "linux"; \
+        string dtb_name = "linux-dtb"; \
+        string initrd_name = "linux-initrd"; \
+        string kernel_bootcmdline = ""; \
+        string kernel_stdout = ""; \
+        string dtb_base_name = ""; \
+    } vm_image_config; \
+    attribute { \
         string linux_ram_base; \
         string linux_ram_paddr_base; \
         string linux_ram_size; \

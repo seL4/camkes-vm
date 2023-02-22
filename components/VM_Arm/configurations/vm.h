@@ -75,6 +75,7 @@
         string dtb_addr; \
         string initrd_max_size; \
         string initrd_addr; \
+        string kernel_entry_addr = "-1"; \
     } vm_address_config; \
     attribute { \
         string kernel_name = "linux"; \
@@ -83,6 +84,11 @@
         string kernel_bootcmdline = ""; \
         string kernel_stdout = ""; \
         string dtb_base_name = ""; \
+        int provide_dtb = true; \
+        int generate_dtb = false; \
+        int provide_initrd = true; \
+        int clean_cache = false; \
+        int map_one_to_one = false; \
     } vm_image_config; \
     attribute { \
         string linux_ram_base; \

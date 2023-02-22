@@ -785,7 +785,7 @@ static int generate_fdt(vm_t *vm, void *fdt_ori, void *gen_fdt, int buf_size, si
         return -1;
     }
 
-    if (config_set(CONFIG_VM_INITRD_FILE)) {
+    if (provide_initrd) {
         err = fdt_append_chosen_node_with_initrd_info(gen_fdt, initrd_addr, initrd_size);
         if (err) {
             ZF_LOGE("Couldn't generate chosen_node_with_initrd_info (%d)\n", err);
@@ -829,12 +829,17 @@ static int load_vm(vm_t *vm, const char *kernel_name, const char *dtb_name, cons
     seL4_Word dtb;
     int err;
 
+    vm->mem.map_one_to_one = map_one_to_one; /* Map memory 1:1 if configured to do so */
+
     /* Install devices */
     err = install_vm_devices(vm);
     if (err) {
         printf("Error: Failed to install Linux devices\n");
         return -1;
     }
+
+    vm->entry = entry_addr;
+    vm->mem.clean_cache = clean_cache;
 
     printf("Loading Kernel: \'%s\'\n", kernel_name);
 
@@ -848,7 +853,7 @@ static int load_vm(vm_t *vm, const char *kernel_name, const char *dtb_name, cons
 
     /* Attempt to load initrd if provided */
     guest_image_t initrd_image;
-    if (config_set(CONFIG_VM_INITRD_FILE)) {
+    if (provide_initrd) {
         printf("Loading Initrd: \'%s\'\n", initrd_name);
         err = vm_load_guest_module(vm, initrd_name, initrd_addr, 0, &initrd_image);
         void *initrd = (void *)initrd_image.load_paddr;
@@ -857,7 +862,10 @@ static int load_vm(vm_t *vm, const char *kernel_name, const char *dtb_name, cons
         }
     }
 
-    if (!config_set(CONFIG_VM_DTB_FILE)) {
+    ZF_LOGW_IF(provide_dtb && generate_dtb,
+               "provide_dtb and generate_dtb are both set. The provided dtb will NOT be loaded");
+
+    if (generate_dtb) {
         void *fdt_ori;
         void *gen_fdt = linux_gen_dtb_buf;
         int size_gen = PLAT_LINUX_DTB_SIZE;
@@ -896,7 +904,7 @@ static int load_vm(vm_t *vm, const char *kernel_name, const char *dtb_name, cons
         vm_ram_touch(vm, dtb_addr, size_gen, load_generated_dtb, gen_fdt);
         printf("Loading Generated DTB\n");
         dtb = dtb_addr;
-    } else {
+    } else if (provide_dtb) {
         printf("Loading DTB: \'%s\'\n", dtb_name);
 
         /* Load device tree */
@@ -906,6 +914,9 @@ static int load_vm(vm_t *vm, const char *kernel_name, const char *dtb_name, cons
         if (!dtb || err) {
             return -1;
         }
+    } else {
+        ZF_LOGW("%s not given a DTB - This may be appropriate for your guest, but it " \
+                "may also break things!", get_instance_name());
     }
 
     /* Set boot arguments */

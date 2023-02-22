@@ -14,13 +14,7 @@
 
 void WEAK init_ram_module(vm_t *vm, void *cookie)
 {
-    int err;
-
-    if (config_set(CONFIG_PLAT_EXYNOS5) || config_set(CONFIG_PLAT_QEMU_ARM_VIRT) || config_set(CONFIG_PLAT_TX2)) {
-        err = vm_ram_register_at(vm, ram_base, ram_size, true);
-    } else {
-        err = vm_ram_register_at(vm, ram_base, ram_size, false);
-    }
+    int err = vm_ram_register_at(vm, ram_base, ram_size, vm->mem.map_one_to_one);
     assert(!err);
 }
 

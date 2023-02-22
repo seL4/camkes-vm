@@ -13,6 +13,13 @@ extern const unsigned long ram_offset;
 extern const unsigned long dtb_addr;
 extern const unsigned long initrd_max_size;
 extern const unsigned long initrd_addr;
+extern const unsigned long entry_addr;
+
+extern const int provide_initrd;
+extern const int generate_dtb;
+extern const int provide_dtb;
+extern const int map_one_to_one;
+extern const int clean_cache;
 
 extern const char *_kernel_name;
 extern const char *_dtb_name;

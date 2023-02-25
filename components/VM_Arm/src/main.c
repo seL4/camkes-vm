@@ -110,13 +110,13 @@ struct ps_io_ops _io_ops;
 
 static jmp_buf restart_jmp_buf;
 
-unsigned long linux_ram_base;
-unsigned long linux_ram_paddr_base;
-unsigned long linux_ram_size;
-unsigned long linux_ram_offset;
-unsigned long dtb_addr;
-unsigned long initrd_max_size;
-unsigned long initrd_addr;
+uintptr_t linux_ram_base;
+uintptr_t linux_ram_paddr_base;
+size_t linux_ram_size;
+ptrdiff_t linux_ram_offset;
+uintptr_t dtb_addr;
+size_t initrd_max_size;
+uintptr_t initrd_addr;
 
 void camkes_make_simple(simple_t *simple);
 

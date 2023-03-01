@@ -211,7 +211,7 @@ static const char *plat_keep_device_and_disable[] = {
 };
 
 static const char *plat_keep_devices[] = {
-    "/interrupt-controller@50041000",
+    GIC_NODE_PATH,
     "/clock@60006000",
     "/gpio@6000d000",
     "/apbmisc@70000800",

@@ -21,6 +21,6 @@ static const char *plat_keep_devices[] = {
 };
 static const char *plat_keep_device_and_disable[] = {};
 static const char *plat_keep_device_and_subtree[] = {
-    "/intc@8000000",
+    GIC_NODE_PATH,
 };
 static const char *plat_keep_device_and_subtree_and_disable[] = {};

@@ -191,7 +191,7 @@ static const char *plat_keep_devices[] = {
     "/xudc@3550000",
     "/kfuse@0x3830000",
     "/tachometer@39c0000",
-    "/interrupt-controller@3881000",
+    GIC_NODE_PATH,
     "/tegra186-pm-irq",
     "/timer@3020000",
     "/clock@5000000",

@@ -214,7 +214,7 @@ static const int free_plat_interrupts[] =  { -1 };
 #define GIC_NODE_PATH     "/interrupt-controller@50041000"
 
 static const char *plat_keep_devices[] = {
-    "/interrupt-controller@50041000",
+    GIC_NODE_PATH,
     "/gpu@57000000",
     "/serial@70006300",
     "/timer@60005000",

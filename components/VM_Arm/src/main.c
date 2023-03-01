@@ -395,6 +395,61 @@ static int camkes_vm_utspace_alloc_at(void *data, const cspacepath_t *dest, seL4
 
 }
 
+static bool add_uts(const vm_config_t *vm_config, vka_t *vka, seL4_CPtr cap,
+                    uintptr_t paddr, size_t size_bits, bool is_device)
+{
+    cspacepath_t path;
+    vka_cspace_make_path(vka, cap, &path);
+
+    /*
+     * The general usage concept for the different UT pools is:
+     *
+     * ALLOCMAN_UT_KERNEL:
+     *   Physical RAM mapped in the kernel windows. This can be used to create
+     *   arbitrary kernel objects.
+     *
+     * ALLOCMAN_UT_DEV_MEM:
+     *   UTs from a device region, which is also usable RAM. This exists because
+     *   on 32-bit platforms the kernel window could be too small to map all
+     *   physical RAM and thus is able to directly access it. Kernel objects can
+     *   be created from these UTs, if the 'canBeDev' parameter in 'alloc' is
+     *   set to true. However, such objects may have restrictions in what it can
+     *   be used for, because the kernel cannot access the content directly.
+     *
+     * ALLOCMAN_UT_DEV:
+     *   Device regions. Such UTs will never be used for an allocation, unless
+     *   explicitly requested by physical address.
+     *
+     * ToDo: The practical distinction between ALLOCMAN_UT_DEV and
+     *       ALLOCMAN_UT_DEV_MEM is, whether the UT can be requested from the
+     *       allocator without providing it's backing physical address. Since
+     *       UTs from the guest RAM region are supposed to be requested using
+     *       the physical address anyway, there seem not reason why they can't
+     *       be in the ALLOCMAN_UT_DEV pool, too.
+     *       The only know use case where this matters is on the NVidia TK1
+     *       platform. It has a SMMU, so in order to use RAM in a VM, there is
+     *       no need for VMs to have their RAM addresses match the physical RAM
+     *       addresses (VM config option "map_one_to_one"). However, it is a
+     *       32-bit architecture and the kernel window is too small to cover all
+     *       physical RAM. Thus, the additional RAM is made available via device
+     *       UTs. The allocator needs to be told about this, which is what
+     *       "ram_paddr_base" is used for and and why it's different from
+     *       "ram_base".
+     */
+
+    bool is_guest_ram = (paddr >= vm_config->ram.phys_base) &&
+                        ((paddr - vm_config->ram.phys_base) < vm_config->ram.size);
+
+    int ut_type = !is_device ? ALLOCMAN_UT_KERNEL
+                  : is_guest_ram ? ALLOCMAN_UT_DEV_MEM
+                  : ALLOCMAN_UT_DEV;
+
+    allocman_t *allocman = vka->data;
+
+    return allocman_utspace_add_uts(allocman, 1, &path, &size_bits, &paddr,
+                                    ut_type);
+}
+
 static int vmm_init(const vm_config_t *vm_config)
 {
     vka_object_t fault_ep_obj;
@@ -438,35 +493,21 @@ static int vmm_init(const vm_config_t *vm_config)
     vka->utspace_alloc_at = camkes_vm_utspace_alloc_at;
 
     for (int i = 0; i < simple_get_untyped_count(simple); i++) {
-        size_t size;
+        size_t size_bits;
         uintptr_t paddr;
-        bool device;
-        seL4_CPtr cap = simple_get_nth_untyped(simple, i, &size, &paddr, &device);
-        cspacepath_t path;
-        vka_cspace_make_path(vka, cap, &path);
-        int utType = device ? ALLOCMAN_UT_DEV : ALLOCMAN_UT_KERNEL;
-        if (utType == ALLOCMAN_UT_DEV &&
-            paddr >= vm_config->ram.phys_base &&
-            paddr <= (vm_config->ram.phys_base + (vm_config->ram.size - 1))) {
-            utType = ALLOCMAN_UT_DEV_MEM;
-        }
-        err = allocman_utspace_add_uts(allocman, 1, &path, &size, &paddr, utType);
+        bool is_device;
+        seL4_CPtr cap = simple_get_nth_untyped(simple, i, &size_bits, &paddr, &is_device);
+        err = add_uts(vm_config, vka, cap, paddr, size_bits, is_device);
         assert(!err);
     }
 
     if (camkes_dtb_untyped_count) {
         for (int i = 0; i < camkes_dtb_untyped_count(); i++) {
-            size_t size;
+            size_t size_bits;
             uintptr_t paddr;
-            seL4_CPtr cap = camkes_dtb_get_nth_untyped(i, &size, &paddr);
-            cspacepath_t path;
-            vka_cspace_make_path(vka, cap, &path);
-            int utType = ALLOCMAN_UT_DEV;
-            if (paddr >= vm_config->ram.phys_base &&
-                paddr <= (vm_config->ram.phys_base + (vm_config->ram.size - 1))) {
-                utType = ALLOCMAN_UT_DEV_MEM;
-            }
-            err = allocman_utspace_add_uts(allocman, 1, &path, &size, &paddr, utType);
+            seL4_CPtr cap = camkes_dtb_get_nth_untyped(i, &size_bits, &paddr);
+            /* These UTs are considered device untypeds */
+            err = add_uts(vm_config, vka, cap, paddr, size_bits, true);
             assert(!err);
         }
     }

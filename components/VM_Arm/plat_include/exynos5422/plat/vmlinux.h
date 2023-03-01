@@ -20,7 +20,7 @@ static const char *plat_keep_devices[] = {
     "/fixed-rate-clocks/oscclk",
     "/timer",
     "/soc/chipid@10000000",
-    "/soc/interrupt-controller@10481000"
+    GIC_NODE_PATH
 };
 static const char *plat_keep_device_and_disable[] = {};
 static const char *plat_keep_device_and_subtree[] = {};

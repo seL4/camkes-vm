@@ -66,6 +66,10 @@
 #include <fdtgen.h>
 #include "fdt_manipulation.h"
 
+#if defined(CONFIG_VM_INITRD_FILE)
+#error VmInitRdFile is deprecated, see docs/deprecated.md and fix your code!
+#endif
+
 /* Do - Include prototypes to surpress compiler warnings
  * TODO: Add these to a template header */
 seL4_CPtr notification_ready_notification(void);
@@ -793,12 +797,10 @@ static int generate_fdt(vm_t *vm, void *fdt_ori, void *gen_fdt, int buf_size, si
         return -1;
     }
 
-    if (config_set(CONFIG_VM_INITRD_FILE)) {
-        err = fdt_append_chosen_node_with_initrd_info(gen_fdt, initrd_addr, initrd_size);
-        if (err) {
-            ZF_LOGE("Couldn't generate chosen_node_with_initrd_info (%d)\n", err);
-            return -1;
-        }
+    err = fdt_append_chosen_node_with_initrd_info(gen_fdt, initrd_addr, initrd_size);
+    if (err) {
+        ZF_LOGE("Couldn't generate chosen_node_with_initrd_info (%d)\n", err);
+        return -1;
     }
 
     if (config_set(CONFIG_VM_PCI_SUPPORT)) {
@@ -856,7 +858,7 @@ static int load_linux(vm_t *vm, const char *kernel_name, const char *dtb_name, c
 
     /* Attempt to load initrd if provided */
     guest_image_t initrd_image;
-    if (config_set(CONFIG_VM_INITRD_FILE)) {
+    if (strlen(initrd_name)) {
         printf("Loading Initrd: \'%s\'\n", initrd_name);
         err = vm_load_guest_module(vm, initrd_name, initrd_addr, 0, &initrd_image);
         void *initrd = (void *)initrd_image.load_paddr;
@@ -927,15 +929,38 @@ static int load_linux(vm_t *vm, const char *kernel_name, const char *dtb_name, c
     return 0;
 }
 
-void parse_camkes_linux_attributes(void)
+static int parse_camkes_linux_attributes(void)
 {
     linux_ram_base = strtoul(linux_address_config.linux_ram_base, NULL, 0);
     linux_ram_paddr_base = strtoul(linux_address_config.linux_ram_paddr_base, NULL, 0);
     linux_ram_size = strtoul(linux_address_config.linux_ram_size, NULL, 0);
     linux_ram_offset = strtoul(linux_address_config.linux_ram_offset, NULL, 0);
     dtb_addr = strtoul(linux_address_config.dtb_addr, NULL, 0);
+
+    if (strlen(linux_image_config.initrd_name)) {
+        if (!strlen(linux_address_config.initrd_max_size)) {
+            ZF_LOGE("initrd_name is specified, initrd_max_size is not");
+            return -1;
+        }
+        if (!strlen(linux_address_config.initrd_addr)) {
+            ZF_LOGE("initrd_name is specified, initrd_addr is not");
+            return -1;
+        }
+    } else {
+        if (strlen(linux_address_config.initrd_max_size)) {
+            ZF_LOGE("initrd_max_size is specified, initrd_name is not");
+            return -1;
+        }
+        if (strlen(linux_address_config.initrd_addr)) {
+            ZF_LOGE("initrd_addr is specified, initrd_name is not");
+            return -1;
+        }
+    }
+
     initrd_max_size = strtoul(linux_address_config.initrd_max_size, NULL, 0);
     initrd_addr = strtoul(linux_address_config.initrd_addr, NULL, 0);
+
+    return 0;
 }
 
 /* Async event handling registration implementation */
@@ -1097,7 +1122,11 @@ int main_continued(void)
     vm_t vm;
     int err;
 
-    parse_camkes_linux_attributes();
+    err = parse_camkes_linux_attributes();
+    if (err) {
+        ZF_LOGF("failed parsing VM attributes");
+        return err;
+    }
 
     /* setup for restart with a setjmp */
     while (setjmp(restart_jmp_buf) != 0) {

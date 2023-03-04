@@ -94,6 +94,10 @@ int fdt_generate_chosen_node(void *fdt, const char *stdout_path, const char *boo
 
 int fdt_append_chosen_node_with_initrd_info(void *fdt, unsigned long base, size_t size)
 {
+    if (!base || !size) {
+        return 0;
+    }
+
     int root_offset = fdt_path_offset(fdt, "/");
     int address_cells = fdt_address_cells(fdt, root_offset);
     int this = fdt_path_offset(fdt, "/chosen");

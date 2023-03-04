@@ -79,7 +79,7 @@
     attribute { \
         string linux_name = "linux"; \
         string dtb_name = "linux-dtb"; \
-        string initrd_name = "linux-initrd"; \
+        string initrd_name = ""; \
         string linux_bootcmdline = ""; \
         string linux_stdout = ""; \
         string dtb_base_name = ""; \

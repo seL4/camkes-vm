@@ -111,6 +111,7 @@ config_option(
     OFF
 )
 
+# Deprecated; initrd is per-VM setting, turning on this generates a build error
 config_option(
     VmInitRdFile
     VM_INITRD_FILE

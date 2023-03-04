@@ -865,6 +865,10 @@ static int load_linux(vm_t *vm, const char *kernel_name, const char *dtb_name, c
         if (!initrd || err) {
             return -1;
         }
+        if (initrd_image.size > initrd_max_size) {
+            ZF_LOGE("initrd size %zu over limit (%zu)", initrd_image.size, initrd_max_size);
+            return -1;
+        }
     }
 
     if (!config_set(CONFIG_VM_DTB_FILE)) {

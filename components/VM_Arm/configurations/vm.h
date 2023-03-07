@@ -71,9 +71,7 @@
         string ram_base; \
         string ram_paddr_base; \
         string ram_size; \
-        string ram_offset; \
         string dtb_addr; \
-        string initrd_max_size; \
         string initrd_addr; \
         string kernel_entry_addr = "-1"; \
     } vm_address_config; \

@@ -17,9 +17,7 @@
 const unsigned long ram_base = /*? vm_address_config.get('ram_base') ?*/;
 const unsigned long ram_paddr_base = /*? vm_address_config.get('ram_paddr_base') ?*/;
 const unsigned long ram_size = /*? vm_address_config.get('ram_size') ?*/;
-const unsigned long ram_offset = /*? vm_address_config.get('ram_offset') ?*/;
 const unsigned long dtb_addr = /*? vm_address_config.get('dtb_addr') ?*/;
-const unsigned long initrd_max_size = /*? vm_address_config.get('initrd_max_size') ?*/;
 const unsigned long initrd_addr = /*? vm_address_config.get('initrd_addr') ?*/;
 
 /*- if vm_address_config.get('kernel_entry_addr') != '-1' -*/

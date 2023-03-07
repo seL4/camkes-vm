@@ -10,7 +10,6 @@ extern const unsigned long ram_base;
 extern const unsigned long ram_paddr_base;
 extern const unsigned long ram_size;
 extern const unsigned long dtb_addr;
-
 extern const unsigned long initrd_addr;
 extern const unsigned long entry_addr;
 

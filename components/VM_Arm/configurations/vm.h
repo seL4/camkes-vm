@@ -92,9 +92,9 @@
         string linux_ram_base; \
         string linux_ram_paddr_base; \
         string linux_ram_size; \
-        string linux_ram_offset; \
+        string linux_ram_offset = "0"; /* obsolete */ \
         string dtb_addr; \
-        string initrd_max_size; \
+        string initrd_max_size = "-1"; /* obsolete */ \
         string initrd_addr; \
     } linux_address_config; \
     attribute { \

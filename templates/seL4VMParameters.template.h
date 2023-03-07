@@ -14,11 +14,6 @@ extern const unsigned long dtb_addr;
 extern const unsigned long initrd_addr;
 extern const unsigned long entry_addr;
 
-/*- if not configuration[me.name].get('vm_address_config') -*/
-extern const unsigned long initrd_max_size;
-extern const unsigned long ram_offset;
-/*- endif -*/
-
 extern const int provide_initrd;
 extern const int generate_dtb;
 extern const int provide_dtb;

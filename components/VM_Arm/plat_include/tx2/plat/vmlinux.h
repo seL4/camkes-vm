@@ -155,15 +155,6 @@ static const int linux_pt_irqs[] = {
 
 static const int free_plat_interrupts[] = { 220 + GIC_LIC_INTID_BASE };
 
-/* This address pertains to guest-vm@f1000000 in the overlay DTS. */
-#define LINUX_RAM_BASE    0xF1000000
-#define LINUX_RAM_PADDR_BASE LINUX_RAM_BASE
-#define LINUX_RAM_OFFSET  (LINUX_RAM_PADDR_BASE - LINUX_RAM_BASE)
-#define LINUX_RAM_SIZE    0x8000000
-
-#define DTB_ADDR          (LINUX_RAM_BASE + 0x01000000)
-#define INITRD_MAX_SIZE   0x1900000 //25 MB
-#define INITRD_ADDR       (DTB_ADDR - INITRD_MAX_SIZE) //0x80700000
 #define GIC_NODE_PATH     "/interrupt-controller@3881000"
 
 static const char *plat_keep_devices[] = {

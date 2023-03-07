@@ -883,10 +883,10 @@ static int load_vm(vm_t *vm, const char *kernel_name, const char *dtb_name, cons
         /* If dtb_base_name is in the file server, grab it and use it as a base */
         if (dtb_fd >= 0) {
             size_t dtb_len = read(dtb_fd, gen_dtb_base_buf, DTB_BUFFER_SIZE);
+            close(dtb_fd);
             if (dtb_len <= 0) {
                 return -1;
             }
-            close(dtb_fd);
             fdt_ori = (void *)gen_dtb_base_buf;
         } else {
             camkes_io_fdt(&(_io_ops.io_fdt));

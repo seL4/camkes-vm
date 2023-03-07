@@ -164,15 +164,6 @@ static const int linux_pt_irqs[] = {
 
 static const int free_plat_interrupts[] =  { -1 };
 
-#define LINUX_RAM_PADDR_BASE 0xb0000000
-#define LINUX_RAM_BASE    0x80000000
-#define LINUX_RAM_SIZE    0x40000000
-#define PLAT_RAM_END      0xffffffff
-/* the offset between actual physcial memory and guest physical memory */
-#define LINUX_RAM_OFFSET  (LINUX_RAM_PADDR_BASE - LINUX_RAM_BASE)
-#define DTB_ADDR          (LINUX_RAM_BASE + 0x02000000)
-#define INITRD_MAX_SIZE   0x1900000 //25 MB
-#define INITRD_ADDR       (DTB_ADDR - INITRD_MAX_SIZE) //0x80700000
 #define GIC_NODE_PATH     "/interrupt-controller@50041000"
 
 static const char *plat_keep_device_and_disable[] = {

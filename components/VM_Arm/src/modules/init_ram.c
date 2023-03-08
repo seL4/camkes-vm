@@ -14,7 +14,10 @@
 
 void WEAK init_ram_module(vm_t *vm, void *cookie)
 {
-    int err = vm_ram_register_at(vm, ram_base, ram_size, vm->mem.map_one_to_one);
+    int err = vm_ram_register_at(vm,
+                                 vm_config.ram.base,
+                                 vm_config.ram.size,
+                                 vm->mem.map_one_to_one);
     assert(!err);
 }
 

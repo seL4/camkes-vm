@@ -395,7 +395,7 @@ static int camkes_vm_utspace_alloc_at(void *data, const cspacepath_t *dest, seL4
 
 }
 
-static int vmm_init(void)
+static int vmm_init(const vm_config_t *vm_config)
 {
     vka_object_t fault_ep_obj;
     vka_t *vka;
@@ -446,7 +446,8 @@ static int vmm_init(void)
         vka_cspace_make_path(vka, cap, &path);
         int utType = device ? ALLOCMAN_UT_DEV : ALLOCMAN_UT_KERNEL;
         if (utType == ALLOCMAN_UT_DEV &&
-            paddr >= ram_paddr_base && paddr <= (ram_paddr_base + (ram_size - 1))) {
+            paddr >= vm_config->ram.phys_base &&
+            paddr <= (vm_config->ram.phys_base + (vm_config->ram.size - 1))) {
             utType = ALLOCMAN_UT_DEV_MEM;
         }
         err = allocman_utspace_add_uts(allocman, 1, &path, &size, &paddr, utType);
@@ -461,8 +462,8 @@ static int vmm_init(void)
             cspacepath_t path;
             vka_cspace_make_path(vka, cap, &path);
             int utType = ALLOCMAN_UT_DEV;
-            if (paddr >= ram_paddr_base &&
-                paddr <= (ram_paddr_base + (ram_size - 1))) {
+            if (paddr >= vm_config->ram.phys_base &&
+                paddr <= (vm_config->ram.phys_base + (vm_config->ram.size - 1))) {
                 utType = ALLOCMAN_UT_DEV_MEM;
             }
             err = allocman_utspace_add_uts(allocman, 1, &path, &size, &paddr, utType);
@@ -706,8 +707,9 @@ static int route_irqs(vm_vcpu_t *vcpu, irq_server_t *irq_server)
     return 0;
 }
 
-static int generate_fdt(vm_t *vm, void *fdt_ori, void *gen_fdt, int buf_size, size_t initrd_size, char **paths,
-                        int num_paths)
+static int generate_fdt(vm_t *vm, const vm_config_t *vm_config,
+                        void *fdt_ori, void *gen_fdt, int buf_size,
+                        size_t initrd_size, char **paths, int num_paths)
 {
     int err = 0;
 
@@ -766,23 +768,26 @@ static int generate_fdt(vm_t *vm, void *fdt_ori, void *gen_fdt, int buf_size, si
         return -1;
     }
 
-    /* generate a memory node (ram_base and ram_size) */
-    err = fdt_generate_memory_node(gen_fdt, ram_base, ram_size);
+    /* generate a memory node */
+    err = fdt_generate_memory_node(gen_fdt, vm_config->ram.base,
+                                   vm_config->ram.size);
     if (err) {
         ZF_LOGE("Couldn't generate memory_node (%d)\n", err);
         return -1;
     }
 
-    /* generate a chosen node (vm_image_config.kernel_bootcmdline, kernel_stdout) */
-    err = fdt_generate_chosen_node(gen_fdt, kernel_stdout, kernel_bootcmdline,
-                                   NUM_VCPUS);
+    /* generate a chosen node */
+    err = fdt_generate_chosen_node(gen_fdt, vm_config->kernel_stdout,
+                                   vm_config->kernel_bootcmdline, NUM_VCPUS);
     if (err) {
         ZF_LOGE("Couldn't generate chosen_node (%d)\n", err);
         return -1;
     }
 
-    if (provide_initrd) {
-        err = fdt_append_chosen_node_with_initrd_info(gen_fdt, initrd_addr, initrd_size);
+    if (vm_config->provide_initrd) {
+        err = fdt_append_chosen_node_with_initrd_info(gen_fdt,
+                                                      vm_config->initrd_addr,
+                                                      initrd_size);
         if (err) {
             ZF_LOGE("Couldn't generate chosen_node_with_initrd_info (%d)\n", err);
             return -1;
@@ -819,13 +824,13 @@ static int load_generated_dtb(vm_t *vm, uintptr_t paddr, void *addr, size_t size
     return 0;
 }
 
-static int load_vm(vm_t *vm, const char *kernel_name, const char *dtb_name, const char *initrd_name)
+static int load_vm(vm_t *vm, const vm_config_t *vm_config)
 {
     seL4_Word entry;
     seL4_Word dtb;
     int err;
 
-    vm->mem.map_one_to_one = map_one_to_one; /* Map memory 1:1 if configured to do so */
+    vm->mem.map_one_to_one = vm_config->map_one_to_one; /* Map memory 1:1 if configured to do so */
 
     /* Install devices */
     err = install_vm_devices(vm);
@@ -834,14 +839,15 @@ static int load_vm(vm_t *vm, const char *kernel_name, const char *dtb_name, cons
         return -1;
     }
 
-    vm->entry = entry_addr;
-    vm->mem.clean_cache = clean_cache;
+    vm->entry = vm_config->entry_addr;
+    vm->mem.clean_cache = vm_config->clean_cache;
 
-    printf("Loading Kernel: \'%s\'\n", kernel_name);
+    printf("Loading Kernel: \'%s\'\n", vm_config->files.kernel);
 
     /* Load kernel */
     guest_kernel_image_t kernel_image_info;
-    err = vm_load_guest_kernel(vm, kernel_name, ram_base, 0, &kernel_image_info);
+    err = vm_load_guest_kernel(vm, vm_config->files.kernel, vm_config->ram.base,
+                               0, &kernel_image_info);
     entry = kernel_image_info.kernel_image.load_paddr;
     if (!entry || err) {
         return -1;
@@ -849,19 +855,20 @@ static int load_vm(vm_t *vm, const char *kernel_name, const char *dtb_name, cons
 
     /* Attempt to load initrd if provided */
     guest_image_t initrd_image;
-    if (provide_initrd) {
-        printf("Loading Initrd: \'%s\'\n", initrd_name);
-        err = vm_load_guest_module(vm, initrd_name, initrd_addr, 0, &initrd_image);
+    if (vm_config->provide_initrd) {
+        printf("Loading Initrd: \'%s\'\n", vm_config->files.initrd);
+        err = vm_load_guest_module(vm, vm_config->files.initrd,
+                                   vm_config->initrd_addr, 0, &initrd_image);
         void *initrd = (void *)initrd_image.load_paddr;
         if (!initrd || err) {
             return -1;
         }
     }
 
-    ZF_LOGW_IF(provide_dtb && generate_dtb,
+    ZF_LOGW_IF(vm_config->provide_dtb && vm_config->generate_dtb,
                "provide_dtb and generate_dtb are both set. The provided dtb will NOT be loaded");
 
-    if (generate_dtb) {
+    if (vm_config->generate_dtb) {
         void *fdt_ori;
         void *gen_fdt = gen_dtb_buf;
         int size_gen = DTB_BUFFER_SIZE;
@@ -874,11 +881,11 @@ static int load_vm(vm_t *vm, const char *kernel_name, const char *dtb_name, cons
         int dtb_fd = -1;
 
         /* No point checking the file server if the string is empty! */
-        if ((NULL != dtb_base_name) && (dtb_base_name[0] != '\0')) {
-            dtb_fd = open(dtb_base_name, 0);
+        if ((NULL != vm_config->files.dtb_base) && (vm_config->files.dtb_base[0] != '\0')) {
+            dtb_fd = open(vm_config->files.dtb_base, 0);
         }
 
-        /* If dtb_base_name is in the file server, grab it and use it as a base */
+        /* If dtb_base is in the file server, grab it and use it as a base */
         if (dtb_fd >= 0) {
             size_t dtb_len = read(dtb_fd, gen_dtb_base_buf, DTB_BUFFER_SIZE);
             close(dtb_fd);
@@ -891,21 +898,24 @@ static int load_vm(vm_t *vm, const char *kernel_name, const char *dtb_name, cons
             fdt_ori = (void *)ps_io_fdt_get(&_io_ops.io_fdt);
         }
 
-        err = generate_fdt(vm, fdt_ori, gen_fdt, size_gen, initrd_image.size, paths, num_paths);
+        err = generate_fdt(vm, vm_config, fdt_ori, gen_fdt, size_gen,
+                           initrd_image.size, paths, num_paths);
         if (err) {
             ZF_LOGE("Failed to generate a fdt");
             return -1;
         }
-        vm_ram_mark_allocated(vm, dtb_addr, size_gen);
-        vm_ram_touch(vm, dtb_addr, size_gen, load_generated_dtb, gen_fdt);
+        vm_ram_mark_allocated(vm, vm_config->dtb_addr, size_gen);
+        vm_ram_touch(vm, vm_config->dtb_addr, size_gen, load_generated_dtb,
+                     gen_fdt);
         printf("Loading Generated DTB\n");
-        dtb = dtb_addr;
-    } else if (provide_dtb) {
-        printf("Loading DTB: \'%s\'\n", dtb_name);
+        dtb = vm_config->dtb_addr;
+    } else if (vm_config->provide_dtb) {
+        printf("Loading DTB: \'%s\'\n", vm_config->files.dtb);
 
         /* Load device tree */
         guest_image_t dtb_image;
-        err = vm_load_guest_module(vm, dtb_name, dtb_addr, 0, &dtb_image);
+        err = vm_load_guest_module(vm, vm_config->files.dtb,
+                                   vm_config->dtb_addr, 0, &dtb_image);
         dtb = dtb_image.load_paddr;
         if (!dtb || err) {
             return -1;
@@ -1113,7 +1123,7 @@ static int main_continued(void)
         return err;
     }
 
-    err = vmm_init();
+    err = vmm_init(&vm_config);
     assert(!err);
 
     /* Create the VM */
@@ -1173,7 +1183,7 @@ static int main_continued(void)
     }
 
     /* Load system images */
-    err = load_vm(&vm, _kernel_name, _dtb_name, _initrd_name);
+    err = load_vm(&vm, &vm_config);
     if (err) {
         printf("Failed to load VM image\n");
         seL4_DebugHalt();

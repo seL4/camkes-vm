@@ -14,7 +14,7 @@
 * @param size, the size of the memory region
 * @return -1 on error, 0 otherwise
 */
-int fdt_generate_memory_node(void *fdt, unsigned long base, size_t size);
+int fdt_generate_memory_node(void *fdt, uintptr_t base, size_t size);
 
 /**
 * generate a "chosen" node
@@ -33,4 +33,4 @@ int fdt_generate_chosen_node(void *fdt, const char *stdout_path, const char *boo
 * @param size, the size of the initrd image
 * @return -1 on error, 0 otherwise
 */
-int fdt_append_chosen_node_with_initrd_info(void *fdt, unsigned long base, size_t size);
+int fdt_append_chosen_node_with_initrd_info(void *fdt, uintptr_t base, size_t size);

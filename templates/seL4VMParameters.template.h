@@ -7,23 +7,27 @@
 
 #pragma once
 
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
+
 typedef struct {
 
     struct {
-        unsigned long phys_base;
-        unsigned long base;
-        unsigned long size;
+        uintptr_t phys_base;
+        uintptr_t base;
+        size_t size;
     } ram;
 
-    int provide_initrd;
-    int generate_dtb;
-    int provide_dtb;
-    int map_one_to_one;
-    int clean_cache;
+    bool provide_initrd;
+    bool generate_dtb;
+    bool provide_dtb;
+    bool map_one_to_one;
+    bool clean_cache;
 
-    unsigned long dtb_addr;
-    unsigned long initrd_addr;
-    unsigned long entry_addr;
+    uintptr_t dtb_addr;
+    uintptr_t initrd_addr;
+    uintptr_t entry_addr;
 
     struct {
         char const *kernel;

@@ -102,9 +102,9 @@ vmm_pci_space_t *pci;
 vmm_io_port_list_t *io_ports;
 reboot_hooks_list_t reboot_hooks_list;
 
-#define PLAT_LINUX_DTB_SIZE 0x50000
-static char linux_gen_dtb_buf[PLAT_LINUX_DTB_SIZE];
-static char linux_gen_dtb_base_buf[PLAT_LINUX_DTB_SIZE];
+#define DTB_BUFFER_SIZE 0x50000
+static char gen_dtb_buf[DTB_BUFFER_SIZE];
+static char gen_dtb_base_buf[DTB_BUFFER_SIZE];
 
 struct ps_io_ops _io_ops;
 
@@ -834,7 +834,7 @@ static int load_vm(vm_t *vm, const char *kernel_name, const char *dtb_name, cons
     /* Install devices */
     err = install_vm_devices(vm);
     if (err) {
-        printf("Error: Failed to install Linux devices\n");
+        printf("Error: Failed to install VM devices\n");
         return -1;
     }
 
@@ -867,8 +867,8 @@ static int load_vm(vm_t *vm, const char *kernel_name, const char *dtb_name, cons
 
     if (generate_dtb) {
         void *fdt_ori;
-        void *gen_fdt = linux_gen_dtb_buf;
-        int size_gen = PLAT_LINUX_DTB_SIZE;
+        void *gen_fdt = gen_dtb_buf;
+        int size_gen = DTB_BUFFER_SIZE;
         int num_paths = 0;
         char **paths = NULL;
         if (camkes_dtb_get_node_paths) {
@@ -884,12 +884,12 @@ static int load_vm(vm_t *vm, const char *kernel_name, const char *dtb_name, cons
 
         /* If dtb_base_name is in the file server, grab it and use it as a base */
         if (dtb_fd >= 0) {
-            size_t dtb_len = read(dtb_fd, linux_gen_dtb_base_buf, PLAT_LINUX_DTB_SIZE);
+            size_t dtb_len = read(dtb_fd, gen_dtb_base_buf, DTB_BUFFER_SIZE);
             if (dtb_len <= 0) {
                 return -1;
             }
             close(dtb_fd);
-            fdt_ori = (void *)linux_gen_dtb_base_buf;
+            fdt_ori = (void *)gen_dtb_base_buf;
         } else {
             camkes_io_fdt(&(_io_ops.io_fdt));
             fdt_ori = (void *)ps_io_fdt_get(&_io_ops.io_fdt);

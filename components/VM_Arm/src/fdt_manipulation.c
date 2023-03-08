@@ -21,7 +21,7 @@ static int append_prop_with_cells(void *fdt, int offset,  uint64_t val, int num_
     return err;
 }
 
-int fdt_generate_memory_node(void *fdt, unsigned long base, size_t size)
+int fdt_generate_memory_node(void *fdt, uintptr_t base, size_t size)
 {
     int root_offset = fdt_path_offset(fdt, "/");
     int address_cells = fdt_address_cells(fdt, root_offset);
@@ -92,7 +92,7 @@ int fdt_generate_chosen_node(void *fdt, const char *stdout_path, const char *boo
     return 0;
 }
 
-int fdt_append_chosen_node_with_initrd_info(void *fdt, unsigned long base, size_t size)
+int fdt_append_chosen_node_with_initrd_info(void *fdt, uintptr_t base, size_t size)
 {
     int root_offset = fdt_path_offset(fdt, "/");
     int address_cells = fdt_address_cells(fdt, root_offset);

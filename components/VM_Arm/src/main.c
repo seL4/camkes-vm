@@ -871,17 +871,12 @@ static int load_vm(vm_t *vm, const vm_config_t *vm_config)
     seL4_Word dtb;
     int err;
 
-    vm->mem.map_one_to_one = vm_config->map_one_to_one; /* Map memory 1:1 if configured to do so */
-
     /* Install devices */
     err = install_vm_devices(vm);
     if (err) {
         printf("Error: Failed to install VM devices\n");
         return -1;
     }
-
-    vm->entry = vm_config->entry_addr;
-    vm->mem.clean_cache = vm_config->clean_cache;
 
     printf("Loading Kernel: \'%s\'\n", vm_config->files.kernel);
 
@@ -1174,6 +1169,12 @@ static int main_continued(void)
     assert(!err);
     err = vm_register_notification_callback(&vm, handle_async_event, NULL);
     assert(!err);
+
+    /* basic configuration flags */
+    vm.entry = vm_config.entry_addr;
+    vm.mem.clean_cache = vm_config.clean_cache;
+    vm.mem.map_one_to_one = vm_config.map_one_to_one; /* Map memory 1:1 if configured to do so */
+
 #ifdef CONFIG_TK1_SMMU
     /* install any iospaces */
     int iospace_caps;

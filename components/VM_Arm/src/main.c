@@ -78,8 +78,6 @@ int start_extra_frame_caps;
 
 int VM_PRIO = 100;
 int NUM_VCPUS = 1;
-#define VIRTIO_NET_BADGE    (1U << 1)
-#define SERIAL_BADGE        (1U << 2)
 
 #define IRQSERVER_PRIO      (VM_PRIO + 1)
 #define IRQ_MESSAGE_LABEL   0xCAFE

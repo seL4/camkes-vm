@@ -30,11 +30,14 @@ struct irq_token {
 };
 typedef struct irq_token *irq_token_t;
 
+typedef int (*vmm_module_fdt_generate_fn_t)(void *fdt, vm_t *vm, void *cookie);
+
 typedef struct vmm_module {
     const char *name;
     void *cookie;
     // Function called for setup.
     void (*init_module)(vm_t *vm, void *cookie);
+    vmm_module_fdt_generate_fn_t *fdt_generate;
 } ALIGN(32) vmm_module_t;
 
 /**
@@ -67,11 +70,16 @@ int cross_vm_connections_init(vm_t *vm, uintptr_t connection_base_addr, struct c
 /* Declare a module.
  * For now, we put the modules in a separate elf section. */
 #define DEFINE_MODULE(_name, _cookie, _init_module) \
+    extern __attribute__((weak)) vmm_module_fdt_generate_fn_t VMM_MODULE_ ##_name ##_fdt_generate; \
     __attribute__((used)) __attribute__((section("_vmm_module"))) vmm_module_t VMM_MODULE_ ##_name = { \
     .name = #_name, \
     .cookie = _cookie, \
     .init_module = _init_module, \
+    .fdt_generate = &VMM_MODULE_ ##_name ##_fdt_generate, \
 };
+
+#define DEFINE_MODULE_FDT(_name, __fdt_generate) \
+    vmm_module_fdt_generate_fn_t VMM_MODULE_ ##_name ##_fdt_generate = __fdt_generate;
 
 #define CROSS_VM_CONNECTION(connection_name, connection_symbol) \
     __attribute__((used)) __attribute__((section("_vmm_cross_connector_definition"))) \

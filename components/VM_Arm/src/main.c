@@ -708,6 +708,23 @@ static int route_irqs(vm_vcpu_t *vcpu, irq_server_t *irq_server)
     return 0;
 }
 
+static int fdt_generate_vmm_modules(void *gen_fdt, vm_t *vm)
+{
+    for (vmm_module_t *module = __start__vmm_module;
+         module < __stop__vmm_module; module++) {
+        if (module->fdt_generate) {
+            int err = (*module->fdt_generate)(gen_fdt, vm, module->cookie);
+            if (err) {
+                ZF_LOGE("fdt_generate of module %s failed (%d)", module->name,
+                        err);
+                return err;
+            }
+        }
+    }
+
+    return 0;
+}
+
 static int generate_fdt(vm_t *vm, void *fdt_ori, void *gen_fdt, int buf_size, size_t initrd_size, char **paths,
                         int num_paths)
 {
@@ -766,6 +783,12 @@ static int generate_fdt(vm_t *vm, void *fdt_ori, void *gen_fdt, int buf_size, si
     if (err) {
         ZF_LOGE("Couldn't generate plat_vcpu_node (%d)\n", err);
         return -1;
+    }
+
+    err = fdt_generate_vmm_modules(gen_fdt, vm);
+    if (err) {
+        ZF_LOGE("Couldn't generate VMM modules (%d)\n", err);
+        return err;
     }
 
     /* generate a memory node (ram_base and ram_size) */

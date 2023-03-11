@@ -791,13 +791,6 @@ static int generate_fdt(vm_t *vm, void *fdt_ori, void *gen_fdt, int buf_size, si
         return err;
     }
 
-    /* generate a memory node (ram_base and ram_size) */
-    err = fdt_generate_memory_node(gen_fdt, ram_base, ram_size);
-    if (err) {
-        ZF_LOGE("Couldn't generate memory_node (%d)\n", err);
-        return -1;
-    }
-
     /* generate a chosen node (vm_image_config.kernel_bootcmdline, kernel_stdout) */
     err = fdt_generate_chosen_node(gen_fdt, kernel_stdout, kernel_bootcmdline,
                                    NUM_VCPUS);

@@ -101,8 +101,10 @@ vmm_io_port_list_t *io_ports;
 reboot_hooks_list_t reboot_hooks_list;
 
 #define DTB_BUFFER_SIZE 0x50000
-static char gen_dtb_buf[DTB_BUFFER_SIZE];
+char gen_dtb_buf[DTB_BUFFER_SIZE]; /* accessed by modules */
 static char gen_dtb_base_buf[DTB_BUFFER_SIZE];
+
+void *fdt_ori;
 
 struct ps_io_ops _io_ops;
 
@@ -627,14 +629,34 @@ static USED SECTION("_vmm_module") struct {} dummy_module;
 extern vmm_module_t __start__vmm_module[];
 extern vmm_module_t __stop__vmm_module[];
 
-static int install_vm_devices(vm_t *vm)
+static int install_vm_devices(vm_t *vm, const vm_config_t *vm_config)
 {
     int err;
 
     /* Install virtual devices */
     if (config_set(CONFIG_VM_PCI_SUPPORT)) {
         err = vm_install_vpci(vm, io_ports, pci);
-        assert(!err);
+        if (err) {
+            ZF_LOGE("Failed to install VPCI device");
+            return -1;
+        }
+        if (vm_config->generate_dtb) {
+            int gic_offset = fdt_path_offset(fdt_ori, GIC_NODE_PATH);
+            if (gic_offset < 0) {
+                ZF_LOGE("Failed to find gic node from path: %s", GIC_NODE_PATH);
+                return -1;
+            }
+            int gic_phandle = fdt_get_phandle(fdt_ori, gic_offset);
+            if (0 == gic_phandle) {
+                ZF_LOGE("Failed to find phandle in gic node");
+                return -1;
+            }
+            err = fdt_generate_vpci_node(vm, pci, gen_dtb_buf, gic_phandle);
+            if (err) {
+                ZF_LOGE("Couldn't generate vpci_node, error %d", err);
+                return -1;
+            }
+        }
     }
 
     int max_vmm_modules = (int)(__stop__vmm_module - __start__vmm_module);
@@ -707,31 +729,54 @@ static int route_irqs(vm_vcpu_t *vcpu, irq_server_t *irq_server)
     return 0;
 }
 
-static int generate_fdt(vm_t *vm, const vm_config_t *vm_config,
-                        void *fdt_ori, void *gen_fdt, int buf_size,
-                        size_t initrd_size, char **paths, int num_paths)
+static int init_dtb(vm_t *vm, const vm_config_t *vm_config)
 {
-    int err = 0;
+    int err;
 
-    int num_keep_devices = 0;
-    char **keep_devices;
-    if (camkes_dtb_get_plat_keep_devices) {
-        keep_devices = camkes_dtb_get_plat_keep_devices(&num_keep_devices);
+    /* Setup the base DTB. By default it's the one that CAmkES provides. */
+    camkes_io_fdt(&(_io_ops.io_fdt));
+    fdt_ori = (void *)ps_io_fdt_get(&_io_ops.io_fdt);
+    ZF_LOGW_IF(!fdt_ori, "CAmkES did not provide a DTB");
+    /* If explicitly requested, the CAmkES DTB can be ignored and one provided
+     * by the file server can be used instead.
+     */
+    if ((NULL != vm_config->files.dtb_base) && ('\0' != vm_config->files.dtb_base[0])) {
+        int dtb_fd = open(vm_config->files.dtb_base, 0);
+        ZF_LOGI("using DTB file '%s' as base", vm_config->files.dtb_base);
+        /* If dtb_base is in the file server, grab it and use it as a base */
+        if (dtb_fd < 0) {
+            ZF_LOGE("opening DTB file failed (%d)", dtb_fd);
+        } else {
+            size_t dtb_len = read(dtb_fd, gen_dtb_base_buf, DTB_BUFFER_SIZE);
+            close(dtb_fd);
+            if (dtb_len <= 0) {
+                ZF_LOGE("reading DTB file failed (%d)", dtb_len);
+            } else {
+                /* overwrite */
+                fdt_ori = gen_dtb_base_buf;
+            }
+        }
     }
 
-    int num_keep_devices_and_subtree = 0;
-    char **keep_devices_and_subtree;
-    if (camkes_dtb_get_plat_keep_devices_and_subtree) {
-        keep_devices_and_subtree = camkes_dtb_get_plat_keep_devices_and_subtree(&num_keep_devices_and_subtree);
+    /* We are done if DTB generation is not enabled. */
+    if (!vm_config->generate_dtb) {
+        return 0;
     }
 
-    fdtgen_context_t *context = fdtgen_new_context(gen_fdt, buf_size);
+    ZF_LOGW_IF(!fdt_ori, "No base DTB set");
+
+    fdtgen_context_t *context = fdtgen_new_context(gen_dtb_buf, sizeof(gen_dtb_buf));
     if (context == NULL) {
-        ZF_LOGE("Couldn't create fdtgen context\n");
+        ZF_LOGE("Couldn't create fdtgen context");
         return -1;
     }
 
     /* If VM has "plat_keep_devices" set, use it! Else, just use the default */
+    int num_keep_devices = 0;
+    char **keep_devices = NULL;
+    if (camkes_dtb_get_plat_keep_devices) {
+        keep_devices = camkes_dtb_get_plat_keep_devices(&num_keep_devices);
+    }
     if (num_keep_devices) {
         fdtgen_keep_nodes(context, (const char **)keep_devices, num_keep_devices);
     } else {
@@ -739,6 +784,11 @@ static int generate_fdt(vm_t *vm, const vm_config_t *vm_config,
     }
 
     /* If VM has "plat_keep_devices and subtree" set, use it! Else, just use the default */
+    int num_keep_devices_and_subtree = 0;
+    char **keep_devices_and_subtree;
+    if (camkes_dtb_get_plat_keep_devices_and_subtree) {
+        keep_devices_and_subtree = camkes_dtb_get_plat_keep_devices_and_subtree(&num_keep_devices_and_subtree);
+    }
     if (num_keep_devices_and_subtree) {
         for (int i = 0; i < num_keep_devices_and_subtree; i++) {
             fdtgen_keep_node_subtree(context, fdt_ori, keep_devices_and_subtree[i]);
@@ -754,65 +804,36 @@ static int generate_fdt(vm_t *vm, const vm_config_t *vm_config,
     }
     fdtgen_keep_nodes_and_disable(context, plat_keep_device_and_disable, ARRAY_SIZE(plat_keep_device_and_disable));
 
+    int num_paths = 0;
+    char **paths = NULL;
+    if (camkes_dtb_get_node_paths) {
+        paths = camkes_dtb_get_node_paths(&num_paths);
+    }
     fdtgen_keep_nodes(context, (const char **)paths, num_paths);
 
+    /* build a DTB in gen_dtb_buf */
     err = fdtgen_generate(context, fdt_ori);
     fdtgen_free_context(context);
     if (err) {
-        ZF_LOGE("Couldn't generate fdt_ori (%d)\n", err);
+        ZF_LOGE("Couldn't generate base DTB, error %d", err);
         return -1;
     }
-    err = fdt_generate_plat_vcpu_node(vm, gen_fdt);
+
+    /* Now the DTB is in gen_dtb_buf and all manipulation must happen there. */
+
+    err = fdt_generate_plat_vcpu_node(vm, gen_dtb_buf);
     if (err) {
-        ZF_LOGE("Couldn't generate plat_vcpu_node (%d)\n", err);
+        ZF_LOGE("Couldn't generate plat_vcpu_node, error %d", err);
         return -1;
     }
 
     /* generate a memory node */
-    err = fdt_generate_memory_node(gen_fdt, vm_config->ram.base,
+    err = fdt_generate_memory_node(gen_dtb_buf, vm_config->ram.base,
                                    vm_config->ram.size);
     if (err) {
         ZF_LOGE("Couldn't generate memory_node (%d)\n", err);
         return -1;
     }
-
-    /* generate a chosen node */
-    err = fdt_generate_chosen_node(gen_fdt, vm_config->kernel_stdout,
-                                   vm_config->kernel_bootcmdline, NUM_VCPUS);
-    if (err) {
-        ZF_LOGE("Couldn't generate chosen_node (%d)\n", err);
-        return -1;
-    }
-
-    if (vm_config->provide_initrd) {
-        err = fdt_append_chosen_node_with_initrd_info(gen_fdt,
-                                                      vm_config->initrd_addr,
-                                                      initrd_size);
-        if (err) {
-            ZF_LOGE("Couldn't generate chosen_node_with_initrd_info (%d)\n", err);
-            return -1;
-        }
-    }
-
-    if (config_set(CONFIG_VM_PCI_SUPPORT)) {
-        int gic_offset = fdt_path_offset(fdt_ori, GIC_NODE_PATH);
-        if (gic_offset < 0) {
-            ZF_LOGE("Failed to find gic node from path: %s", GIC_NODE_PATH);
-            return -1;
-        }
-        int gic_phandle = fdt_get_phandle(fdt_ori, gic_offset);
-        if (0 == gic_phandle) {
-            ZF_LOGE("Failed to find phandle in gic node");
-            return -1;
-        }
-        err = fdt_generate_vpci_node(vm, pci, gen_fdt, gic_phandle);
-        if (err) {
-            ZF_LOGE("Couldn't generate vpci_node (%d)\n", err);
-            return -1;
-        }
-    }
-
-    fdt_pack(gen_fdt);
 
     return 0;
 }
@@ -840,6 +861,16 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
         return -1;
     }
 
+    /* generate a chosen node */
+    if (vm_config->generate_dtb) {
+        err = fdt_generate_chosen_node(gen_dtb_buf, vm_config->kernel_stdout,
+                                       vm_config->kernel_bootcmdline, NUM_VCPUS);
+        if (err) {
+            ZF_LOGE("Couldn't generate chosen_node (%d)\n", err);
+            return -1;
+        }
+    }
+
     /* Attempt to load initrd if provided */
     guest_image_t initrd_image;
     if (vm_config->provide_initrd) {
@@ -850,51 +881,25 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
         if (!initrd || err) {
             return -1;
         }
-    }
-
-    ZF_LOGW_IF(vm_config->provide_dtb && vm_config->generate_dtb,
-               "provide_dtb and generate_dtb are both set. The provided dtb will NOT be loaded");
-
-    if (vm_config->generate_dtb) {
-        void *fdt_ori;
-        void *gen_fdt = gen_dtb_buf;
-        int size_gen = DTB_BUFFER_SIZE;
-        int num_paths = 0;
-        char **paths = NULL;
-        if (camkes_dtb_get_node_paths) {
-            paths = camkes_dtb_get_node_paths(&num_paths);
-        }
-
-        int dtb_fd = -1;
-
-        /* No point checking the file server if the string is empty! */
-        if ((NULL != vm_config->files.dtb_base) && (vm_config->files.dtb_base[0] != '\0')) {
-            dtb_fd = open(vm_config->files.dtb_base, 0);
-        }
-
-        /* If dtb_base is in the file server, grab it and use it as a base */
-        if (dtb_fd >= 0) {
-            size_t dtb_len = read(dtb_fd, gen_dtb_base_buf, DTB_BUFFER_SIZE);
-            close(dtb_fd);
-            if (dtb_len <= 0) {
+        if (vm_config->generate_dtb) {
+            err = fdt_append_chosen_node_with_initrd_info(gen_dtb_buf,
+                                                          vm_config->initrd_addr,
+                                                          initrd_image.size);
+            if (err) {
+                ZF_LOGE("Couldn't generate chosen_node_with_initrd_info (%d)\n", err);
                 return -1;
             }
-            fdt_ori = (void *)gen_dtb_base_buf;
-        } else {
-            camkes_io_fdt(&(_io_ops.io_fdt));
-            fdt_ori = (void *)ps_io_fdt_get(&_io_ops.io_fdt);
         }
+    }
 
-        err = generate_fdt(vm, vm_config, fdt_ori, gen_fdt, size_gen,
-                           initrd_image.size, paths, num_paths);
-        if (err) {
-            ZF_LOGE("Failed to generate a fdt");
-            return -1;
-        }
-        vm_ram_mark_allocated(vm, vm_config->dtb_addr, size_gen);
-        vm_ram_touch(vm, vm_config->dtb_addr, size_gen, load_generated_dtb,
-                     gen_fdt);
+    if (vm_config->generate_dtb) {
+        ZF_LOGW_IF(vm_config->provide_dtb,
+                   "provide_dtb and generate_dtb are both set. The provided dtb will NOT be loaded");
         printf("Loading Generated DTB\n");
+        fdt_pack(gen_dtb_buf);
+        vm_ram_mark_allocated(vm, vm_config->dtb_addr, sizeof(gen_dtb_buf));
+        vm_ram_touch(vm, vm_config->dtb_addr, sizeof(gen_dtb_buf), load_generated_dtb,
+                     gen_dtb_buf);
         dtb = vm_config->dtb_addr;
     } else if (vm_config->provide_dtb) {
         printf("Loading DTB: \'%s\'\n", vm_config->files.dtb);
@@ -1098,6 +1103,15 @@ static int main_continued(void)
     err = seL4_TCB_BindNotification(camkes_get_tls()->tcb_cap, notification_ready_notification());
     assert(!err);
 
+    /* DTB initialization requires a running file server, as the DTB could be
+     * based on a DTB file taken from there.
+     */
+    err = init_dtb(&vm, &vm_config);
+    if (err) {
+        ZF_LOGE("Failed to init DTB (%d)", err);
+        return -1;
+    }
+
     err = vmm_pci_init(&pci);
     if (err) {
         ZF_LOGE("Failed to initialise vmm pci");
@@ -1176,7 +1190,7 @@ static int main_continued(void)
     }
 
     /* Install devices */
-    err = install_vm_devices(&vm);
+    err = install_vm_devices(&vm, &vm_config);
     if (err) {
         ZF_LOGE("Error: Failed to install VM devices\n");
         seL4_DebugHalt();

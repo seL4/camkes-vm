@@ -637,10 +637,8 @@ int install_vm_devices(vm_t *vm)
     }
 
     int max_vmm_modules = (int)(__stop__vmm_module - __start__vmm_module);
-    vmm_module_t *test_types[max_vmm_modules];
     int num_vmm_modules = 0;
     for (vmm_module_t *i = __start__vmm_module; i < __stop__vmm_module; i++) {
-        test_types[num_vmm_modules] = i;
         ZF_LOGE("module name: %s", i->name);
         i->init_module(vm, i->cookie);
         num_vmm_modules++;

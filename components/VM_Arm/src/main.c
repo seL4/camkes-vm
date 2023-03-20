@@ -77,10 +77,8 @@ seL4_CPtr camkes_alloc(seL4_ObjectType type, size_t size, unsigned flags);
 extern void *fs_buf;
 int start_extra_frame_caps;
 
-int VM_PRIO = 100;
 int NUM_VCPUS = 1;
 
-#define IRQSERVER_PRIO      (VM_PRIO + 1)
 #define IRQ_MESSAGE_LABEL   0xCAFE
 
 #define DMA_VSTART  0x40000000
@@ -558,7 +556,7 @@ static int vmm_init(const vm_config_t *vm_config)
     assert(!err);
 
     /* Create an IRQ server */
-    _irq_server = irq_server_new(vspace, vka, IRQSERVER_PRIO,
+    _irq_server = irq_server_new(vspace, vka, vm_config->priority.irqserver,
                                  simple, simple_get_cnode(simple), fault_ep_obj.cptr,
                                  IRQ_MESSAGE_LABEL, 256, &_io_ops.malloc_ops);
     assert(_irq_server);
@@ -1259,7 +1257,7 @@ static int main_continued(void)
 
     /* Create CPUs and DTB node */
     for (int i = 0; i < NUM_VCPUS; i++) {
-        vm_vcpu_t *new_vcpu = create_vmm_plat_vcpu(&vm, VM_PRIO - 1);
+        vm_vcpu_t *new_vcpu = create_vmm_plat_vcpu(&vm, vm_config.priority.vcpu);
         assert(new_vcpu);
     }
     if (vm_config.generate_dtb) {
@@ -1317,15 +1315,10 @@ static int main_continued(void)
 }
 
 /* base_prio and num_vcpus are optional attributes of the VM component. */
-extern const int __attribute__((weak)) base_prio;
 extern const int __attribute__((weak)) num_vcpus;
 
 int run(void)
 {
-    /* if the base_prio attribute is set, use it */
-    if (&base_prio != NULL) {
-        VM_PRIO = base_prio;
-    }
     /* if the num_vcpus attribute is set, try to use it */
     if (&num_vcpus != NULL) {
         if (num_vcpus > CONFIG_MAX_NUM_NODES) {

@@ -24,6 +24,37 @@
 
 const vm_config_t vm_config = {
 
+    .priority = {
+        /*#
+         *  The CAmkES attribute '_priority' define the control thread's
+         *  priority, which is the thread that does the VMM setup and executes
+         *  the VMM even loop eventually.
+         *  The VMM attribute 'base_prio' defines the priorities to be used
+         *  - interrupt server thread: base_prio + 1
+         *  - vmm thread: base_prio
+         *  - vcpu thread(s): base_prio - 1
+         *  but these can never exceed the component priority. Furthermore these
+         *  constrains apply:
+         *  - the vcpu thread can't have a higher priority than the VMM's event
+         *    loop, otherwise it can't be preempted when an even arrives. It may
+         *    have equal priority, in this case events like IRQ injection get
+         *    delayed until the vcpu thread was preempted or yielded.
+         *  - the VMM thread can have a higher priority than the interrupt
+         *    server thread. They may have equal priority, but this also
+         *    increases e.g. interrupt latency.
+        #*/
+        /*- set comp_prio = config.get('_priority') -*/
+        /*- set base_prio = config.get('base_prio') -*/
+        /*- set irqserver_prio = min(comp_prio, base_prio + 1) -*/
+        /*- set vcpu_prio = min(comp_prio, base_prio - 1) -*/
+        /*- if ((vcpu_prio > base_prio) or (base_prio > irqserver_prio)) -*/
+          /*? raise(Exception('Invalid priority configuration: vcpu/'+str(vcpu_prio)+' > base/'+str(base_prio)+' > irqserver/'+str(irqserver_prio))) ?*/
+        /*- endif -*/
+        .irqserver = /*? irqserver_prio ?*/,
+        .vmm = /*? base_prio ?*/,
+        .vcpu = /*? vcpu_prio ?*/,
+    },
+
 /*- if vm_address_config -*/
 
     .ram = {

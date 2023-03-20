@@ -492,7 +492,12 @@ static int vmm_init(const vm_config_t *vm_config)
     utspace_alloc_at_copy = vka->utspace_alloc_at;
     vka->utspace_alloc_at = camkes_vm_utspace_alloc_at;
 
-    for (int i = 0; i < simple_get_untyped_count(simple); i++) {
+    int cnt = simple_get_untyped_count(simple);
+    if (cnt < 0) {
+        ZF_LOGE("Failed to get simple untyped count (%d)", cnt);
+        return -1;
+    }
+    for (int i = 0; i < cnt; i++) {
         size_t size_bits;
         uintptr_t paddr;
         bool is_device;
@@ -502,7 +507,12 @@ static int vmm_init(const vm_config_t *vm_config)
     }
 
     if (camkes_dtb_untyped_count) {
-        for (int i = 0; i < camkes_dtb_untyped_count(); i++) {
+        cnt = camkes_dtb_untyped_count();
+        if (cnt < 0) {
+            ZF_LOGE("Failed to get CAmkES DTB untyped count (%d)", cnt);
+            return -1;
+        }
+        for (int i = 0; i < cnt; i++) {
             size_t size_bits;
             uintptr_t paddr;
             seL4_CPtr cap = camkes_dtb_get_nth_untyped(i, &size_bits, &paddr);

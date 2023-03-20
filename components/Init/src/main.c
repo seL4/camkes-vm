@@ -198,7 +198,9 @@ void pre_init(void)
     }
 
     /* add untyped mmios */
-    for (int i = 0; i < simple_get_untyped_count(&camkes_simple); i++) {
+    int cnt = simple_get_untyped_count(&camkes_simple);
+    ZF_LOGF_IF(cnt < 0, "Failed to get simple untyped count (%d)", cnt);
+    for (int i = 0; i < cnt; i++) {
         size_t size;
         uintptr_t paddr;
         bool device;

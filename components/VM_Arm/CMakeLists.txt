@@ -112,22 +112,6 @@ config_option(
 )
 
 config_option(
-    VmInitRdFile
-    VM_INITRD_FILE
-    "Enables the option for the VM to open and load a seperate initrd file"
-    DEFAULT
-    OFF
-)
-
-config_option(
-    VmDtbFile
-    VM_DTB_FILE
-    "Enables the option for the VM to open and load a seperate dtb file"
-    DEFAULT
-    OFF
-)
-
-config_option(
     VmVirtUart
     VM_VIRT_UART
     "Option for virtualizing console"

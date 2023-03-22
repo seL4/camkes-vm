@@ -57,7 +57,6 @@
 #include "virtio_vsock.h"
 
 #define BRK_VIRTUAL_SIZE 400000000
-#define ALLOCMAN_VIRTUAL_SIZE 400000000
 #define CROSS_VM_EVENT_IRQ_NUM 12
 #define CROSS_VM_BASE_ADDRESS 0xa0000000
 
@@ -174,12 +173,12 @@ void pre_init(void)
         ZF_LOGF("Failed to allocate reservation");
     }
     error = sel4utils_reserve_range_no_alloc(&vspace, pool_reservation.res,
-                                             ALLOCMAN_VIRTUAL_SIZE, seL4_AllRights, 1, &vaddr);
+                                             allocman_virtual_size(), seL4_AllRights, 1, &vaddr);
     if (error) {
         ZF_LOGF("Failed to provide virtual memory allocator");
     }
-    bootstrap_configure_virtual_pool(allocman, vaddr, ALLOCMAN_VIRTUAL_SIZE, simple_get_init_cap(&camkes_simple,
-                                                                                                 seL4_CapInitThreadPD));
+    bootstrap_configure_virtual_pool(allocman, vaddr, allocman_virtual_size(), simple_get_init_cap(&camkes_simple,
+                                                                                                   seL4_CapInitThreadPD));
 
     /* Add additional untypeds that make up extra RAM */
     int num = ram_num_untypeds();

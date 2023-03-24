@@ -8,10 +8,11 @@
 #include <camkes.h>
 #include <arm_vm/gen_config.h>
 
-/*- set vm_address_config = configuration[me.name].get('vm_address_config') -*/
-/*- set vm_image_config = configuration[me.name].get('vm_image_config') -*/
-/*- set linux_address_config = configuration[me.name].get('linux_address_config') -*/
-/*- set linux_image_config = configuration[me.name].get('linux_image_config') -*/
+/*- set config = configuration[me.name] -*/
+/*- set vm_address_config = config.get('vm_address_config') -*/
+/*- set vm_image_config = config.get('vm_image_config') -*/
+/*- set linux_address_config = config.get('linux_address_config') -*/
+/*- set linux_image_config = config.get('linux_image_config') -*/
 
 /*# For legacy compatibility, a fall back to the standard Linux entry exists. #*/
 /*- set is_64_bit = (8 == macros.get_word_size(options.architecture)) -*/

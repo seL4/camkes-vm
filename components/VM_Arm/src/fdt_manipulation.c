@@ -7,20 +7,6 @@
 #include <libfdt.h>
 #include <utils/util.h>
 
-static int append_prop_with_cells(void *fdt, int offset,  uint64_t val, int num_cells, const char *name)
-{
-    int err;
-    if (num_cells == 2) {
-        err = fdt_appendprop_u64(fdt, offset, name, val);
-    } else if (num_cells == 1) {
-        err = fdt_appendprop_u32(fdt, offset, name, val);
-    } else {
-        ZF_LOGF("non-supported arch");
-    }
-
-    return err;
-}
-
 int fdt_generate_memory_node(void *fdt, uintptr_t base, size_t size)
 {
     int root_offset = fdt_path_offset(fdt, "/");
@@ -35,11 +21,11 @@ int fdt_generate_memory_node(void *fdt, uintptr_t base, size_t size)
     if (err) {
         return err;
     }
-    err = append_prop_with_cells(fdt, this, base, address_cells, "reg");
+    err = fdt_appendprop_uint(fdt, this, "reg", base, address_cells);
     if (err) {
         return err;
     }
-    err = append_prop_with_cells(fdt, this, size, size_cells, "reg");
+    err = fdt_appendprop_uint(fdt, this, "reg", size, size_cells);
     if (err) {
         return err;
     }
@@ -97,11 +83,11 @@ int fdt_append_chosen_node_with_initrd_info(void *fdt, uintptr_t base, size_t si
     int root_offset = fdt_path_offset(fdt, "/");
     int address_cells = fdt_address_cells(fdt, root_offset);
     int this = fdt_path_offset(fdt, "/chosen");
-    int err = append_prop_with_cells(fdt, this, base, address_cells, "linux,initrd-start");
+    int err = fdt_appendprop_uint(fdt, this, "linux,initrd-start", base, address_cells);
     if (err) {
         return err;
     }
-    err = append_prop_with_cells(fdt, this, base + size, address_cells, "linux,initrd-end");
+    err = fdt_appendprop_uint(fdt, this, "linux,initrd-end", base + size, address_cells);
     if (err) {
         return err;
     }

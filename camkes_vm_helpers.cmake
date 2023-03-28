@@ -70,11 +70,15 @@ function(DefineCAmkESVMFileServer)
     get_target_property(fileserver_images vm_fserver_config FILES)
     get_target_property(fileserver_deps vm_fserver_config DEPS)
     # Build CPIO archive given the defined kernel and rootfs images
+    set(CPIO_ARCHIVE "file_server_archive.o")
     include(cpio)
-    MakeCPIO(file_server_archive.o "${fileserver_images}" DEPENDS "${fileserver_deps}")
-    add_library(fileserver_cpio STATIC EXCLUDE_FROM_ALL file_server_archive.o)
-    set_property(TARGET fileserver_cpio PROPERTY LINKER_LANGUAGE C)
-    ExtendCAmkESComponentInstance(FileServer fserv LIBS fileserver_cpio)
+    MakeCPIO("${CPIO_ARCHIVE}" "${fileserver_images}" DEPENDS "${fileserver_deps}")
+    # Build a library from the CPIO archive
+    set(FILESERVER_LIB "fileserver_cpio")
+    add_library("${FILESERVER_LIB}" STATIC EXCLUDE_FROM_ALL "${CPIO_ARCHIVE}")
+    set_property(TARGET "${FILESERVER_LIB}" PROPERTY LINKER_LANGUAGE C)
+    # Add the CPIO-library to the FileServer component
+    ExtendCAmkESComponentInstance(FileServer fserv LIBS "${FILESERVER_LIB}")
 endfunction(DefineCAmkESVMFileServer)
 
 # Function for declaring the CAmkESVM root server. Taking the camkes application

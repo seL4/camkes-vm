@@ -100,7 +100,8 @@ vmm_pci_space_t *pci;
 vmm_io_port_list_t *io_ports;
 reboot_hooks_list_t reboot_hooks_list;
 
-#define DTB_BUFFER_SIZE 0x50000
+/* So far, 320 KiB was enough for each DTB buffer. Increase if necessary. */
+#define DTB_BUFFER_SIZE (320*1024)
 char gen_dtb_buf[DTB_BUFFER_SIZE]; /* accessed by modules */
 static char gen_dtb_base_buf[DTB_BUFFER_SIZE];
 
@@ -781,7 +782,7 @@ static int vm_dtb_init(vm_t *vm, const vm_config_t *vm_config)
         if (dtb_fd < 0) {
             ZF_LOGE("opening DTB file failed (%d)", dtb_fd);
         } else {
-            size_t dtb_len = read(dtb_fd, gen_dtb_base_buf, DTB_BUFFER_SIZE);
+            size_t dtb_len = read(dtb_fd, gen_dtb_base_buf, sizeof(gen_dtb_base_buf));
             close(dtb_fd);
             if (dtb_len <= 0) {
                 ZF_LOGE("reading DTB file failed (%d)", dtb_len);

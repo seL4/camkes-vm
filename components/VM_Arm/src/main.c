@@ -908,7 +908,7 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
     int err;
 
     /* Load kernel */
-    printf("Loading Kernel: \'%s\'\n", vm_config->files.kernel);
+    printf("Loading Kernel: '%s'\n", vm_config->files.kernel);
     guest_kernel_image_t kernel_image_info;
     err = vm_load_guest_kernel(vm, vm_config->files.kernel, vm_config->ram.base,
                                0, &kernel_image_info);
@@ -930,7 +930,7 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
     /* Attempt to load initrd if provided */
     guest_image_t initrd_image;
     if (vm_config->provide_initrd) {
-        printf("Loading Initrd: \'%s\'\n", vm_config->files.initrd);
+        printf("Loading Initrd: '%s'\n", vm_config->files.initrd);
         err = vm_load_guest_module(vm, vm_config->files.initrd,
                                    vm_config->initrd_addr, 0, &initrd_image);
         void *initrd = (void *)initrd_image.load_paddr;
@@ -962,7 +962,7 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
                      gen_dtb_buf);
         dtb = vm_config->dtb_addr;
     } else if (vm_config->provide_dtb) {
-        printf("Loading DTB: \'%s\'\n", vm_config->files.dtb);
+        printf("Loading DTB: '%s'\n", vm_config->files.dtb);
 
         /* Load device tree */
         guest_image_t dtb_image;

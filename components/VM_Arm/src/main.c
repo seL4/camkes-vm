@@ -865,22 +865,14 @@ static int load_generated_dtb(vm_t *vm, uintptr_t paddr, void *addr, size_t size
     return 0;
 }
 
-static int load_vm(vm_t *vm, const vm_config_t *vm_config)
+static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
 {
     seL4_Word entry;
     seL4_Word dtb;
     int err;
 
-    /* Install devices */
-    err = install_vm_devices(vm);
-    if (err) {
-        printf("Error: Failed to install VM devices\n");
-        return -1;
-    }
-
-    printf("Loading Kernel: \'%s\'\n", vm_config->files.kernel);
-
     /* Load kernel */
+    printf("Loading Kernel: \'%s\'\n", vm_config->files.kernel);
     guest_kernel_image_t kernel_image_info;
     err = vm_load_guest_kernel(vm, vm_config->files.kernel, vm_config->ram.base,
                                0, &kernel_image_info);
@@ -1224,10 +1216,18 @@ static int main_continued(void)
         return -1;
     }
 
-    /* Load system images */
-    err = load_vm(&vm, &vm_config);
+    /* Install devices */
+    err = install_vm_devices(&vm);
     if (err) {
-        printf("Failed to load VM image\n");
+        ZF_LOGE("Error: Failed to install VM devices\n");
+        seL4_DebugHalt();
+        return -1;
+    }
+
+    /* Load system images */
+    err = load_vm_images(&vm, &vm_config);
+    if (err) {
+        ZF_LOGE("Failed to load VM image\n");
         seL4_DebugHalt();
         return -1;
     }

@@ -1063,6 +1063,72 @@ static int load_generated_dtb(vm_t *vm, uintptr_t paddr, void *addr, size_t size
     return 0;
 }
 
+/* call with print_dtb(fdt, 0, 0) */
+static void print_dtb(void *fdt, int node, int level)
+{
+    const char *indent_str = "  ";
+    if (node > 0) {
+        for (int i = 0; i < level; i++) { printf("%s", indent_str); }
+        printf("%s ", fdt_get_name(fdt, node, NULL));
+    }
+    printf("{\n");
+    int property;
+    fdt_for_each_property_offset(property, fdt, node) {
+        for (int i = 0; i < level+1; i++) { printf("%s", indent_str); }
+        const struct fdt_property *p = fdt_get_property_by_offset(fdt, property, NULL);
+        const char *prop_name = fdt_string(fdt, fdt32_to_cpu(p->nameoff));
+        if (!prop_name) {
+            printf("[NULL NAME]\n");
+            continue;
+        }
+        printf("%s", prop_name);
+        int len = 0;
+        const void *data = fdt_getprop(fdt, node, prop_name, &len);
+        if (len == 0) {
+            printf("\n");
+            continue;
+        }
+        printf(": ");
+        if (!data) {
+            printf("[NULL DATA, LEN %d]\n", len);
+            continue;
+        }
+        const uint8_t *buf = (const uint8_t *)data;
+        extern int util_is_printable_string(const void *data, int len);
+        int is_str = util_is_printable_string(data, len);
+        if (!is_str) {
+            printf("<");
+        }
+        else if (buf[len - 1] != '\0') {
+            printf("[UNTERMINATED STRING]\n");
+            continue;
+        }
+        int num_size = is_str ? 0 : ((len % 4) == 0) ? 4 : 1;
+        int j = 0;
+        while (j < len) {
+            const uint8_t *b = &buf[j];
+            if (is_str) {
+                if (j > 0) { printf(", "); }
+                const char *s = (const char *)b;
+                printf("'%s'", s);
+                j += strlen(s) + 1;
+            } else {
+                if (j > 0) { printf(" "); }
+                printf("0x%x", (num_size == 4) ? fdt32_to_cpu(*((const uint32_t *)b)) : *b);
+                j += num_size;
+            }
+        }
+        printf("%s\n", is_str?"":">");
+    }
+    int subnode;
+    fdt_for_each_subnode(subnode, fdt, node) {
+        print_dtb(fdt, subnode, level + 1);
+    }
+    for (int i = 0; i < level; i++) { printf("%s", indent_str); }
+    printf("}\n");
+}
+
+
 static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
 {
     seL4_Word entry;
@@ -1120,6 +1186,7 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
             return -1;
         }
         ZF_LOGI("Loading Generated DTB");
+        print_dtb(gen_dtb_buf, 0, 0);
         vm_ram_mark_allocated(vm, vm_config->dtb_addr, sizeof(gen_dtb_buf));
         vm_ram_touch(vm, vm_config->dtb_addr, sizeof(gen_dtb_buf), load_generated_dtb,
                      gen_dtb_buf);

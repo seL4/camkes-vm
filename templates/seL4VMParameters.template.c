@@ -24,7 +24,11 @@ const vm_config_t vm_config = {
     .ram = {
         .phys_base = /*? vm_address_config.get('ram_paddr_base') ?*/,
         .base = /*? vm_address_config.get('ram_base') ?*/,
-        .size = /*? vm_address_config.get('ram_size') ?*/,
+        /*- set ram_size = vm_address_config.get('ram_size', '0') -*/
+        /*- if ('0' == ram_size) -*/
+          /*? raise(Exception('RAM size for VM can''t be 0')) ?*/
+        /*- endif -*/
+        .size = /*? ram_size ?*/,
     },
 
     .dtb_addr = /*? vm_address_config.get('dtb_addr') ?*/,

@@ -13,6 +13,8 @@
 
 typedef struct {
 
+    char const *dtb_node_gic;
+
     struct {
         uintptr_t phys_base;
         uintptr_t base;

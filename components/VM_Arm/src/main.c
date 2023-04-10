@@ -77,7 +77,6 @@ extern void *fs_buf;
 int start_extra_frame_caps;
 
 int VM_PRIO = 100;
-int NUM_VCPUS = 1;
 
 #define IRQSERVER_PRIO      (VM_PRIO + 1)
 #define IRQ_MESSAGE_LABEL   0xCAFE
@@ -920,7 +919,8 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
     /* generate a chosen node */
     if (vm_config->generate_dtb) {
         err = fdt_generate_chosen_node(gen_dtb_buf, vm_config->kernel_stdout,
-                                       vm_config->kernel_bootcmdline, NUM_VCPUS);
+                                       vm_config->kernel_bootcmdline,
+                                       vm_config->num_vcpus);
         if (err) {
             ZF_LOGE("Couldn't generate chosen_node (%d)\n", err);
             return -1;
@@ -1234,7 +1234,7 @@ static int main_continued(void)
     assert(!err);
 
     /* Create CPUs and DTB node */
-    for (int i = 0; i < NUM_VCPUS; i++) {
+    for (int i = 0; i < vm_config.num_vcpus; i++) {
         vm_vcpu_t *new_vcpu = create_vmm_plat_vcpu(&vm, VM_PRIO - 1);
         assert(new_vcpu);
     }
@@ -1292,9 +1292,8 @@ static int main_continued(void)
     return 0;
 }
 
-/* base_prio and num_vcpus are optional attributes of the VM component. */
+/* base_prio is an optional attribute of the VM component. */
 extern const int __attribute__((weak)) base_prio;
-extern const int __attribute__((weak)) num_vcpus;
 
 int run(void)
 {
@@ -1302,17 +1301,10 @@ int run(void)
     if (&base_prio != NULL) {
         VM_PRIO = base_prio;
     }
-    /* if the num_vcpus attribute is set, try to use it */
-    if (&num_vcpus != NULL) {
-        if (num_vcpus > CONFIG_MAX_NUM_NODES) {
-            ZF_LOGE("Invalid 'num_vcpus' attribute setting: Exceeds maximum number of supported nodes. Capping value to CONFIG_MAX_NUM_NODES (%d)",
-                    CONFIG_MAX_NUM_NODES);
-            NUM_VCPUS = CONFIG_MAX_NUM_NODES;
-        } else if (num_vcpus <= 0) {
-            ZF_LOGE("Invalid 'num_vcpus' attribute setting: Can't have 0 or negative amount of vcpus. Capping value to 1 vcpu (default value)");
-        } else {
-            NUM_VCPUS = num_vcpus;
-        }
+
+    if (vm_config.num_vcpus > CONFIG_MAX_NUM_NODES) {
+        ZF_LOGW("Number of VCPUs (%u) exceeds CONFIG_MAX_NUM_NODES (%u)",
+                vm_config.num_vcpus, CONFIG_MAX_NUM_NODES);
     }
 
     return main_continued();

@@ -13,6 +13,8 @@
 
 typedef struct {
 
+    unsigned int num_vcpus;
+
     struct {
         uintptr_t phys_base;
         uintptr_t base;

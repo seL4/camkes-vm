@@ -3,6 +3,9 @@
  * Copyright 2022, Technology Innovation Institute
  *
  * SPDX-License-Identifier: BSD-2-Clause
+ *
+ * foo
+ *
  */
 #include <autoconf.h>
 #include <arm_vm/gen_config.h>

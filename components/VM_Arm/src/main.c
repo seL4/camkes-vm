@@ -863,12 +863,6 @@ static int vm_dtb_init(vm_t *vm, const vm_config_t *vm_config)
 
     /* Now the DTB is in gen_dtb_buf and all manipulation must happen there. */
 
-    err = fdt_generate_plat_vcpu_node(vm, gen_dtb_buf);
-    if (err) {
-        ZF_LOGE("Couldn't generate plat_vcpu_node, error %d", err);
-        return -1;
-    }
-
     /* generate a memory node */
     err = fdt_generate_memory_node(gen_dtb_buf, vm_config->ram.base,
                                    vm_config->ram.size);
@@ -1267,10 +1261,17 @@ static int main_continued(void)
         return -1;
     }
 
+    /* Create CPUs */
     for (int i = 0; i < NUM_VCPUS; i++) {
         vm_vcpu_t *new_vcpu = create_vmm_plat_vcpu(&vm, VM_PRIO - 1);
         assert(new_vcpu);
     }
+    err = fdt_generate_plat_vcpu_node(&vm, gen_dtb_buf);
+    if (err) {
+        ZF_LOGE("Couldn't generate plat_vcpu_node (%d)", err);
+        return -1;
+    }
+
     vm_vcpu_t *vm_vcpu = vm.vcpus[BOOT_VCPU];
     err = vm_assign_vcpu_target(vm_vcpu, 0);
     if (err) {

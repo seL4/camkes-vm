@@ -784,11 +784,12 @@ static int vm_dtb_init(vm_t *vm, const vm_config_t *vm_config)
      */
     if ((NULL != vm_config->files.dtb_base) && ('\0' != vm_config->files.dtb_base[0])) {
         int dtb_fd = open(vm_config->files.dtb_base, 0);
-        ZF_LOGI("using DTB file '%s' as base", vm_config->files.dtb_base);
+        ZF_LOGE("using DTB file '%s' as base", vm_config->files.dtb_base);
         /* If dtb_base is in the file server, grab it and use it as a base */
         if (dtb_fd < 0) {
             ZF_LOGE("opening DTB file failed (%d)", dtb_fd);
         } else {
+            ZF_LOGE("read dtb_base...");
             size_t dtb_len = read(dtb_fd, gen_dtb_base_buf, DTB_BUFFER_SIZE);
             close(dtb_fd);
             if (dtb_len <= 0) {
@@ -805,6 +806,8 @@ static int vm_dtb_init(vm_t *vm, const vm_config_t *vm_config)
         return 0;
     }
 
+    ZF_LOGE("init generate_dtb...");
+
     ZF_LOGW_IF(!fdt_ori, "No base DTB set");
 
     fdtgen_context_t *context = fdtgen_new_context(gen_dtb_buf, sizeof(gen_dtb_buf));
@@ -819,6 +822,7 @@ static int vm_dtb_init(vm_t *vm, const vm_config_t *vm_config)
     if (camkes_dtb_get_plat_keep_devices) {
         keep_devices = camkes_dtb_get_plat_keep_devices(&num_keep_devices);
     }
+    ZF_LOGE("init num_keep_devices %d", num_keep_devices);
     if (num_keep_devices) {
         fdtgen_keep_nodes(context, (const char **)keep_devices, num_keep_devices);
     } else {
@@ -831,17 +835,21 @@ static int vm_dtb_init(vm_t *vm, const vm_config_t *vm_config)
     if (camkes_dtb_get_plat_keep_devices_and_subtree) {
         keep_devices_and_subtree = camkes_dtb_get_plat_keep_devices_and_subtree(&num_keep_devices_and_subtree);
     }
+    ZF_LOGE("init num_keep_devices_and_subtree %d", num_keep_devices_and_subtree);
     if (num_keep_devices_and_subtree) {
         for (int i = 0; i < num_keep_devices_and_subtree; i++) {
+            ZF_LOGE("init fdtgen_keep_node_subtree %d", i);
             fdtgen_keep_node_subtree(context, fdt_ori, keep_devices_and_subtree[i]);
         }
     } else {
         for (int i = 0; i < ARRAY_SIZE(plat_keep_device_and_subtree); i++) {
+            ZF_LOGE("init fdtgen_keep_node_subtree plat %d", i);
             fdtgen_keep_node_subtree(context, fdt_ori, plat_keep_device_and_subtree[i]);
         }
     }
 
     for (int i = 0; i < ARRAY_SIZE(plat_keep_device_and_subtree_and_disable); i++) {
+        ZF_LOGE("init fdtgen_keep_node_subtree_disable plat %d", i);
         fdtgen_keep_node_subtree_disable(context, fdt_ori, plat_keep_device_and_subtree_and_disable[i]);
     }
     fdtgen_keep_nodes_and_disable(context, plat_keep_device_and_disable, ARRAY_SIZE(plat_keep_device_and_disable));
@@ -851,6 +859,7 @@ static int vm_dtb_init(vm_t *vm, const vm_config_t *vm_config)
     if (camkes_dtb_get_node_paths) {
         paths = camkes_dtb_get_node_paths(&num_paths);
     }
+    ZF_LOGE("init num_pathst %d", num_paths);
     fdtgen_keep_nodes(context, (const char **)paths, num_paths);
 
     /* build a DTB in gen_dtb_buf */
@@ -899,6 +908,7 @@ static int vm_dtb_finalize(vm_t *vm, const vm_config_t *vm_config)
         }
     }
 
+    ZF_LOGE("fdt_pack...");
     fdt_pack(gen_dtb_buf);
     return 0;
 }
@@ -915,36 +925,36 @@ static void print_dtb(void *fdt, int node, int level)
 {
     const char *indent_str = "  ";
     if (node > 0) {
-        for (int i = 0; i < level; i++) { printf("%s", indent_str); }
-        printf("%s ", fdt_get_name(fdt, node, NULL));
+        for (int i = 0; i < level; i++) { ZF_LOGE("%s", indent_str); }
+        ZF_LOGE("%s ", fdt_get_name(fdt, node, NULL));
     }
-    printf("{\n");
+    ZF_LOGE("{");
     int property;
     fdt_for_each_property_offset(property, fdt, node) {
-        for (int i = 0; i < level+1; i++) { printf("%s", indent_str); }
+        for (int i = 0; i < level+1; i++) { ZF_LOGE("%s", indent_str); }
         const struct fdt_property *p = fdt_get_property_by_offset(fdt, property, NULL);
         const char *prop_name = fdt_string(fdt, fdt32_to_cpu(p->nameoff));
         if (!prop_name) {
-            printf("<NULL NAME>\n");
+            ZF_LOGE("<NULL NAME>");
             continue;
         }
-        printf("%s", prop_name);
+        ZF_LOGE("%s", prop_name);
         int len = 0;
         const void *data = fdt_getprop(fdt, node, prop_name, &len);
         if (len == 0) {
-            printf("\n");
+            ZF_LOGE("");
             continue;
         }
-        printf(": ");
+        ZF_LOGE(": ");
         if (!data) {
-            printf("<NULL DATA, LEN %d>\n", len);
+            ZF_LOGE("<NULL DATA, LEN %d>", len);
             continue;
         }
         extern int util_is_printable_string(const void *data, int len);
         int is_str = util_is_printable_string(data, len);
         const uint8_t *buf = (const uint8_t *)data;
         if (is_str && (buf[len - 1] != '\0')) {
-            printf("<UNTERMINATED STRING>\n");
+            ZF_LOGE("<UNTERMINATED STRING>");
             continue;
         }
         int size = ((len % 4) == 0) ? 4 : 1;
@@ -952,24 +962,24 @@ static void print_dtb(void *fdt, int node, int level)
         while (j < len) {
             const uint8_t *b = &buf[j];
             if (is_str) {
-                if (j > 0) { printf(","); }
+                if (j > 0) { ZF_LOGE(","); }
                 const char *s = (const char *)b;
-                printf("'%s'", s);
+                ZF_LOGE("'%s'", s);
                 j += strlen(s) + 1;
             } else {
-                if (j > 0) { printf(" "); }
-                printf("0x%x", (size == 4) ? fdt32_to_cpu(*((const uint32_t *)b)) : *b);
+                if (j > 0) { ZF_LOGE(" "); }
+                ZF_LOGE("0x%x", (size == 4) ? fdt32_to_cpu(*((const uint32_t *)b)) : *b);
                 j += size;
             }
         }
-        printf("\n");
+        ZF_LOGE("");
     }
     int subnode;
     fdt_for_each_subnode(subnode, fdt, node) {
         print_dtb(fdt, subnode, level + 1);
     }
-    for (int i = 0; i < level; i++) { printf("%s", indent_str); }
-    printf("}\n");
+    for (int i = 0; i < level; i++) { ZF_LOGE("%s", indent_str); }
+    ZF_LOGE("}");
 }
 
 
@@ -980,7 +990,7 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
     int err;
 
     /* Load kernel */
-    ZF_LOGI("Loading Kernel: '%s'", vm_config->files.kernel);
+    ZF_LOGE("Loading Kernel: '%s'", vm_config->files.kernel);
     guest_kernel_image_t kernel_image_info;
     err = vm_load_guest_kernel(vm, vm_config->files.kernel, vm_config->ram.base,
                                0, &kernel_image_info);
@@ -1002,7 +1012,7 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
     /* Attempt to load initrd if provided */
     guest_image_t initrd_image;
     if (vm_config->provide_initrd) {
-        ZF_LOGI("Loading Initrd: '%s'", vm_config->files.initrd);
+        ZF_LOGE("Loading Initrd: '%s'", vm_config->files.initrd);
         err = vm_load_guest_module(vm, vm_config->files.initrd,
                                    vm_config->initrd_addr, 0, &initrd_image);
         void *initrd = (void *)initrd_image.load_paddr;
@@ -1023,19 +1033,20 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
     if (vm_config->generate_dtb) {
         ZF_LOGW_IF(vm_config->provide_dtb,
                    "provide_dtb and generate_dtb are both set. The provided dtb will NOT be loaded");
+        ZF_LOGE("vm_dtb_finalize...");
         err = vm_dtb_finalize(vm, vm_config);
         if (err) {
             ZF_LOGE("Couldn't generate DTB (%d)", err);
             return -1;
         }
-        ZF_LOGI("Loading Generated DTB");
+        ZF_LOGE("Loading Generated DTB");
         print_dtb(gen_dtb_buf, 0, 0);
         vm_ram_mark_allocated(vm, vm_config->dtb_addr, sizeof(gen_dtb_buf));
         vm_ram_touch(vm, vm_config->dtb_addr, sizeof(gen_dtb_buf), load_generated_dtb,
                      gen_dtb_buf);
         dtb = vm_config->dtb_addr;
     } else if (vm_config->provide_dtb) {
-        ZF_LOGI("Loading DTB: '%s'", vm_config->files.dtb);
+        ZF_LOGE("Loading DTB: '%s'", vm_config->files.dtb);
 
         /* Load device tree */
         guest_image_t dtb_image;
@@ -1241,29 +1252,34 @@ static int main_continued(void)
     /* DTB initialization requires a running file server, as the DTB could be
      * based on a DTB file taken from there.
      */
+    ZF_LOGE("vm_dtb_init...");
     err = vm_dtb_init(&vm, &vm_config);
     if (err) {
         ZF_LOGE("Failed to init DTB (%d)", err);
         return -1;
     }
 
+    ZF_LOGE("vmm_pci_init...");
     err = vmm_pci_init(&pci);
     if (err) {
         ZF_LOGE("Failed to initialise vmm pci");
         return err;
     }
 
+    ZF_LOGE("vmm_io_port_init...");
     err = vmm_io_port_init(&io_ports, FREE_IOPORT_START);
     if (err) {
         ZF_LOGE("Failed to initialise VM ioports");
         return err;
     }
 
+    ZF_LOGE("vmm_init...");
     err = vmm_init(&vm_config);
     if (err) {
         ZF_LOGE("VMM init failed (%d)", err);
         return -1;
     }
+
 
     /* Create the VM */
     err = vm_init(&vm, &_vka, &_simple, _vspace, &_io_ops, _fault_endpoint, get_instance_name());
@@ -1284,7 +1300,9 @@ static int main_continued(void)
         return -1;
     }
 
+
     /* basic configuration flags */
+    ZF_LOGE("basic vm setup...");
     vm.entry = vm_config.entry_addr;
     vm.mem.clean_cache = vm_config.clean_cache;
     vm.mem.map_one_to_one = vm_config.map_one_to_one; /* Map memory 1:1 if configured to do so */
@@ -1319,6 +1337,7 @@ static int main_continued(void)
     ZF_LOGF_IF(err, "Failed to bind CB to SID");
 #endif /* CONFIG_ARM_SMMU */
 
+    ZF_LOGE("vm_create_default_irq_controller...");
     err = vm_create_default_irq_controller(&vm);
     if (err) {
         ZF_LOGE("Couldn't create default IRQ controller (%d)", err);
@@ -1326,17 +1345,22 @@ static int main_continued(void)
     }
 
     /* Create CPUs */
+    ZF_LOGE("Creating %d vCPUs", NUM_VCPUS);
     for (int i = 0; i < NUM_VCPUS; i++) {
+        ZF_LOGE("Creating vCPU #%d", i);
         vm_vcpu_t *new_vcpu = create_vmm_plat_vcpu(&vm, VM_PRIO - 1);
         assert(new_vcpu);
     }
+    ZF_LOGE("fdt_generate_plat_vcpu_node ... ");
     err = fdt_generate_plat_vcpu_node(&vm, gen_dtb_buf);
     if (err) {
         ZF_LOGE("Couldn't generate plat_vcpu_node (%d)", err);
+        print_dtb(gen_dtb_buf, 0, 0);
         return -1;
     }
 
     vm_vcpu_t *vm_vcpu = vm.vcpus[BOOT_VCPU];
+    ZF_LOGE("vBOOT_VCPU #%d is %p ... ", BOOT_VCPU, vm_vcpu);
     err = vm_assign_vcpu_target(vm_vcpu, 0);
     if (err) {
         ZF_LOGE("Couldn't assign boot CPU (%d)", err);
@@ -1346,11 +1370,12 @@ static int main_continued(void)
     /* Route IRQs */
     err = route_irqs(vm_vcpu, _irq_server);
     if (err) {
-        ZF_LOGE("Couldn't rout IRQs (%d)", err);
+        ZF_LOGE("Couldn't route IRQs (%d)", err);
         return -1;
     }
 
     /* Install devices */
+    ZF_LOGE("install_vm_devices...");
     err = install_vm_devices(&vm, &vm_config);
     if (err) {
         ZF_LOGE("Error: Failed to install VM devices (%d)", err);
@@ -1358,12 +1383,14 @@ static int main_continued(void)
     }
 
     /* Load system images */
+    ZF_LOGE("load_vm_images...");
     err = load_vm_images(&vm, &vm_config);
     if (err) {
         ZF_LOGE("Failed to load VM image (%d)", err);
         return -1;
     }
 
+    ZF_LOGE("vcpu_start...");
     err = vcpu_start(vm_vcpu);
     if (err) {
         ZF_LOGE("Failed to start Boot VCPU (%d)", err);

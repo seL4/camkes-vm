@@ -84,10 +84,6 @@ int NUM_VCPUS = 1;
 
 #define DMA_VSTART  0x40000000
 
-#ifndef DEBUG_BUILD
-#define seL4_DebugHalt() do{ printf("Halting...\n"); while(1); } while(0)
-#endif
-
 vka_t _vka;
 simple_t _simple;
 vspace_t _vspace;
@@ -145,8 +141,8 @@ static int _dma_morecore(size_t min_size, int cached, struct dma_mem_descriptor 
 
     /* Create a frame */
     frame = vka_alloc_frame_leaky(vka, seL4_PageBits);
-    assert(frame);
     if (!frame) {
+        ZF_LOGE("Failed to allocate frame");
         return -1;
     }
 
@@ -157,19 +153,19 @@ static int _dma_morecore(size_t min_size, int cached, struct dma_mem_descriptor 
         /* Allocate a page table */
         pt = vka_alloc_page_table_leaky(vka);
         if (!pt) {
-            printf("Failed to create page table\n");
+            ZF_LOGE("Failed to create page table");
             return -1;
         }
         /* Map the page table */
         err = seL4_ARM_PageTable_Map(pt, pd, _vaddr, 0);
         if (err) {
-            printf("Failed to map page table\n");
+            ZF_LOGE("Failed to map page table (%d)", err);
             return -1;
         }
         /* Try to map the page again */
         err = seL4_ARM_Page_Map(frame, pd, _vaddr, seL4_AllRights, 0);
         if (err) {
-            printf("Failed to map page\n");
+            ZF_LOGE("Failed to map page (%d)", err);
             return -1;
         }
 
@@ -177,7 +173,10 @@ static int _dma_morecore(size_t min_size, int cached, struct dma_mem_descriptor 
 
     /* Find the physical address of the page */
     getaddr_ret = seL4_ARM_Page_GetAddress(frame);
-    assert(!getaddr_ret.error);
+    if (getaddr_ret.error) {
+        ZF_LOGE("Failed to get page address(%d)", getaddr_ret.error);
+        return -1;
+    }
     /* Setup dma memory description */
     dma_desc->vaddr = _vaddr;
     dma_desc->paddr = getaddr_ret.paddr;
@@ -221,8 +220,7 @@ static void *vm_map_paddr_with_page_size(vm_io_cookie_t *io_mapper, uintptr_t pa
         /* allocate a cslot */
         int error = vka_cspace_alloc(vka, &frames[i]);
         if (error) {
-            ZF_LOGE("cspace alloc failed");
-            assert(error == 0);
+            ZF_LOGE("cspace alloc failed (%d)", error);
             /* we don't clean up as everything has gone to hell */
             return NULL;
         }
@@ -426,9 +424,9 @@ static bool add_uts(const vm_config_t *vm_config, vka_t *vka, seL4_CPtr cap,
      *       ALLOCMAN_UT_DEV_MEM is, whether the UT can be requested from the
      *       allocator without providing it's backing physical address. Since
      *       UTs from the guest RAM region are supposed to be requested using
-     *       the physical address anyway, there seem not reason why they can't
+     *       the physical address anyway, there seems not reason why they can't
      *       be in the ALLOCMAN_UT_DEV pool, too.
-     *       The only know use case where this matters is on the NVidia TK1
+     *       The only known use case where this matters is on the NVidia TK1
      *       platform. It has a SMMU, so in order to use RAM in a VM, there is
      *       no need for VMs to have their RAM addresses match the physical RAM
      *       addresses (VM config option "map_one_to_one"). However, it is a
@@ -447,6 +445,7 @@ static bool add_uts(const vm_config_t *vm_config, vka_t *vka, seL4_CPtr cap,
                   : ALLOCMAN_UT_DEV;
 
     allocman_t *allocman = vka->data;
+    assert(allocman);
 
     return allocman_utspace_add_uts(allocman, 1, &path, &size_bits, &paddr,
                                     ut_type);
@@ -505,7 +504,11 @@ static int vmm_init(const vm_config_t *vm_config)
         bool is_device;
         seL4_CPtr cap = simple_get_nth_untyped(simple, i, &size_bits, &paddr, &is_device);
         err = add_uts(vm_config, vka, cap, paddr, size_bits, is_device);
-        assert(!err);
+        if (err) {
+            ZF_LOGE("Failed to add simple untyped #%d [paddr %p, size 2^%zs, isDev=%d] (%d)",
+                    i, (void *)paddr, size_bits, is_device, err);
+            return -1;
+        }
     }
 
     if (camkes_dtb_untyped_count) {
@@ -520,12 +523,17 @@ static int vmm_init(const vm_config_t *vm_config)
             seL4_CPtr cap = camkes_dtb_get_nth_untyped(i, &size_bits, &paddr);
             /* These UTs are considered device untypeds */
             err = add_uts(vm_config, vka, cap, paddr, size_bits, true);
-            assert(!err);
+            if (err) {
+                ZF_LOGE("Failed to add CAmkES DTB untyped #%d [paddr %p, size 2^%zs] (%d)",
+                        i, (void *)paddr, size_bits, err);
+                return -1;
+            }
         }
     }
     /* Initialize the vspace */
     err = sel4utils_bootstrap_vspace(vspace, &_alloc_data,
-                                     simple_get_init_cap(simple, seL4_CapInitThreadPD), vka, NULL, NULL, existing_frames);
+                                     simple_get_init_cap(simple, seL4_CapInitThreadPD),
+                                     vka, NULL, NULL, existing_frames);
     assert(!err);
 
     /* Initialise device support */
@@ -865,7 +873,7 @@ static int vm_dtb_init(vm_t *vm, const vm_config_t *vm_config)
     err = fdt_generate_memory_node(gen_dtb_buf, vm_config->ram.base,
                                    vm_config->ram.size);
     if (err) {
-        ZF_LOGE("Couldn't generate memory_node (%d)\n", err);
+        ZF_LOGE("Couldn't generate memory_node (%d)", err);
         return -1;
     }
 
@@ -915,7 +923,7 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
     int err;
 
     /* Load kernel */
-    printf("Loading Kernel: \'%s\'\n", vm_config->files.kernel);
+    ZF_LOGI("Loading Kernel: '%s'", vm_config->files.kernel);
     guest_kernel_image_t kernel_image_info;
     err = vm_load_guest_kernel(vm, vm_config->files.kernel, vm_config->ram.base,
                                0, &kernel_image_info);
@@ -929,7 +937,7 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
         err = fdt_generate_chosen_node(gen_dtb_buf, vm_config->kernel_stdout,
                                        vm_config->kernel_bootcmdline, NUM_VCPUS);
         if (err) {
-            ZF_LOGE("Couldn't generate chosen_node (%d)\n", err);
+            ZF_LOGE("Couldn't generate chosen_node (%d)", err);
             return -1;
         }
     }
@@ -937,7 +945,7 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
     /* Attempt to load initrd if provided */
     guest_image_t initrd_image;
     if (vm_config->provide_initrd) {
-        printf("Loading Initrd: \'%s\'\n", vm_config->files.initrd);
+        ZF_LOGI("Loading Initrd: '%s'", vm_config->files.initrd);
         err = vm_load_guest_module(vm, vm_config->files.initrd,
                                    vm_config->initrd_addr, 0, &initrd_image);
         void *initrd = (void *)initrd_image.load_paddr;
@@ -949,7 +957,7 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
                                                           vm_config->initrd_addr,
                                                           initrd_image.size);
             if (err) {
-                ZF_LOGE("Couldn't generate chosen_node_with_initrd_info (%d)\n", err);
+                ZF_LOGE("Couldn't generate chosen_node_with_initrd_info (%d)", err);
                 return -1;
             }
         }
@@ -960,16 +968,16 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
                    "provide_dtb and generate_dtb are both set. The provided dtb will NOT be loaded");
         err = vm_dtb_finalize(vm, vm_config);
         if (err) {
-            ZF_LOGE("Couldn't generate DTB (%d)\n", err);
+            ZF_LOGE("Couldn't generate DTB (%d)", err);
             return -1;
         }
-        printf("Loading Generated DTB\n");
+        ZF_LOGI("Loading Generated DTB");
         vm_ram_mark_allocated(vm, vm_config->dtb_addr, sizeof(gen_dtb_buf));
         vm_ram_touch(vm, vm_config->dtb_addr, sizeof(gen_dtb_buf), load_generated_dtb,
                      gen_dtb_buf);
         dtb = vm_config->dtb_addr;
     } else if (vm_config->provide_dtb) {
-        printf("Loading DTB: \'%s\'\n", vm_config->files.dtb);
+        ZF_LOGI("Loading DTB: '%s'", vm_config->files.dtb);
 
         /* Load device tree */
         guest_image_t dtb_image;
@@ -987,7 +995,7 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
     /* Set boot arguments */
     err = vcpu_set_bootargs(vm->vcpus[BOOT_VCPU], entry, MACH_TYPE, dtb);
     if (err) {
-        printf("Error: Failed to set boot arguments\n");
+        ZF_LOGE("Error: Failed to set boot arguments (%d)", err);
         return -1;
     }
 
@@ -1057,7 +1065,7 @@ static int alloc_vm_device_cap(uintptr_t addr, vm_t *vm, vm_frame_t *frame_resul
     cspacepath_t frame;
     err = vka_cspace_alloc_path(vm->vka, &frame);
     if (err) {
-        ZF_LOGE("Failed to allocate cslot\n");
+        ZF_LOGE("Failed to allocate cslot (%d)", err);
         return -1;
     }
     seL4_Word cookie;
@@ -1067,7 +1075,7 @@ static int alloc_vm_device_cap(uintptr_t addr, vm_t *vm, vm_frame_t *frame_resul
         ZF_LOGV("Grabbing the entire cap for device memory");
         err = simple_get_frame_cap(vm->simple, (void *)addr, seL4_PageBits, &frame);
         if (err) {
-            ZF_LOGV("Failed to grab the entire cap for addr 0x%"PRIxPTR, addr);
+            ZF_LOGV("Failed to grab the entire cap for addr %p", (void *)addr);
             return -1;
         }
     }
@@ -1085,7 +1093,7 @@ static int alloc_vm_ram_cap(uintptr_t addr, vm_t *vm, vm_frame_t *frame_result)
     vka_object_t frame_obj;
     err = vka_alloc_frame_maybe_device(vm->vka, seL4_PageBits, true, &frame_obj);
     if (err) {
-        ZF_LOGF("Failed vka_alloc_frame_maybe_device");
+        ZF_LOGF("Failed vka_alloc_frame_maybe_device (%d)", err);
         return -1;
     }
     vka_cspace_make_path(vm->vka, frame_obj.cptr, &frame);
@@ -1105,15 +1113,17 @@ static vm_frame_t on_demand_iterator(uintptr_t addr, void *cookie)
     /* Attempt allocating device memory */
     err = alloc_vm_device_cap(paddr, vm, &frame_result);
     if (!err) {
-        printf("OnDemandInstall: Created device-backed memory for addr 0x%"PRIxPTR"\n", addr);
+        ZF_LOGE("OnDemandInstall: Created device-backed memory for addr %p",
+                (void *)addr);
         return frame_result;
     }
     /* Attempt allocating ram memory */
     err = alloc_vm_ram_cap(paddr, vm, &frame_result);
     if (err) {
-        ZF_LOGE("Failed to create on demand memory for addr 0x%"PRIxPTR, addr);
+        ZF_LOGE("Failed to create on demand memory for addr %p (%d)",
+                (void *)addr, err);
     }
-    printf("OnDemandInstall: Created RAM-backed memory for addr 0x%"PRIxPTR"\n", addr);
+    ZF_LOGE("OnDemandInstall: Created RAM-backed memory for addr %p", (void *)addr);
     return frame_result;
 }
 
@@ -1121,7 +1131,7 @@ static memory_fault_result_t handle_on_demand_fault_callback(vm_t *vm, vm_vcpu_t
                                                              size_t fault_length,
                                                              void *cookie)
 {
-    ZF_LOGE("Fault for on demand memory region: 0x%"PRIxPTR, fault_addr);
+    ZF_LOGE("Fault for on demand memory region: %p", (void *)fault_addr);
     return FAULT_ERROR;
 }
 
@@ -1142,7 +1152,7 @@ memory_fault_result_t unhandled_mem_fault_callback(vm_t *vm, vm_vcpu_t *vcpu,
         if (!mapped) {
             return FAULT_RESTART;
         }
-        ZF_LOGW("Unhandled fault on address 0x%"PRIxPTR, addr);
+        ZF_LOGW("Unhandled fault on address %p", (void *)addr);
     }
 #endif
     return FAULT_ERROR;
@@ -1157,7 +1167,7 @@ static int main_continued(void)
     while (setjmp(restart_jmp_buf) != 0) {
         err = vmm_process_reboot_callbacks(&vm, &reboot_hooks_list);
         if (err) {
-            ZF_LOGF("vm_process_reboot_callbacks failed: %d", err);
+            ZF_LOGF("vm_process_reboot_callbacks failed (%d)", err);
         }
         reset_resources();
     }
@@ -1192,15 +1202,29 @@ static int main_continued(void)
     }
 
     err = vmm_init(&vm_config);
-    assert(!err);
+    if (err) {
+        ZF_LOGE("VMM init failed (%d)", err);
+        return -1;
+    }
 
     /* Create the VM */
     err = vm_init(&vm, &_vka, &_simple, _vspace, &_io_ops, _fault_endpoint, get_instance_name());
-    assert(!err);
+    if (err) {
+        ZF_LOGE("VM init failed (%d)", err);
+        return -1;
+    }
+
     err = vm_register_unhandled_mem_fault_callback(&vm, unhandled_mem_fault_callback, NULL);
-    assert(!err);
+    if (err) {
+        ZF_LOGE("vm_register_unhandled_mem_fault_callback failed (%d)", err);
+        return -1;
+    }
+
     err = vm_register_notification_callback(&vm, handle_async_event, NULL);
-    assert(!err);
+    if (err) {
+        ZF_LOGE("vm_register_notification_callback failed (%d)", err);
+        return -1;
+    }
 
     /* basic configuration flags */
     vm.entry = vm_config.entry_addr;
@@ -1238,7 +1262,10 @@ static int main_continued(void)
 #endif /* CONFIG_ARM_SMMU */
 
     err = vm_create_default_irq_controller(&vm);
-    assert(!err);
+    if (err) {
+        ZF_LOGE("Couldn't create default IRQ controller (%d)", err);
+        return -1;
+    }
 
     for (int i = 0; i < NUM_VCPUS; i++) {
         vm_vcpu_t *new_vcpu = create_vmm_plat_vcpu(&vm, VM_PRIO - 1);
@@ -1247,42 +1274,41 @@ static int main_continued(void)
     vm_vcpu_t *vm_vcpu = vm.vcpus[BOOT_VCPU];
     err = vm_assign_vcpu_target(vm_vcpu, 0);
     if (err) {
+        ZF_LOGE("Couldn't assign boot CPU (%d)", err);
         return -1;
     }
 
     /* Route IRQs */
     err = route_irqs(vm_vcpu, _irq_server);
     if (err) {
+        ZF_LOGE("Couldn't rout IRQs (%d)", err);
         return -1;
     }
 
     /* Install devices */
     err = install_vm_devices(&vm, &vm_config);
     if (err) {
-        ZF_LOGE("Error: Failed to install VM devices\n");
-        seL4_DebugHalt();
+        ZF_LOGE("Error: Failed to install VM devices (%d)", err);
         return -1;
     }
 
     /* Load system images */
     err = load_vm_images(&vm, &vm_config);
     if (err) {
-        ZF_LOGE("Failed to load VM image\n");
-        seL4_DebugHalt();
+        ZF_LOGE("Failed to load VM image (%d)", err);
         return -1;
     }
 
     err = vcpu_start(vm_vcpu);
     if (err) {
-        ZF_LOGE("Failed to start Boot VCPU");
+        ZF_LOGE("Failed to start Boot VCPU (%d)", err);
         return -1;
     }
 
     while (1) {
         err = vm_run(&vm);
         if (err) {
-            ZF_LOGE("Failed to run VM");
-            seL4_DebugHalt();
+            ZF_LOGE("Failed to run VM (%d)", err);
             return -1;
         }
     }
@@ -1313,5 +1339,9 @@ int run(void)
         }
     }
 
-    return main_continued();
+    int err = main_continued();
+    if (err) {
+        ZF_LOGE("VMM failure (%d)", err);
+        return -1;
+    }
 }

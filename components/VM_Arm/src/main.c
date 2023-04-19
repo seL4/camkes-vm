@@ -596,11 +596,10 @@ void reset_resources(void)
 {
     simple_t simple;
     camkes_make_simple(&simple);
-    int i;
     seL4_CPtr root = simple_get_cnode(&simple);
     int error;
     /* revoke any of our initial untyped resources */
-    for (i = 0; i < simple_get_untyped_count(&simple); i++) {
+    for (int i = 0; i < simple_get_untyped_count(&simple); i++) {
         size_t size_bits;
         uintptr_t paddr;
         bool device;
@@ -609,7 +608,7 @@ void reset_resources(void)
         assert(error == seL4_NoError);
     }
     /* delete anything from any slots that should be empty */
-    for (i = simple_last_valid_cap(&simple) + 1; i < BIT(simple_get_cnode_size_bits(&simple)); i++) {
+    for (int i = simple_last_valid_cap(&simple) + 1; i < BIT(simple_get_cnode_size_bits(&simple)); i++) {
         seL4_CNode_Delete(root, i, 32);
     }
     /* save some pieces of the bss that we actually don't want to zero */
@@ -742,8 +741,7 @@ static int route_irq(int irq_num, vm_vcpu_t *vcpu, irq_server_t *irq_server)
 static int route_irqs(vm_vcpu_t *vcpu, irq_server_t *irq_server)
 {
     int err;
-    int i;
-    for (i = 0; i < ARRAY_SIZE(linux_pt_irqs); i++) {
+    for (int i = 0; i < ARRAY_SIZE(linux_pt_irqs); i++) {
         int irq_num = linux_pt_irqs[i];
         err = route_irq(irq_num, vcpu, irq_server);
         if (err) {
@@ -753,7 +751,7 @@ static int route_irqs(vm_vcpu_t *vcpu, irq_server_t *irq_server)
     if (camkes_dtb_get_irqs) {
         int num_dtb_irqs = 0;
         int *dtb_irqs = camkes_dtb_get_irqs(&num_dtb_irqs);
-        for (i = 0; i < num_dtb_irqs; i++) {
+        for (int i = 0; i < num_dtb_irqs; i++) {
             int irq_num = dtb_irqs[i];
             err = route_irq(irq_num, vcpu, irq_server);
             if (err) {

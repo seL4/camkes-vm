@@ -205,6 +205,7 @@ typedef struct vm_io_cookie {
 static void *vm_map_paddr_with_page_size(vm_io_cookie_t *io_mapper, uintptr_t paddr, size_t size, int page_size_bits,
                                          int cached)
 {
+    assert(size > 0);
 
     vka_t *vka = &io_mapper->vka;
     vspace_t *vspace = &io_mapper->vspace;
@@ -218,6 +219,7 @@ static void *vm_map_paddr_with_page_size(vm_io_cookie_t *io_mapper, uintptr_t pa
 
     /* calculate number of pages */
     unsigned int num_pages = ROUND_UP(size, page_size) >> page_size_bits;
+    assert(num_pages > 0);
     assert(num_pages << page_size_bits >= size);
     seL4_CPtr frames[num_pages];
     seL4_Word cookies[num_pages];
@@ -227,9 +229,9 @@ static void *vm_map_paddr_with_page_size(vm_io_cookie_t *io_mapper, uintptr_t pa
         /* allocate a cslot */
         int error = vka_cspace_alloc(vka, &frames[i]);
         if (error) {
-            ZF_LOGE("cspace alloc failed (%d)", error);
             /* we don't clean up as everything has gone to hell */
-            return NULL;
+            ZF_LOGF("cspace alloc failed (%d)", error);
+            UNREACHABLE();
         }
 
         /* create a path */
@@ -239,26 +241,30 @@ static void *vm_map_paddr_with_page_size(vm_io_cookie_t *io_mapper, uintptr_t pa
         error = vka_utspace_alloc_at(vka, &path, kobject_get_type(KOBJECT_FRAME, page_size_bits), page_size_bits,
                                      start + (i * page_size), &cookies[i]);
 
-        if (error) {
-            cookies[i] = -1;
-            error = simple_get_frame_cap(simple, (void *)start + (i * page_size), page_size_bits, &path);
-            if (error) {
-                /* free this slot, and then do general cleanup of the rest of the slots.
-                 * this avoids a needless seL4_CNode_Delete of this slot, as there is no
-                 * cap in it */
-                vka_cspace_free(vka, frames[i]);
-                num_pages = i;
-                goto error;
-            }
+        if (!error) {
+            break;
         }
 
-    }
+        cookies[i] = -1;
+        error = simple_get_frame_cap(simple, (void *)start + (i * page_size), page_size_bits, &path);
+        if (!error) {
+            break;
+        }
+
+        /* free this slot, and then do general cleanup of the rest of the slots.
+         * this avoids a needless seL4_CNode_Delete of this slot, as there is no
+         * cap in it */
+        vka_cspace_free(vka, frames[i]);
+        num_pages = i;
+        goto error;
+    } /* end loop over pages */
 
     /* Now map the frames in */
     void *vaddr = vspace_map_pages(vspace, frames, NULL, seL4_AllRights, num_pages, page_size_bits, cached);
     if (vaddr) {
         return vaddr + offset;
     }
+
 error:
     for (unsigned int i = 0; i < num_pages; i++) {
         cspacepath_t path;

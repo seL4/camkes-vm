@@ -857,6 +857,36 @@ static int route_irqs(vm_vcpu_t *vcpu, irq_server_t *irq_server)
     return 0;
 }
 
+static int vm_create_vcpus(vm_t *vm, const vm_config_t *vm_config,
+                           irq_server_t *irq_server)
+{
+    int err;
+
+    ZF_LOGI("Starting %d vCPUs", vm_config->num_vcpus);
+    for (int i = 0; i < vm_config->num_vcpus; i++) {
+        vm_vcpu_t *vcpu = create_vmm_plat_vcpu(vm, VM_PRIO - 1);
+        assert(vcpu);
+    }
+
+    vm_vcpu_t *vcpu_boot = vm_get_boot_vcpu(vm, vm_config);
+    assert(vcpu_boot);
+
+    err = vm_assign_vcpu_target(vcpu_boot, 0);
+    if (err) {
+        ZF_LOGE("Failed to assign boot vcpu (%d)", err);
+        return -1;
+    }
+
+    err = route_irqs(vcpu_boot, irq_server);
+    if (err) {
+        ZF_LOGE("Failed route IRQs to boot vcpu (%d)", err);
+        return -1;
+    }
+
+    return 0;
+}
+
+
 static int vm_dtb_init(vm_t *vm, const vm_config_t *vm_config)
 {
     int err;
@@ -1362,31 +1392,9 @@ static int main_continued(void)
         return -1;
     }
 
-    /* Create CPUs and DTB node */
-    for (int i = 0; i < vm_config.num_vcpus; i++) {
-        vm_vcpu_t *new_vcpu = create_vmm_plat_vcpu(&vm, VM_PRIO - 1);
-        assert(new_vcpu);
-    }
-    if (vm_config.generate_dtb) {
-        err = fdt_generate_plat_vcpu_node(&vm, gen_dtb_buf);
-        if (err) {
-            ZF_LOGE("Couldn't generate plat_vcpu_node (%d)", err);
-            return -1;
-        }
-    }
-
-    vm_vcpu_t *vcpu_boot = vm_get_boot_vcpu(&vm, &vm_config);
-    assert(vcpu_boot);
-    err = vm_assign_vcpu_target(vcpu_boot, 0);
+    err = vm_create_vcpus(&vm, &vm_config, _irq_server);
     if (err) {
-        ZF_LOGE("Couldn't assign boot CPU (%d)", err);
-        return -1;
-    }
-
-    /* Route IRQs */
-    err = route_irqs(vcpu_boot, _irq_server);
-    if (err) {
-        ZF_LOGE("Couldn't route IRQs (%d)", err);
+        ZF_LOGE("Failed to create vcpus (%d)", err);
         return -1;
     }
 
@@ -1404,6 +1412,8 @@ static int main_continued(void)
         return -1;
     }
 
+    vm_vcpu_t *vcpu_boot = vm_get_boot_vcpu(&vm, &vm_config);
+    assert(vcpu_boot);
     err = vcpu_start(vcpu_boot);
     if (err) {
         ZF_LOGE("Failed to start Boot VCPU (%d)", err);

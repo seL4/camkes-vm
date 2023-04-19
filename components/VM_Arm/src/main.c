@@ -446,7 +446,7 @@ static bool add_uts(const vm_config_t *vm_config, vka_t *vka, seL4_CPtr cap,
                   : ALLOCMAN_UT_DEV;
 
     allocman_t *allocman = vka->data;
-
+    assert(allocman);
     return allocman_utspace_add_uts(allocman, 1, &path, &size_bits, &paddr,
                                     ut_type);
 }

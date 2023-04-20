@@ -899,45 +899,82 @@ static int vm_dtb_init(vm_t *vm, const vm_config_t *vm_config)
         return -1;
     }
 
+    int cnt;
+    char const **nodes;
+
     /* If VM has "plat_keep_devices" set, use it! Else, just use the default */
-    int num_keep_devices = 0;
-    char **keep_devices = NULL;
+    cnt = 0;
     if (camkes_dtb_get_plat_keep_devices) {
-        keep_devices = camkes_dtb_get_plat_keep_devices(&num_keep_devices);
+        nodes = (char const **)camkes_dtb_get_plat_keep_devices(&cnt);
+        ZF_LOGI_IF(cnt > 0, "Keeping DTB nodes: %d", cnt);
     }
-    if (num_keep_devices) {
-        fdtgen_keep_nodes(context, (const char **)keep_devices, num_keep_devices);
-    } else {
-        fdtgen_keep_nodes(context, plat_keep_devices, ARRAY_SIZE(plat_keep_devices));
+    if (0 == cnt) {
+        nodes = plat_keep_devices;
+        cnt = ARRAY_SIZE(plat_keep_devices);
+        ZF_LOGI_IF(cnt > 0, "Keeping DTB nodes (plat): %d", cnt);
+    }
+    if (cnt > 0) {
+        assert(nodes);
+        for (int i = 0; i < cnt; i++) {
+            ZF_LOGI("  %s", nodes[i]);
+        }
+        fdtgen_keep_nodes(context, nodes, cnt);
     }
 
     /* If VM has "plat_keep_devices and subtree" set, use it! Else, just use the default */
-    int num_keep_devices_and_subtree = 0;
-    char **keep_devices_and_subtree;
+    cnt = 0;
     if (camkes_dtb_get_plat_keep_devices_and_subtree) {
-        keep_devices_and_subtree = camkes_dtb_get_plat_keep_devices_and_subtree(&num_keep_devices_and_subtree);
+        nodes = (char const **)camkes_dtb_get_plat_keep_devices_and_subtree(&cnt);
+        ZF_LOGI_IF(cnt > 0, "Keeping DTB subtrees: %d", cnt);
     }
-    if (num_keep_devices_and_subtree) {
-        for (int i = 0; i < num_keep_devices_and_subtree; i++) {
-            fdtgen_keep_node_subtree(context, fdt_ori, keep_devices_and_subtree[i]);
-        }
-    } else {
-        for (int i = 0; i < ARRAY_SIZE(plat_keep_device_and_subtree); i++) {
-            fdtgen_keep_node_subtree(context, fdt_ori, plat_keep_device_and_subtree[i]);
+    if (0 == cnt) {
+        nodes = plat_keep_device_and_subtree;
+        cnt = ARRAY_SIZE(plat_keep_device_and_subtree);
+        ZF_LOGI_IF(cnt > 0, "Keeping DTB subtrees (plat): %d", cnt);
+    }
+    if (cnt > 0) {
+        assert(fdt_ori);
+        for (int i = 0; i < cnt; i++) {
+            ZF_LOGI("  %s", nodes[i]);
+            fdtgen_keep_node_subtree(context, fdt_ori, nodes[i]);
         }
     }
 
-    for (int i = 0; i < ARRAY_SIZE(plat_keep_device_and_subtree_and_disable); i++) {
-        fdtgen_keep_node_subtree_disable(context, fdt_ori, plat_keep_device_and_subtree_and_disable[i]);
+    /* Keep DTB subtrees and disable */
+    nodes = plat_keep_device_and_subtree_and_disable;
+    cnt = ARRAY_SIZE(plat_keep_device_and_subtree_and_disable);
+    if (cnt > 0) {
+        ZF_LOGI("Keeping disabled DTB subtrees: %d", cnt);
+        assert(fdt_ori);
+        for (int i = 0; i < cnt; i++) {
+            ZF_LOGI("  #%d: %s", i, nodes[i]);
+            fdtgen_keep_node_subtree_disable(context, fdt_ori, nodes[i]);
+        }
     }
-    fdtgen_keep_nodes_and_disable(context, plat_keep_device_and_disable, ARRAY_SIZE(plat_keep_device_and_disable));
 
-    int num_paths = 0;
-    char **paths = NULL;
+    /* Keep DTB nodes and disable */
+    nodes = plat_keep_device_and_disable;
+    cnt = ARRAY_SIZE(plat_keep_device_and_disable);
+    if (cnt > 0) {
+        ZF_LOGI("Keeping disabled DTB subtrees (plat): %d", cnt);
+        for (int i = 0; i < cnt; i++) {
+            ZF_LOGI("  %s", nodes[i]);
+        }
+        fdtgen_keep_nodes_and_disable(context, nodes, cnt);
+    }
+
+    /* Keep DTB nodes */
     if (camkes_dtb_get_node_paths) {
-        paths = camkes_dtb_get_node_paths(&num_paths);
+        cnt = 0;
+        const char **paths = (const char **)camkes_dtb_get_node_paths(&cnt);
+        if (cnt > 0) {
+            ZF_LOGI("keeping DTB paths: %d", cnt);
+            for (int i = 0; i < cnt; i++) {
+                ZF_LOGI("  %s", paths[i]);
+            }
+            fdtgen_keep_nodes(context, paths, cnt);
+        }
     }
-    fdtgen_keep_nodes(context, (const char **)paths, num_paths);
 
     /* build a DTB in gen_dtb_buf */
     err = fdtgen_generate(context, fdt_ori);

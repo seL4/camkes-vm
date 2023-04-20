@@ -532,7 +532,8 @@ static int vmm_init(const vm_config_t *vm_config)
     }
     /* Initialize the vspace */
     err = sel4utils_bootstrap_vspace(vspace, &_alloc_data,
-                                     simple_get_init_cap(simple, seL4_CapInitThreadPD), vka, NULL, NULL, existing_frames);
+                                     simple_get_init_cap(simple, seL4_CapInitThreadPD),
+                                     vka, NULL, NULL, existing_frames);
     assert(!err);
 
     /* Initialise device support */

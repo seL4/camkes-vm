@@ -4,6 +4,9 @@
  *
  * SPDX-License-Identifier: BSD-2-Clause
  */
+
+/* Dummy code change */
+
 #include <autoconf.h>
 #include <arm_vm/gen_config.h>
 #include <sel4muslcsys/gen_config.h>

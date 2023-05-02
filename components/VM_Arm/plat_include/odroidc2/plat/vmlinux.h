@@ -13,5 +13,7 @@ static const int linux_pt_irqs[] = {};
 static const int free_plat_interrupts[] =  { 50 + IRQ_SPI_OFFSET };
 static const char *plat_keep_devices[] = {};
 static const char *plat_keep_device_and_disable[] = {};
-static const char *plat_keep_device_and_subtree[] = {};
+static const char *plat_keep_device_and_subtree[] = {
+    GIC_NODE_PATH,
+};
 static const char *plat_keep_device_and_subtree_and_disable[] = {};

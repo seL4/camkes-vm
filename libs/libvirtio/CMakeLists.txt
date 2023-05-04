@@ -6,14 +6,37 @@
 
 cmake_minimum_required(VERSION 3.8.2)
 
-project(libvirtio C)
+project(libvirtioarm C)
 
-add_compile_options(-std=gnu99)
+add_library(virtioarm STATIC EXCLUDE_FROM_ALL)
 
-set(sources src/virtio_net.c src/virtio_console.c)
+target_sources(
+    virtioarm
+    PRIVATE
+      src/virtio_net.c
+      src/virtio_console.c
+)
 
-add_library(virtioarm STATIC EXCLUDE_FROM_ALL ${sources})
+target_compile_options(
+    virtioarm
+    PRIVATE
+        -std=gnu99
+)
 
-target_include_directories(virtioarm PUBLIC include plat_include/${KernelPlatform})
+target_include_directories(
+    virtioarm
+    PUBLIC
+        include
+        plat_include/${KernelPlatform}
+)
 
-target_link_libraries(virtioarm muslc sel4 sel4camkes sel4vm sel4vmmplatsupport sel4_autoconf)
+target_link_libraries(
+    virtioarm
+    PRIVATE
+        muslc
+        sel4
+        sel4camkes
+        sel4vm
+        sel4vmmplatsupport
+        sel4_autoconf
+)

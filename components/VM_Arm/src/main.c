@@ -723,6 +723,31 @@ static void irq_handler(void *data, ps_irq_acknowledge_fn_t acknowledge_fn, void
     }
 }
 
+/* Default RAM initialization. Modules can overwrite this weak function with a
+ * custom initialization, e.g. to use memory shared with other components or
+ * mapped on demand.
+ */
+WEAK int vm_init_ram(vm_t *vm, const vm_config_t *vm_config)
+{
+    /* A VM without RAM is highly unusual and unlikely to work. But there might
+     * be special VM configurations where modules create specific RAM areas. In
+     * this case, this weak RAM init function here should be overwritten also,
+     * that's why we print the warning.
+     */
+    if (0 == vm_config->ram.size) {
+        ZF_LOGW("no standard RAM defined");
+        return 0;
+    }
+
+    int err = vm_ram_register_at(vm, vm_config->ram.base, vm_config->ram.size,
+                                 vm->mem.map_one_to_one);
+    if (err) {
+        ZF_LOGE("RAM registration failed (%d)", err);
+        return -1;
+    }
+
+    return 0;
+}
 
 /* Force the _vmm_module  section to be created even if no modules are defined. */
 static USED SECTION("_vmm_module") struct {} dummy_module;
@@ -732,6 +757,13 @@ extern vmm_module_t __stop__vmm_module[];
 static int install_vm_devices(vm_t *vm, const vm_config_t *vm_config)
 {
     int err;
+
+    /* Initialize guest RAM. */
+    err = vm_init_ram(vm, vm_config);
+    if (err) {
+        ZF_LOGE("Failed to initialize RAM (%d)", err);
+        return -1;
+    }
 
     /* Install virtual devices */
     if (config_set(CONFIG_VM_PCI_SUPPORT)) {

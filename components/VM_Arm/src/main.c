@@ -579,6 +579,55 @@ static int vmm_init(const vm_config_t *vm_config)
     return 0;
 }
 
+static int vm_init_iommu(vm_t *vm)
+{
+
+#if defined(CONFIG_ARM_SMMU)
+
+    int err;
+    /* configure the smmu */
+    ZF_LOGD("Getting sid and cb caps");
+    seL4_CPtr cb_cap = camkes_get_smmu_cb_cap();
+    seL4_CPtr sid_cap = camkes_get_smmu_sid_cap();
+
+    ZF_LOGD("Assigning vspace to context bank");
+    err = seL4_ARM_CB_AssignVspace(cb_cap, vspace_get_root(&vm->mem.vm_vspace));
+    if (err) {
+        ZF_LOGE("Failed to assign vspace to CB (%d)");
+        return -1;
+    }
+
+    ZF_LOGD("Binding stream id to context bank");
+    err = seL4_ARM_SID_BindCB(sid_cap, cb_cap);
+    if (err) {
+        ZF_LOGE("Failed to bind CB to SID (%d)");
+        return -1;
+    }
+
+#elif defined(CONFIG_TK1_SMMU)
+
+    int err;
+    /* install any iospaces */
+    int iospace_caps;
+    err = simple_get_iospace_cap_count(&_simple, &iospace_caps);
+    if (err) {
+        ZF_LOGE("Failed to get iospace count (%d)");
+        return -1;
+    }
+    for (int i = 0; i < iospace_caps; i++) {
+        seL4_CPtr iospace = simple_get_nth_iospace_cap(&_simple, i);
+        err = vm_guest_add_iospace(&vm, &_vspace, iospace);
+        if (err) {
+            ZF_LOGE("Failed to add iospace (%d)");
+            return -1;
+        }
+    }
+
+#endif /* platform specific IOMMU init */
+
+    return 0;
+}
+
 void restart_component(void)
 {
     longjmp(restart_jmp_buf, 1);
@@ -1200,35 +1249,11 @@ static int main_continued(void)
     vm.mem.clean_cache = vm_config.clean_cache;
     vm.mem.map_one_to_one = vm_config.map_one_to_one; /* Map memory 1:1 if configured to do so */
 
-#ifdef CONFIG_TK1_SMMU
-    /* install any iospaces */
-    int iospace_caps;
-    err = simple_get_iospace_cap_count(&_simple, &iospace_caps);
+    err = vm_init_iommu(&vm);
     if (err) {
-        ZF_LOGF("Failed to get iospace count");
+        ZF_LOGE("Failed to initialise IO-MMU (%d)", err);
+        return -1;
     }
-    for (int i = 0; i < iospace_caps; i++) {
-        seL4_CPtr iospace = simple_get_nth_iospace_cap(&_simple, i);
-        err = vm_guest_add_iospace(&vm, &_vspace, iospace);
-        if (err) {
-            ZF_LOGF("Failed to add iospace");
-        }
-    }
-#endif /* CONFIG_TK1_SMMU */
-#ifdef CONFIG_ARM_SMMU
-    /* configure the smmu */
-    ZF_LOGD("Getting sid and cb caps");
-    seL4_CPtr cb_cap = camkes_get_smmu_cb_cap();
-    seL4_CPtr sid_cap = camkes_get_smmu_sid_cap();
-
-    ZF_LOGD("Assigning vspace to context bank");
-    err = seL4_ARM_CB_AssignVspace(cb_cap, vspace_get_root(&vm.mem.vm_vspace));
-    ZF_LOGF_IF(err, "Failed to assign vspace to CB");
-
-    ZF_LOGD("Binding stream id to context bank");
-    err = seL4_ARM_SID_BindCB(sid_cap, cb_cap);
-    ZF_LOGF_IF(err, "Failed to bind CB to SID");
-#endif /* CONFIG_ARM_SMMU */
 
     err = vm_create_default_irq_controller(&vm);
     assert(!err);

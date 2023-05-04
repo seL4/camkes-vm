@@ -66,7 +66,7 @@
 #include <fdtgen.h>
 #include "fdt_manipulation.h"
 
-/* Do - Include prototypes to surpress compiler warnings
+/* Do - Include prototypes to suppress compiler warnings
  * TODO: Add these to a template header */
 seL4_CPtr notification_ready_notification(void);
 int camkes_io_fdt(ps_io_fdt_t *io_fdt);
@@ -427,9 +427,9 @@ static bool add_uts(const vm_config_t *vm_config, vka_t *vka, seL4_CPtr cap,
      *       ALLOCMAN_UT_DEV_MEM is, whether the UT can be requested from the
      *       allocator without providing it's backing physical address. Since
      *       UTs from the guest RAM region are supposed to be requested using
-     *       the physical address anyway, there seem not reason why they can't
+     *       the physical address anyway, there seems no reason why they can't
      *       be in the ALLOCMAN_UT_DEV pool, too.
-     *       The only know use case where this matters is on the NVidia TK1
+     *       The only known use case where this matters is on the NVidia TK1
      *       platform. It has a SMMU, so in order to use RAM in a VM, there is
      *       no need for VMs to have their RAM addresses match the physical RAM
      *       addresses (VM config option "map_one_to_one"). However, it is a

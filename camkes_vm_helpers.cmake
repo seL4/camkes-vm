@@ -77,18 +77,22 @@ endfunction(DeclareCAmkESVM)
 # FILES <item>[ <item>[...]]
 #   The files to be added. Each item has the form [<NAME>:]<FILE_NAME>, where
 #   the optional <NAME> allows using a different name for the file in the
-#   archive than on the disk. The build will abort if <FILE_NAME> is not found.
-#   Each item can either be a single file item or a CMake list of items (such a
-#   CMake list is basically a string with elements separated by ';'). This
-#   allows building lists of files in advance, which may contain different files
-#   for different configurations. An empty string as item is also explicitly
-#   allowed for convenience reasons. Thus supports cases where a an item does
+#   file server than it had on the disk. The build will abort if <FILE_NAME> is
+#   not found. Each item can either be a single file item or a CMake list of
+#   items (where a CMake list is just a string with elements separated by ';').
+#   This allows building lists of files in advance, which may contain different
+#   files for different configurations. An empty string as item is also allowed
+#   explicitly for convenience reasons. This supports cases where an item does
 #   not exist in every configuration and the respective CMake variable used for
 #   the item is just left empty.
 #
 # DEPENDS <dep>[ <dep>[...]]
-#   Any additional dependencies for the file/image the caller is adding to the
-#   file server
+#   Additional dependencies of the file server instance. This is an optional
+#   parameter for non-trivial dependencies. Each file server instance depends on
+#   all input files anyway, thus a re-build happens automatically on any
+#   changes. If an input file is created dynamically by another regular CMake
+#   target, any dependencies should have been specified there already, so there
+#   is no need to repeat them here.
 #
 #
 function(DefineCAmkESVMFileServer)
@@ -257,20 +261,25 @@ endfunction(DeclareCAmkESVMRootServer)
 # Parameters:
 #
 # <filename_pref>
-#   The name the caller wishes to use to reference the file in the CPIO archive.
-#   This corresponds with the name set in the 'kernel_image' camkes variable for
-#   a given instance vm.
+#   The name to use for the file in the file server. Components using a file
+#   server could expect certain files to have a specific name, which could
+#   differer from the file name on the disk, so this provides a convenient way
+#   to handle the renaming.
 #
 # <file_dest>
-#   The location of the file/image the caller is adding to the file server
+#   The location of the file on the disk.
 #
 # INSTANCE <name>
-#   File server instance to add the file(s) to. Optional parameter, the default
-#   instance is "fserv"
+#   The File server instance to add the file to.
+#   Optional, defaults to "fserv".
 #
 # DEPENDS <dep>[ <dep>[...]]
-#   Any additional dependencies for the file/image the caller is adding to the
-#   file server
+#   Additional dependencies of the file added to the file server. This is an
+#   optional parameter for non-trivial dependencies of the input file. Each file
+#   server instance depends on all input files anyway, thus a re-build happens
+#   automatically on any changes. If an input file is created dynamically by
+#   another regular CMake target, any dependencies should have been specified
+#   there already, so there is no need to repeat them here.
 #
 function(AddToFileServer filename_pref file_dest)
 

@@ -200,29 +200,6 @@ function(DefineCAmkESVMFileServer)
 
 endfunction(DefineCAmkESVMFileServer)
 
-# Function for declaring the CAmkESVM root server. Taking the camkes application
-# config file we declare a CAmkES Root server and the VM File Server. It is
-# expected the caller has declared the file server images before using this
-# function.
-# camkes_config: The applications .camkes file
-# In addition the user can pass in extra CPP compilation includes and flags through
-# the CPP_INCLUDES and CPP_FLAGS arguments.
-function(DeclareCAmkESVMRootServer camkes_config)
-    cmake_parse_arguments(PARSE_ARGV 1 CAMKES_ROOT_VM "" "" "CPP_INCLUDES;CPP_FLAGS")
-    # Initialise the CAmKES VM fileserver
-    DefineCAmkESVMFileServer()
-    get_absolute_source_or_binary(config_file "${camkes_config}")
-    # Declare CAmkES root server
-    DeclareCAmkESRootserver(
-        ${config_file}
-        CPP_FLAGS
-        ${CAMKES_ROOT_VM_CPP_FLAGS}
-        CPP_INCLUDES
-        "${VM_PROJECT_DIR}/components/VM"
-        ${CAMKES_ROOT_VM_CPP_INCLUDES}
-    )
-endfunction(DeclareCAmkESVMRootServer)
-
 # Function for decompressing/extracting a vmlinux file from a given kernel image
 # decompress_target: The target name the caller wishes to use to generate the decompressed kernel
 # image

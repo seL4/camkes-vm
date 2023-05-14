@@ -31,7 +31,7 @@ static int setup_connection(crossvm_handle_t *crossvm_connections, size_t index,
     }
 
     dataport_caps_handle_t *handle = connection->handle;
-    dp_handle->size = handle->get_size();
+    dp_handle->frame_size_bits = handle->get_frame_size_bits();
     dp_handle->num_frames = handle->get_num_frame_caps();
     dp_handle->frames = handle->get_frame_caps();
 

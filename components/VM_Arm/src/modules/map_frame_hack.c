@@ -15,7 +15,6 @@ extern int start_extra_frame_caps;
 static vm_frame_t map_frame_hack_iterator(uintptr_t addr, void *cookie)
 {
     int error;
-    cspacepath_t return_frame;
     vm_frame_t frame_result = { seL4_CapNull, seL4_NoRights, 0, 0 };
 
     int cap_idx = (extra_frame_map_address - addr) / BIT(PAGE_BITS_4K);

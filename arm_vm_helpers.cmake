@@ -40,16 +40,15 @@ function(DeclareCAmkESARMVM init_component)
         ""
         "EXTRA_SOURCES;EXTRA_INCLUDES;EXTRA_LIBS;EXTRA_C_FLAGS;EXTRA_LD_FLAGS"
     )
-    file(
-        GLOB
-            vm_src
-            ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/main.c
-            ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/fdt_manipulation.c
-            ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/crossvm.c
-    )
 
-    list(APPEND vm_src ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/map_frame_hack.c)
-    list(APPEND vm_src ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/init_ram.c)
+    set(
+        vm_src
+        ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/main.c
+        ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/fdt_manipulation.c
+        ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/crossvm.c
+        ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/map_frame_hack.c
+        ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/init_ram.c
+    )
 
     if(VmVirtUart)
         list(APPEND vm_src ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/vuart_init.c)
@@ -133,12 +132,14 @@ function(DeclareCAmkESARMVM init_component)
         ${VM_COMP_EXTRA_C_FLAGS}
         TEMPLATE_SOURCES
         seL4AllocatorMempool.template.c
+        seL4VMParameters.template.c
         TEMPLATE_HEADERS
         seL4AllocatorMempool.template.h
+        seL4VMParameters.template.h
     )
 
     if(VmVirtioNetArping OR VmVirtioNetVirtqueue OR VmVirtioConsole)
-        DeclareCAmkESComponent(${init_component} LIBS virtio vswitch)
+        DeclareCAmkESComponent(${init_component} LIBS virtioarm vswitch)
     endif()
 
     # Append the USB driver library if building for exynos

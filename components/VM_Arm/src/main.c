@@ -78,8 +78,6 @@ int start_extra_frame_caps;
 
 int VM_PRIO = 100;
 int NUM_VCPUS = 1;
-#define VIRTIO_NET_BADGE    (1U << 1)
-#define SERIAL_BADGE        (1U << 2)
 
 #define IRQSERVER_PRIO      (VM_PRIO + 1)
 #define IRQ_MESSAGE_LABEL   0xCAFE
@@ -102,21 +100,15 @@ vmm_pci_space_t *pci;
 vmm_io_port_list_t *io_ports;
 reboot_hooks_list_t reboot_hooks_list;
 
-#define PLAT_LINUX_DTB_SIZE 0x50000
-static char linux_gen_dtb_buf[PLAT_LINUX_DTB_SIZE];
-static char linux_gen_dtb_base_buf[PLAT_LINUX_DTB_SIZE];
+#define DTB_BUFFER_SIZE 0x50000
+char gen_dtb_buf[DTB_BUFFER_SIZE]; /* accessed by modules */
+static char gen_dtb_base_buf[DTB_BUFFER_SIZE];
+
+void *fdt_ori;
 
 struct ps_io_ops _io_ops;
 
 static jmp_buf restart_jmp_buf;
-
-unsigned long linux_ram_base;
-unsigned long linux_ram_paddr_base;
-unsigned long linux_ram_size;
-unsigned long linux_ram_offset;
-unsigned long dtb_addr;
-unsigned long initrd_max_size;
-unsigned long initrd_addr;
 
 void camkes_make_simple(simple_t *simple);
 
@@ -405,7 +397,62 @@ static int camkes_vm_utspace_alloc_at(void *data, const cspacepath_t *dest, seL4
 
 }
 
-static int vmm_init(void)
+static bool add_uts(const vm_config_t *vm_config, vka_t *vka, seL4_CPtr cap,
+                    uintptr_t paddr, size_t size_bits, bool is_device)
+{
+    cspacepath_t path;
+    vka_cspace_make_path(vka, cap, &path);
+
+    /*
+     * The general usage concept for the different UT pools is:
+     *
+     * ALLOCMAN_UT_KERNEL:
+     *   Physical RAM mapped in the kernel windows. This can be used to create
+     *   arbitrary kernel objects.
+     *
+     * ALLOCMAN_UT_DEV_MEM:
+     *   UTs from a device region, which is also usable RAM. This exists because
+     *   on 32-bit platforms the kernel window could be too small to map all
+     *   physical RAM and thus is able to directly access it. Kernel objects can
+     *   be created from these UTs, if the 'canBeDev' parameter in 'alloc' is
+     *   set to true. However, such objects may have restrictions in what it can
+     *   be used for, because the kernel cannot access the content directly.
+     *
+     * ALLOCMAN_UT_DEV:
+     *   Device regions. Such UTs will never be used for an allocation, unless
+     *   explicitly requested by physical address.
+     *
+     * ToDo: The practical distinction between ALLOCMAN_UT_DEV and
+     *       ALLOCMAN_UT_DEV_MEM is, whether the UT can be requested from the
+     *       allocator without providing it's backing physical address. Since
+     *       UTs from the guest RAM region are supposed to be requested using
+     *       the physical address anyway, there seem not reason why they can't
+     *       be in the ALLOCMAN_UT_DEV pool, too.
+     *       The only know use case where this matters is on the NVidia TK1
+     *       platform. It has a SMMU, so in order to use RAM in a VM, there is
+     *       no need for VMs to have their RAM addresses match the physical RAM
+     *       addresses (VM config option "map_one_to_one"). However, it is a
+     *       32-bit architecture and the kernel window is too small to cover all
+     *       physical RAM. Thus, the additional RAM is made available via device
+     *       UTs. The allocator needs to be told about this, which is what
+     *       "ram_paddr_base" is used for and and why it's different from
+     *       "ram_base".
+     */
+
+    bool is_guest_ram = (paddr >= vm_config->ram.phys_base) &&
+                        ((paddr - vm_config->ram.phys_base) < vm_config->ram.size);
+
+    int ut_type = !is_device ? ALLOCMAN_UT_KERNEL
+                  : is_guest_ram ? ALLOCMAN_UT_DEV_MEM
+                  : ALLOCMAN_UT_DEV;
+
+    allocman_t *allocman = vka->data;
+
+    return allocman_utspace_add_uts(allocman, 1, &path, &size_bits, &paddr,
+                                    ut_type);
+}
+
+static int vmm_init(const vm_config_t *vm_config)
 {
     vka_object_t fault_ep_obj;
     vka_t *vka;
@@ -447,35 +494,32 @@ static int vmm_init(void)
     utspace_alloc_at_copy = vka->utspace_alloc_at;
     vka->utspace_alloc_at = camkes_vm_utspace_alloc_at;
 
-    for (int i = 0; i < simple_get_untyped_count(simple); i++) {
-        size_t size;
+    int cnt = simple_get_untyped_count(simple);
+    if (cnt < 0) {
+        ZF_LOGE("Failed to get simple untyped count (%d)", cnt);
+        return -1;
+    }
+    for (int i = 0; i < cnt; i++) {
+        size_t size_bits;
         uintptr_t paddr;
-        bool device;
-        seL4_CPtr cap = simple_get_nth_untyped(simple, i, &size, &paddr, &device);
-        cspacepath_t path;
-        vka_cspace_make_path(vka, cap, &path);
-        int utType = device ? ALLOCMAN_UT_DEV : ALLOCMAN_UT_KERNEL;
-        if (utType == ALLOCMAN_UT_DEV &&
-            paddr >= linux_ram_paddr_base && paddr <= (linux_ram_paddr_base + (linux_ram_size - 1))) {
-            utType = ALLOCMAN_UT_DEV_MEM;
-        }
-        err = allocman_utspace_add_uts(allocman, 1, &path, &size, &paddr, utType);
+        bool is_device;
+        seL4_CPtr cap = simple_get_nth_untyped(simple, i, &size_bits, &paddr, &is_device);
+        err = add_uts(vm_config, vka, cap, paddr, size_bits, is_device);
         assert(!err);
     }
 
     if (camkes_dtb_untyped_count) {
-        for (int i = 0; i < camkes_dtb_untyped_count(); i++) {
-            size_t size;
+        cnt = camkes_dtb_untyped_count();
+        if (cnt < 0) {
+            ZF_LOGE("Failed to get CAmkES DTB untyped count (%d)", cnt);
+            return -1;
+        }
+        for (int i = 0; i < cnt; i++) {
+            size_t size_bits;
             uintptr_t paddr;
-            seL4_CPtr cap = camkes_dtb_get_nth_untyped(i, &size, &paddr);
-            cspacepath_t path;
-            vka_cspace_make_path(vka, cap, &path);
-            int utType = ALLOCMAN_UT_DEV;
-            if (paddr >= linux_ram_paddr_base &&
-                paddr <= (linux_ram_paddr_base + (linux_ram_size - 1))) {
-                utType = ALLOCMAN_UT_DEV_MEM;
-            }
-            err = allocman_utspace_add_uts(allocman, 1, &path, &size, &paddr, utType);
+            seL4_CPtr cap = camkes_dtb_get_nth_untyped(i, &size_bits, &paddr);
+            /* These UTs are considered device untypeds */
+            err = add_uts(vm_config, vka, cap, paddr, size_bits, true);
             assert(!err);
         }
     }
@@ -636,21 +680,22 @@ static USED SECTION("_vmm_module") struct {} dummy_module;
 extern vmm_module_t __start__vmm_module[];
 extern vmm_module_t __stop__vmm_module[];
 
-int install_linux_devices(vm_t *vm)
+static int install_vm_devices(vm_t *vm, const vm_config_t *vm_config)
 {
     int err;
 
     /* Install virtual devices */
     if (config_set(CONFIG_VM_PCI_SUPPORT)) {
         err = vm_install_vpci(vm, io_ports, pci);
-        assert(!err);
+        if (err) {
+            ZF_LOGE("Failed to install VPCI device");
+            return -1;
+        }
     }
 
     int max_vmm_modules = (int)(__stop__vmm_module - __start__vmm_module);
-    vmm_module_t *test_types[max_vmm_modules];
     int num_vmm_modules = 0;
     for (vmm_module_t *i = __start__vmm_module; i < __stop__vmm_module; i++) {
-        test_types[num_vmm_modules] = i;
         ZF_LOGE("module name: %s", i->name);
         i->init_module(vm, i->cookie);
         num_vmm_modules++;
@@ -718,30 +763,54 @@ static int route_irqs(vm_vcpu_t *vcpu, irq_server_t *irq_server)
     return 0;
 }
 
-static int generate_fdt(vm_t *vm, void *fdt_ori, void *gen_fdt, int buf_size, size_t initrd_size, char **paths,
-                        int num_paths)
+static int vm_dtb_init(vm_t *vm, const vm_config_t *vm_config)
 {
-    int err = 0;
+    int err;
 
-    int num_keep_devices = 0;
-    char **keep_devices;
-    if (camkes_dtb_get_plat_keep_devices) {
-        keep_devices = camkes_dtb_get_plat_keep_devices(&num_keep_devices);
+    /* Setup the base DTB. By default it's the one that CAmkES provides. */
+    camkes_io_fdt(&(_io_ops.io_fdt));
+    fdt_ori = (void *)ps_io_fdt_get(&_io_ops.io_fdt);
+    ZF_LOGW_IF(!fdt_ori, "CAmkES did not provide a DTB");
+    /* If explicitly requested, the CAmkES DTB can be ignored and one provided
+     * by the file server can be used instead.
+     */
+    if ((NULL != vm_config->files.dtb_base) && ('\0' != vm_config->files.dtb_base[0])) {
+        int dtb_fd = open(vm_config->files.dtb_base, 0);
+        ZF_LOGI("using DTB file '%s' as base", vm_config->files.dtb_base);
+        /* If dtb_base is in the file server, grab it and use it as a base */
+        if (dtb_fd < 0) {
+            ZF_LOGE("opening DTB file failed (%d)", dtb_fd);
+        } else {
+            size_t dtb_len = read(dtb_fd, gen_dtb_base_buf, DTB_BUFFER_SIZE);
+            close(dtb_fd);
+            if (dtb_len <= 0) {
+                ZF_LOGE("reading DTB file failed (%d)", dtb_len);
+            } else {
+                /* overwrite */
+                fdt_ori = gen_dtb_base_buf;
+            }
+        }
     }
 
-    int num_keep_devices_and_subtree = 0;
-    char **keep_devices_and_subtree;
-    if (camkes_dtb_get_plat_keep_devices_and_subtree) {
-        keep_devices_and_subtree = camkes_dtb_get_plat_keep_devices_and_subtree(&num_keep_devices_and_subtree);
+    /* We are done if DTB generation is not enabled. */
+    if (!vm_config->generate_dtb) {
+        return 0;
     }
 
-    fdtgen_context_t *context = fdtgen_new_context(gen_fdt, buf_size);
+    ZF_LOGW_IF(!fdt_ori, "No base DTB set");
+
+    fdtgen_context_t *context = fdtgen_new_context(gen_dtb_buf, sizeof(gen_dtb_buf));
     if (context == NULL) {
-        ZF_LOGE("Couldn't create fdtgen context\n");
+        ZF_LOGE("Couldn't create fdtgen context");
         return -1;
     }
 
     /* If VM has "plat_keep_devices" set, use it! Else, just use the default */
+    int num_keep_devices = 0;
+    char **keep_devices = NULL;
+    if (camkes_dtb_get_plat_keep_devices) {
+        keep_devices = camkes_dtb_get_plat_keep_devices(&num_keep_devices);
+    }
     if (num_keep_devices) {
         fdtgen_keep_nodes(context, (const char **)keep_devices, num_keep_devices);
     } else {
@@ -749,6 +818,11 @@ static int generate_fdt(vm_t *vm, void *fdt_ori, void *gen_fdt, int buf_size, si
     }
 
     /* If VM has "plat_keep_devices and subtree" set, use it! Else, just use the default */
+    int num_keep_devices_and_subtree = 0;
+    char **keep_devices_and_subtree;
+    if (camkes_dtb_get_plat_keep_devices_and_subtree) {
+        keep_devices_and_subtree = camkes_dtb_get_plat_keep_devices_and_subtree(&num_keep_devices_and_subtree);
+    }
     if (num_keep_devices_and_subtree) {
         for (int i = 0; i < num_keep_devices_and_subtree; i++) {
             fdtgen_keep_node_subtree(context, fdt_ori, keep_devices_and_subtree[i]);
@@ -764,44 +838,42 @@ static int generate_fdt(vm_t *vm, void *fdt_ori, void *gen_fdt, int buf_size, si
     }
     fdtgen_keep_nodes_and_disable(context, plat_keep_device_and_disable, ARRAY_SIZE(plat_keep_device_and_disable));
 
+    int num_paths = 0;
+    char **paths = NULL;
+    if (camkes_dtb_get_node_paths) {
+        paths = camkes_dtb_get_node_paths(&num_paths);
+    }
     fdtgen_keep_nodes(context, (const char **)paths, num_paths);
 
+    /* build a DTB in gen_dtb_buf */
     err = fdtgen_generate(context, fdt_ori);
     fdtgen_free_context(context);
     if (err) {
-        ZF_LOGE("Couldn't generate fdt_ori (%d)\n", err);
-        return -1;
-    }
-    err = fdt_generate_plat_vcpu_node(vm, gen_fdt);
-    if (err) {
-        ZF_LOGE("Couldn't generate plat_vcpu_node (%d)\n", err);
+        ZF_LOGE("Couldn't generate base DTB, error %d", err);
         return -1;
     }
 
-    /* generate a memory node (linux_ram_base and linux_ram_size) */
-    err = fdt_generate_memory_node(gen_fdt, linux_ram_base, linux_ram_size);
+    /* Now the DTB is in gen_dtb_buf and all manipulation must happen there. */
+
+    /* generate a memory node */
+    err = fdt_generate_memory_node(gen_dtb_buf, vm_config->ram.base,
+                                   vm_config->ram.size);
     if (err) {
         ZF_LOGE("Couldn't generate memory_node (%d)\n", err);
         return -1;
     }
 
-    /* generate a chosen node (linux_image_config.linux_bootcmdline, linux_stdout) */
-    err = fdt_generate_chosen_node(gen_fdt, linux_image_config.linux_stdout, linux_image_config.linux_bootcmdline,
-                                   NUM_VCPUS);
-    if (err) {
-        ZF_LOGE("Couldn't generate chosen_node (%d)\n", err);
-        return -1;
-    }
+    return 0;
+}
 
-    if (config_set(CONFIG_VM_INITRD_FILE)) {
-        err = fdt_append_chosen_node_with_initrd_info(gen_fdt, initrd_addr, initrd_size);
-        if (err) {
-            ZF_LOGE("Couldn't generate chosen_node_with_initrd_info (%d)\n", err);
-            return -1;
-        }
-    }
+static int vm_dtb_finalize(vm_t *vm, const vm_config_t *vm_config)
+{
+    assert(vm_config->generate_dtb);
 
     if (config_set(CONFIG_VM_PCI_SUPPORT)) {
+        /* Modules can add PCI devices, so the PCI device tree node can be
+         * created only after all modules have been set up.
+         */
         int gic_offset = fdt_path_offset(fdt_ori, GIC_NODE_PATH);
         if (gic_offset < 0) {
             ZF_LOGE("Failed to find gic node from path: %s", GIC_NODE_PATH);
@@ -812,15 +884,14 @@ static int generate_fdt(vm_t *vm, void *fdt_ori, void *gen_fdt, int buf_size, si
             ZF_LOGE("Failed to find phandle in gic node");
             return -1;
         }
-        err = fdt_generate_vpci_node(vm, pci, gen_fdt, gic_phandle);
+        int err = fdt_generate_vpci_node(vm, pci, gen_dtb_buf, gic_phandle);
         if (err) {
-            ZF_LOGE("Couldn't generate vpci_node (%d)\n", err);
+            ZF_LOGE("Couldn't generate vpci_node (%d)", err);
             return -1;
         }
     }
 
-    fdt_pack(gen_fdt);
-
+    fdt_pack(gen_dtb_buf);
     return 0;
 }
 
@@ -831,90 +902,80 @@ static int load_generated_dtb(vm_t *vm, uintptr_t paddr, void *addr, size_t size
     return 0;
 }
 
-static int load_linux(vm_t *vm, const char *kernel_name, const char *dtb_name, const char *initrd_name)
+static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
 {
     seL4_Word entry;
     seL4_Word dtb;
     int err;
 
-    /* Install devices */
-    err = install_linux_devices(vm);
-    if (err) {
-        printf("Error: Failed to install Linux devices\n");
-        return -1;
-    }
-
-    printf("Loading Kernel: \'%s\'\n", kernel_name);
-
     /* Load kernel */
+    printf("Loading Kernel: \'%s\'\n", vm_config->files.kernel);
     guest_kernel_image_t kernel_image_info;
-    err = vm_load_guest_kernel(vm, kernel_name, linux_ram_base, 0, &kernel_image_info);
+    err = vm_load_guest_kernel(vm, vm_config->files.kernel, vm_config->ram.base,
+                               0, &kernel_image_info);
     entry = kernel_image_info.kernel_image.load_paddr;
     if (!entry || err) {
         return -1;
     }
 
-    /* Attempt to load initrd if provided */
-    guest_image_t initrd_image;
-    if (config_set(CONFIG_VM_INITRD_FILE)) {
-        printf("Loading Initrd: \'%s\'\n", initrd_name);
-        err = vm_load_guest_module(vm, initrd_name, initrd_addr, 0, &initrd_image);
-        void *initrd = (void *)initrd_image.load_paddr;
-        if (!initrd || err) {
+    /* generate a chosen node */
+    if (vm_config->generate_dtb) {
+        err = fdt_generate_chosen_node(gen_dtb_buf, vm_config->kernel_stdout,
+                                       vm_config->kernel_bootcmdline, NUM_VCPUS);
+        if (err) {
+            ZF_LOGE("Couldn't generate chosen_node (%d)\n", err);
             return -1;
         }
     }
 
-    if (!config_set(CONFIG_VM_DTB_FILE)) {
-        void *fdt_ori;
-        void *gen_fdt = linux_gen_dtb_buf;
-        int size_gen = PLAT_LINUX_DTB_SIZE;
-        int num_paths = 0;
-        char **paths = NULL;
-        if (camkes_dtb_get_node_paths) {
-            paths = camkes_dtb_get_node_paths(&num_paths);
-        }
-
-        int dtb_fd = -1;
-
-        /* No point checking the file server if the string is empty! */
-        if ((NULL != linux_image_config.dtb_base_name) &&
-            (linux_image_config.dtb_base_name[0] != '\0')) {
-            dtb_fd = open(linux_image_config.dtb_base_name, 0);
-        }
-
-        /* If dtb_base_name is in the file server, grab it and use it as a base */
-        if (dtb_fd >= 0) {
-            size_t dtb_len = read(dtb_fd, linux_gen_dtb_base_buf, PLAT_LINUX_DTB_SIZE);
-            if (dtb_len <= 0) {
-                return -1;
-            }
-            close(dtb_fd);
-            fdt_ori = (void *)linux_gen_dtb_base_buf;
-        } else {
-            camkes_io_fdt(&(_io_ops.io_fdt));
-            fdt_ori = (void *)ps_io_fdt_get(&_io_ops.io_fdt);
-        }
-
-        err = generate_fdt(vm, fdt_ori, gen_fdt, size_gen, initrd_image.size, paths, num_paths);
-        if (err) {
-            ZF_LOGE("Failed to generate a fdt");
+    /* Attempt to load initrd if provided */
+    guest_image_t initrd_image;
+    if (vm_config->provide_initrd) {
+        printf("Loading Initrd: \'%s\'\n", vm_config->files.initrd);
+        err = vm_load_guest_module(vm, vm_config->files.initrd,
+                                   vm_config->initrd_addr, 0, &initrd_image);
+        void *initrd = (void *)initrd_image.load_paddr;
+        if (!initrd || err) {
             return -1;
         }
-        vm_ram_mark_allocated(vm, dtb_addr, size_gen);
-        vm_ram_touch(vm, dtb_addr, size_gen, load_generated_dtb, gen_fdt);
+        if (vm_config->generate_dtb) {
+            err = fdt_append_chosen_node_with_initrd_info(gen_dtb_buf,
+                                                          vm_config->initrd_addr,
+                                                          initrd_image.size);
+            if (err) {
+                ZF_LOGE("Couldn't generate chosen_node_with_initrd_info (%d)\n", err);
+                return -1;
+            }
+        }
+    }
+
+    if (vm_config->generate_dtb) {
+        ZF_LOGW_IF(vm_config->provide_dtb,
+                   "provide_dtb and generate_dtb are both set. The provided dtb will NOT be loaded");
+        err = vm_dtb_finalize(vm, vm_config);
+        if (err) {
+            ZF_LOGE("Couldn't generate DTB (%d)\n", err);
+            return -1;
+        }
         printf("Loading Generated DTB\n");
-        dtb = dtb_addr;
-    } else {
-        printf("Loading DTB: \'%s\'\n", dtb_name);
+        vm_ram_mark_allocated(vm, vm_config->dtb_addr, sizeof(gen_dtb_buf));
+        vm_ram_touch(vm, vm_config->dtb_addr, sizeof(gen_dtb_buf), load_generated_dtb,
+                     gen_dtb_buf);
+        dtb = vm_config->dtb_addr;
+    } else if (vm_config->provide_dtb) {
+        printf("Loading DTB: \'%s\'\n", vm_config->files.dtb);
 
         /* Load device tree */
         guest_image_t dtb_image;
-        err = vm_load_guest_module(vm, dtb_name, dtb_addr, 0, &dtb_image);
+        err = vm_load_guest_module(vm, vm_config->files.dtb,
+                                   vm_config->dtb_addr, 0, &dtb_image);
         dtb = dtb_image.load_paddr;
         if (!dtb || err) {
             return -1;
         }
+    } else {
+        ZF_LOGW("%s not given a DTB - This may be appropriate for your guest, but it " \
+                "may also break things!", get_instance_name());
     }
 
     /* Set boot arguments */
@@ -925,17 +986,6 @@ static int load_linux(vm_t *vm, const char *kernel_name, const char *dtb_name, c
     }
 
     return 0;
-}
-
-void parse_camkes_linux_attributes(void)
-{
-    linux_ram_base = strtoul(linux_address_config.linux_ram_base, NULL, 0);
-    linux_ram_paddr_base = strtoul(linux_address_config.linux_ram_paddr_base, NULL, 0);
-    linux_ram_size = strtoul(linux_address_config.linux_ram_size, NULL, 0);
-    linux_ram_offset = strtoul(linux_address_config.linux_ram_offset, NULL, 0);
-    dtb_addr = strtoul(linux_address_config.dtb_addr, NULL, 0);
-    initrd_max_size = strtoul(linux_address_config.initrd_max_size, NULL, 0);
-    initrd_addr = strtoul(linux_address_config.initrd_addr, NULL, 0);
 }
 
 /* Async event handling registration implementation */
@@ -1092,12 +1142,10 @@ memory_fault_result_t unhandled_mem_fault_callback(vm_t *vm, vm_vcpu_t *vcpu,
     return FAULT_ERROR;
 }
 
-int main_continued(void)
+static int main_continued(void)
 {
     vm_t vm;
     int err;
-
-    parse_camkes_linux_attributes();
 
     /* setup for restart with a setjmp */
     while (setjmp(restart_jmp_buf) != 0) {
@@ -1116,6 +1164,15 @@ int main_continued(void)
     err = seL4_TCB_BindNotification(camkes_get_tls()->tcb_cap, notification_ready_notification());
     assert(!err);
 
+    /* DTB initialization requires a running file server, as the DTB could be
+     * based on a DTB file taken from there.
+     */
+    err = vm_dtb_init(&vm, &vm_config);
+    if (err) {
+        ZF_LOGE("Failed to init DTB (%d)", err);
+        return -1;
+    }
+
     err = vmm_pci_init(&pci);
     if (err) {
         ZF_LOGE("Failed to initialise vmm pci");
@@ -1128,7 +1185,7 @@ int main_continued(void)
         return err;
     }
 
-    err = vmm_init();
+    err = vmm_init(&vm_config);
     assert(!err);
 
     /* Create the VM */
@@ -1138,6 +1195,12 @@ int main_continued(void)
     assert(!err);
     err = vm_register_notification_callback(&vm, handle_async_event, NULL);
     assert(!err);
+
+    /* basic configuration flags */
+    vm.entry = vm_config.entry_addr;
+    vm.mem.clean_cache = vm_config.clean_cache;
+    vm.mem.map_one_to_one = vm_config.map_one_to_one; /* Map memory 1:1 if configured to do so */
+
 #ifdef CONFIG_TK1_SMMU
     /* install any iospaces */
     int iospace_caps;
@@ -1171,10 +1234,19 @@ int main_continued(void)
     err = vm_create_default_irq_controller(&vm);
     assert(!err);
 
+    /* Create CPUs and DTB node */
     for (int i = 0; i < NUM_VCPUS; i++) {
         vm_vcpu_t *new_vcpu = create_vmm_plat_vcpu(&vm, VM_PRIO - 1);
         assert(new_vcpu);
     }
+    if (vm_config.generate_dtb) {
+        err = fdt_generate_plat_vcpu_node(&vm, gen_dtb_buf);
+        if (err) {
+            ZF_LOGE("Couldn't generate plat_vcpu_node (%d)", err);
+            return -1;
+        }
+    }
+
     vm_vcpu_t *vm_vcpu = vm.vcpus[BOOT_VCPU];
     err = vm_assign_vcpu_target(vm_vcpu, 0);
     if (err) {
@@ -1187,10 +1259,18 @@ int main_continued(void)
         return -1;
     }
 
-    /* Load system images */
-    err = load_linux(&vm, linux_image_config.linux_name, linux_image_config.dtb_name, linux_image_config.initrd_name);
+    /* Install devices */
+    err = install_vm_devices(&vm, &vm_config);
     if (err) {
-        printf("Failed to load VM image\n");
+        ZF_LOGE("Error: Failed to install VM devices\n");
+        seL4_DebugHalt();
+        return -1;
+    }
+
+    /* Load system images */
+    err = load_vm_images(&vm, &vm_config);
+    if (err) {
+        ZF_LOGE("Failed to load VM image\n");
         seL4_DebugHalt();
         return -1;
     }

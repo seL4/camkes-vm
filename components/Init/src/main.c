@@ -57,6 +57,8 @@
 #include "fsclient.h"
 #include "virtio_net.h"
 #include "virtio_net_vswitch.h"
+#include "virtio_con.h"
+#include "virtio_vsock.h"
 
 #define BRK_VIRTUAL_SIZE 400000000
 #define ALLOCMAN_VIRTUAL_SIZE 400000000
@@ -212,7 +214,9 @@ void pre_init(void)
     }
 
     /* add untyped mmios */
-    for (int i = 0; i < simple_get_untyped_count(&camkes_simple); i++) {
+    int cnt = simple_get_untyped_count(&camkes_simple);
+    ZF_LOGF_IF(cnt < 0, "Failed to get simple untyped count (%d)", cnt);
+    for (int i = 0; i < cnt; i++) {
         size_t size;
         uintptr_t paddr;
         bool device;
@@ -641,11 +645,16 @@ void init_con_irq_init(void)
     device_notify_list_len = irqs;
     device_notify_list = malloc(sizeof(*device_notify_list) * irqs);
     ZF_LOGF_IF(device_notify_list == NULL, "Malloc failed");
-    for (i = 0; i < irqs; i++) {
-        init_cons_has_interrupt(i, &badge, &fun);
-        device_notify_list[i].badge = badge;
-        device_notify_list[i].func = (void (*)(vm_t *))fun;
+
+    int notify_idx = 0;
+    for (i = 0; i < init_cons_num_connections(); i++) {
+        if (init_cons_has_interrupt(i, &badge, &fun)) {
+            device_notify_list[notify_idx].badge = badge;
+            device_notify_list[notify_idx].func = (void (*)(vm_t *))fun;
+            notify_idx++;
+        }
     }
+    assert(notify_idx == irqs);
 }
 
 ioport_fault_result_t ioport_callback_handler(vm_vcpu_t *vcpu, unsigned int port_no, bool is_in, unsigned int *value,
@@ -700,11 +709,6 @@ static int pci_device_find_irq(const char *irq_name, bool *is_msi, uint8_t *vmm_
     }
 
     return -1;
-}
-
-void make_virtio_net_vswitch(vm_t *vm)
-{
-    return make_virtio_net_vswitch_driver(vm, pci, io_ports);
 }
 
 void *main_continued(void *arg)

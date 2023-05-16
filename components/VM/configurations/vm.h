@@ -62,6 +62,20 @@
     attribute int cnode_size_bits = 21; \
     attribute vswitch_mapping vswitch_layout[] = []; \
     attribute string vswitch_mac_address = ""; \
+    attribute { \
+        /* virtq ids */ \
+        int send_id; \
+        int recv_id; \
+    } serial_layout[] = []; \
+    attribute { \
+        /* cid of the VM on the other side of this connection*/ \
+        int cid; \
+        /* virtq ids */ \
+        int send_id; \
+        int recv_id; \
+    } socket_layout[] = []; \
+    /* unique cid that identifies this vm's socket < 256 */ \
+    attribute int guest_cid = 0; \
     /**/
 
 /* VM and per VM componenents */

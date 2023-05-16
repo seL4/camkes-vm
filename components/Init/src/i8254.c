@@ -41,8 +41,10 @@
 #include <sel4vm/arch/ioports.h>
 #include <sel4vm/guest_irq_controller.h>
 #include <sel4vm/boot.h>
-#include "timers.h"
 #include <platsupport/arch/tsc.h>
+
+#include "timers.h"
+#include "virtio_irq.h"
 
 //#define DEBUG_PIT
 
@@ -462,7 +464,7 @@ static void pit_irq_timer_update(PITChannelState *s, int64_t current_time)
     expire_time = pit_get_next_transition_time(s, current_time);
     irq_level = pit_get_out(s, current_time);
     //qemu_set_irq(s->irq, irq_level);
-    vm_set_irq_level(vm.vcpus[BOOT_VCPU], 0, irq_level);
+    vm_set_irq_level(vm.vcpus[BOOT_VCPU], TIMER_IRQ, irq_level);
 #ifdef DEBUG_PIT
     printf("irq_level=%d next_delay=%f\n",
            irq_level,

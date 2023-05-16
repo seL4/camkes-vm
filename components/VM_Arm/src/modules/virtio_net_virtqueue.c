@@ -17,7 +17,7 @@
 #include <virtqueue.h>
 #include <vswitch.h>
 #include <camkes/virtqueue.h>
-#include <virtio/virtio_net.h>
+#include <virtioarm/virtio_net.h>
 
 static virtio_net_t *virtio_net = NULL;
 static vswitch_t virtio_vswitch;
@@ -70,7 +70,8 @@ static int tx_virtqueue_forward(char *eth_buffer, size_t length, virtio_net_t *v
 static void virtio_net_notify_free_send(vswitch_node_t *node)
 {
     void *buf = NULL;
-    size_t buf_size = 0, wr_len = 0;
+    unsigned int buf_size = 0;
+    uint32_t wr_len = 0;
     vq_flags_t flag;
     virtqueue_ring_object_t handle;
     while (virtqueue_get_used_buf(node->virtqueues.send_queue, &handle, &wr_len)) {

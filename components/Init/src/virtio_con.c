@@ -1,11 +1,11 @@
 /*
- * Copyright 2019, Data61, CSIRO (ABN 41 687 119 230)
+ * Copyright 2022, UNSW (ABN 57 195 873 179)
  *
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
 /**
- * @brief virtio console backend layer for ARM
+ * @brief virtio console backend layer for x86
  *
  * The virtio console backend has two layers, the emul layer and the backend layer.
  * This file is part of the backend layer, it's responsible for:
@@ -21,14 +21,13 @@
  * being configured correctly in camkes.
  *
  * @todo Handling the RX and TX is similar between the x86/ARM VMMs, hence this file
- * and `components/Init/src/virtio_con.c` share a lot of common code. A refactor for
- * the backend layer is needed.
+ * and `components/VM_Arm/src/modules/virtio_con.c` share a lot of common code.
+ * A refactor for the backend layer is needed.
  */
 
 #include <stdint.h>
 #include <string.h>
 #include <autoconf.h>
-#include <vmlinux.h>
 
 #include <utils/util.h>
 
@@ -37,20 +36,28 @@
 
 #include <sel4vmmplatsupport/drivers/virtio_con.h>
 #include <sel4vmmplatsupport/device.h>
-#include <sel4vmmplatsupport/arch/vpci.h>
+
+#include <sel4vm/guest_irq_controller.h>
+#include <sel4vm/boot.h>
 
 #include <platsupport/serial.h>
-#include <virtioarm/virtio_console.h>
 
 #include <virtqueue.h>
 #include <camkes/virtqueue.h>
 
-/* Number of ports is the number of crossvm connections plus hvc0 */
-#define NUM_PORTS (ARRAY_SIZE(serial_layout) + 1)
+#include "virtio_con.h"
+#include "virtio_irq.h"
 
-static virtio_con_t *virtio_con = NULL;
-extern vmm_pci_space_t *pci;
-extern vmm_io_port_list_t *io_ports;
+static virtio_con_t *virtio_con;
+
+/* Used as the parameter for callback functions (currently only `console_handle_irq`) */
+typedef struct virtio_con_cookie {
+    virtio_con_t *virtio_con;
+    vm_t *vm;
+} virtio_con_cookie_t;
+
+/* Configured in camkes */
+#define NUM_PORTS ARRAY_SIZE(serial_layout)
 
 /* 4088 because the serial_shmem_t struct has to be 0x1000 bytes big */
 #define BUFSIZE (0x1000 - 2 * sizeof(uint32_t))
@@ -85,7 +92,7 @@ typedef struct serial_shmem {
 } serial_shmem_t;
 compile_time_assert(serial_shmem_4k_size, sizeof(serial_shmem_t) == 0x1000);
 
-/*
+/**
  * Represents the virtqueues used in a given link between
  * two VMs.
  */
@@ -114,21 +121,17 @@ static void virtio_con_notify_recv(int port)
 /**
  * Callback function for camkes virtqueue notification. Polls each receive ring buffer
  * to see if there are data pending. For some legacy reasons, this callback passes a
- * VMM handler and a cookie as parameters, they're unused here.
+ * VMM handler as a parameter, it's unused here.
  *
- * @see include/vmlinux.h (async_event_handler_fn_t) for usages
- *
- * @return Returns 0 on success.
+ * @see main.c (struct device_notify) for usages
  */
-static int handle_serial_console(vm_t *vmm, void *cookie UNUSED)
+void handle_serial_console(vm_t *vmm)
 {
-    /* Poll each ring buffer to see if data was added */
     for (int i = 0; i < NUM_PORTS; i++) {
         if (connections[i].recv_buf->head != connections[i].recv_buf->tail) {
             virtio_con_notify_recv(i);
         }
     }
-    return 0;
 }
 
 /**
@@ -143,77 +146,91 @@ static void tx_virtcon_forward(int port, char c)
         return;
     }
 
-    serial_shmem_t *buffer = connections[port].send_buf;
-    buffer->buf[buffer->tail] = c;
+    serial_shmem_t *batch_buf = connections[port].send_buf;
+    batch_buf->buf[batch_buf->tail] = c;
     __atomic_thread_fence(__ATOMIC_ACQ_REL);
-    buffer->tail = (buffer->tail + 1) % BUFSIZE;
+    batch_buf->tail = (batch_buf->tail + 1) % BUFSIZE;
 
     /* If newline or staging area full, it's time to send */
-    if (c == '\n' || (buffer->tail + 1) % BUFSIZE == buffer->head) {
+    if (c == '\n' || (batch_buf->tail + 1) % BUFSIZE == batch_buf->head) {
         __atomic_thread_fence(__ATOMIC_ACQ_REL);
         connections[port].notify();
     }
 }
 
-/* camkes-generated symbols */
-/* regions shared by the SerialServer and the VMM */
-extern serial_shmem_t *batch_buf;
-extern serial_shmem_t *serial_getchar_buf;
-
-extern seL4_Word serial_getchar_notification_badge(void);
-
 /**
- * Initialize a virtio console backend. This includes:
- * - adding an IO port handler
- * - adding a PCI entry
- * - initializing the emul layer
- * - setting up connections (includes hvc0)
- *
- * @see include/vmlinux.h (vmm_module_t) for usages
- *
- * @param vm The vm handler of the caller
- * @param cookie Unused in this function
+ * Sets up virtio console connections.
  */
-void make_virtio_con(vm_t *vm, void *cookie UNUSED)
+static void make_virtio_con_virtqueues(void)
 {
-    ZF_LOGF_IF((NUM_PORTS > VIRTIO_CON_MAX_PORTS), "Too many ports configured (up the constant)");
-
-    virtio_con = virtio_console_init(vm, tx_virtcon_forward, pci, io_ports);
-    ZF_LOGF_IF(!virtio_con, "Failed to initialise virtio console");
-
     int err;
     for (int i = 0; i < NUM_PORTS; i++) {
-        if (i == 0) {
-            /* Port 0 is the existing SerialServer shmem interface */
-            connections[0].notify = batch_batch;
-            connections[0].recv_buf = serial_getchar_buf;
-            connections[0].send_buf = batch_buf;
-            err = register_async_event_handler(serial_getchar_notification_badge(), handle_serial_console, NULL);
-            if (err) {
-                ZF_LOGE("Failed to register event handler");
-                return;
-            }
-            continue;
-        }
-
-        camkes_virtqueue_channel_t *recv_channel = get_virtqueue_channel(VIRTQUEUE_DEVICE, serial_layout[i - 1].recv_id);
-        camkes_virtqueue_channel_t *send_channel = get_virtqueue_channel(VIRTQUEUE_DRIVER, serial_layout[i - 1].send_id);
+        camkes_virtqueue_channel_t *recv_channel = get_virtqueue_channel(VIRTQUEUE_DEVICE, serial_layout[i].recv_id);
+        camkes_virtqueue_channel_t *send_channel = get_virtqueue_channel(VIRTQUEUE_DRIVER, serial_layout[i].send_id);
 
         if (!recv_channel || !send_channel) {
             ZF_LOGE("Failed to get channel");
             return;
         }
 
-        err = register_async_event_handler(recv_channel->recv_badge, handle_serial_console, NULL);
-        if (err) {
-            ZF_LOGE("Failed to register event handler");
-            return;
-        }
-
         connections[i].notify = send_channel->notify;
         connections[i].recv_buf = (serial_shmem_t *) recv_channel->channel_buffer;
         connections[i].send_buf = (serial_shmem_t *) send_channel->channel_buffer;
+        connections[i].recv_buf->head = 0;
+        connections[i].recv_buf->tail = 0;
+        connections[i].send_buf->head = 0;
+        connections[i].send_buf->tail = 0;
     }
 }
 
-DEFINE_MODULE(virtio_con, NULL, make_virtio_con)
+/**
+ * Callback function for the emul layer. Notifies the guest that there is
+ * something in its used ring
+ *
+ * @see virtio_pci_console.h for function format
+ *
+ * @param cookie Pointer to a virtio_con_cookie_t
+ */
+static void console_handle_irq(void *cookie)
+{
+    virtio_con_cookie_t *virtio_cookie = (virtio_con_cookie_t *)cookie;
+    if (!virtio_cookie || !virtio_cookie->vm) {
+        ZF_LOGE("NULL virtio cookie given to raw irq handler");
+        return;
+    }
+
+    int err = vm_inject_irq(virtio_cookie->vm->vcpus[BOOT_VCPU], VIRTIO_CON_IRQ);
+    if (err) {
+        ZF_LOGE("Failed to inject irq");
+        return;
+    }
+}
+
+void make_virtio_con(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_ports)
+{
+    ZF_LOGF_IF((NUM_PORTS > VIRTIO_CON_MAX_PORTS), "Too many ports configured (up the constant)");
+
+    int err;
+    struct virtio_console_passthrough backend;
+
+    backend.handleIRQ = console_handle_irq;
+    backend.backend_putchar = tx_virtcon_forward;
+
+    virtio_con_cookie_t *console_cookie = (virtio_con_cookie_t *)calloc(1, sizeof(virtio_con_cookie_t));
+    ZF_LOGF_IF(console_cookie == NULL, "Failed to allocated virtio console cookie");
+
+    backend.console_data = (void *)console_cookie;
+    ioport_range_t virtio_port_range = {0, 0, VIRTIO_IOPORT_SIZE};
+    virtio_con = common_make_virtio_con(vm, pci, io_ports, virtio_port_range, IOPORT_FREE,
+                                        VIRTIO_CON_IRQ, VIRTIO_CON_IRQ, backend);
+    console_cookie->virtio_con = virtio_con;
+    console_cookie->vm = vm;
+
+    make_virtio_con_virtqueues();
+    assert(virtio_con);
+}
+
+/**
+ * Dummy function used to register irq callback handlers.
+ */
+void make_virtio_con_driver_dummy(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_ports) {}

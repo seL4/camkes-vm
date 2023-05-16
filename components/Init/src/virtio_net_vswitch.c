@@ -209,7 +209,7 @@ static void virtio_net_notify_vswitch_recv(vswitch_node_t *node)
                     PR_MAC802_ADDR_ARGS(&myaddr));
             break;
         }
-        if (camkes_virtqueue_device_gather_copy_buffer(node->virtqueues.recv_queue, &handle, emul_buf, len) < 0) {
+        if (camkes_virtqueue_device_gather_copy_buffer(node->virtqueues.recv_queue, &handle, emul_buf, &len) < 0) {
             ZF_LOGW("Dropping frame for " PR_MAC802_ADDR ": Can't gather vq buffer.",
                     PR_MAC802_ADDR_ARGS(&myaddr));
             break;

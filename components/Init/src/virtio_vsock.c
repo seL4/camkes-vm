@@ -109,7 +109,7 @@ static void virtio_vsock_notify_recv(virtqueue_device_t *queue)
 
     while (virtqueue_get_available_buf(queue, &handle)) {
         size_t len = virtqueue_scattered_available_size(queue, &handle);
-        if (camkes_virtqueue_device_gather_copy_buffer(queue, &handle, (void *)temp_buf, len) < 0) {
+        if (camkes_virtqueue_device_gather_copy_buffer(queue, &handle, (void *)temp_buf, &len) < 0) {
             ZF_LOGW("Dropping data: Can't gather vq buffer.");
             continue;
         }

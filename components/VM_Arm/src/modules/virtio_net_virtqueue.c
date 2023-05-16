@@ -103,7 +103,7 @@ static int virtio_net_notify_recv(vswitch_node_t *node)
 
         int err = virtio_net_rx(emul_buf, len, virtio_net);
         if (err) {
-            ZF_LOGE("Unable to forward recieved buffer to the guest");
+            ZF_LOGE("Unable to forward received buffer to the guest");
         }
         node->virtqueues.recv_queue->notify();
     }

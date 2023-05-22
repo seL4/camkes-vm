@@ -1,4 +1,5 @@
 /*
+ * Copyright 2023, Hensoldt Cyber
  * Copyright 2019, DornerWorks
  *
  * SPDX-License-Identifier: BSD-2-Clause
@@ -12,9 +13,13 @@ static const int linux_pt_irqs[] = {};
 
 static const int free_plat_interrupts[] =  { -1 };
 
-static const char *plat_keep_devices[] = {};
+static const char *plat_keep_devices[] = {
+    "/timer",
+};
 static const char *plat_keep_device_and_disable[] = {};
-static const char *plat_keep_device_and_subtree[] = {};
+static const char *plat_keep_device_and_subtree[] = {
+    GIC_NODE_PATH,
+};
 static const char *plat_keep_device_and_subtree_and_disable[] = {};
 static const char *plat_linux_bootcmdline = "";
 static const char *plat_linux_stdout = "";

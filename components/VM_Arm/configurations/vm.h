@@ -89,23 +89,6 @@
         int map_one_to_one = false; \
     } vm_image_config; \
     attribute { \
-        string linux_ram_base; \
-        string linux_ram_paddr_base; \
-        string linux_ram_size; \
-        string linux_ram_offset = "0"; /* obsolete */ \
-        string dtb_addr; \
-        string initrd_max_size = "-1"; /* obsolete */ \
-        string initrd_addr; \
-    } linux_address_config; \
-    attribute { \
-        string linux_name = "linux"; \
-        string dtb_name = "linux-dtb"; \
-        string initrd_name = "linux-initrd"; \
-        string linux_bootcmdline = ""; \
-        string linux_stdout = ""; \
-        string dtb_base_name = ""; \
-    } linux_image_config; \
-    attribute { \
         int send_id; \
         int recv_id; \
     } serial_layout[] = []; \

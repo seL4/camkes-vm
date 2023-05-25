@@ -961,9 +961,9 @@ static int vm_dtb_finalize(vm_t *vm, const vm_config_t *vm_config)
         /* Modules can add PCI devices, so the PCI device tree node can be
          * created only after all modules have been set up.
          */
-        int gic_offset = fdt_path_offset(fdt_ori, GIC_NODE_PATH);
+        int gic_offset = fdt_path_offset(fdt_ori, vm_config->dtb_node_gic);
         if (gic_offset < 0) {
-            ZF_LOGE("Failed to find gic node from path: %s", GIC_NODE_PATH);
+            ZF_LOGE("Failed to find gic node from path: %s", vm_config->dtb_node_gic);
             return -1;
         }
         int gic_phandle = fdt_get_phandle(fdt_ori, gic_offset);

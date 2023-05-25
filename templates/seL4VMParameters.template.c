@@ -7,6 +7,7 @@
 
 #include <camkes.h>
 #include <arm_vm/gen_config.h>
+#include <vmlinux.h>
 
 /*- set vm_address_config = configuration[me.name].get('vm_address_config') -*/
 /*- set vm_image_config = configuration[me.name].get('vm_image_config') -*/
@@ -18,6 +19,8 @@
 /*- set entry_offset = 0x80000 if is_64_bit else 0x8000 -*/
 
 const vm_config_t vm_config = {
+
+    .dtb_node_gic = GIC_NODE_PATH,
 
     /*- set num_vcpus = config.get('num_vcpus', -1) -*/
     .num_vcpus = /*? "CONFIG_MAX_NUM_NODES" if -1 == num_vcpus else num_vcpus ?*/,

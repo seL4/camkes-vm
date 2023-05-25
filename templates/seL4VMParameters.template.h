@@ -13,6 +13,8 @@
 
 typedef struct {
 
+    char const *dtb_node_gic;
+
     unsigned int num_vcpus;
 
     struct {

@@ -19,6 +19,9 @@
 
 const vm_config_t vm_config = {
 
+    /*- set num_vcpus = config.get('num_vcpus', -1) -*/
+    .num_vcpus = /*? "CONFIG_MAX_NUM_NODES" if -1 == num_vcpus else num_vcpus ?*/,
+
 /*- if vm_address_config -*/
 
     .ram = {

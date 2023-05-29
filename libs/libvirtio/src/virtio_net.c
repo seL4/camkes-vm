@@ -129,6 +129,7 @@ virtio_net_t *virtio_net_init(vm_t *vm, virtio_net_callbacks_t *callbacks,
                                         VIRTIO_INTERRUPT_PIN, VIRTIO_NET_PLAT_INTERRUPT_LINE, backend);
     if (virtio_net == NULL) {
         ZF_LOGE("Failed to initialise virtio net driver");
+        free(driver_cookie);
         return NULL;
     }
     driver_cookie->virtio_net = virtio_net;

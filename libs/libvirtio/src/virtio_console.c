@@ -68,6 +68,7 @@ virtio_con_t *virtio_console_init(vm_t *vm, console_putchar_fn_t putchar,
     err =  vm_register_irq(vm->vcpus[BOOT_VCPU], VIRTIO_CON_PLAT_INTERRUPT_LINE, &virtio_console_ack, NULL);
     if (err) {
         ZF_LOGE("Failed to register console irq");
+        free(console_cookie);
         return NULL;
     }
     return virtio_con;

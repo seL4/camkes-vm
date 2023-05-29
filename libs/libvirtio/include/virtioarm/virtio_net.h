@@ -9,7 +9,7 @@
 /* Maximum transmission unit for Ethernet interface */
 #define ETHERNET_HEADER_SIZE 14
 #define MAX_MTU_DATA 1500
-#define MAX_MTU MAX_MTU_DATA + ETHERNET_HEADER_SIZE
+#define MAX_MTU (MAX_MTU_DATA + ETHERNET_HEADER_SIZE)
 
 typedef struct virtio_net_callbacks {
     int (*tx_callback)(char *data, size_t length, virtio_net_t *virtio_net);

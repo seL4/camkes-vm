@@ -1198,6 +1198,11 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
         ZF_LOGI("Loading Initrd: '%s'", vm_config->files.initrd);
         err = vm_load_guest_module(vm, vm_config->files.initrd,
                                    vm_config->initrd_addr, 0, &initrd_image);
+        ZF_LOGI("VM: %p - %p (Initrd '%s')",
+                initrd_image.load_paddr,
+                (void *)(initrd_image.load_paddr + initrd_image.size),
+                vm_config->files.initrd);
+
         void *initrd = (void *)initrd_image.load_paddr;
         if (!initrd || err) {
             return -1;

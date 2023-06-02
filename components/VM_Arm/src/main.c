@@ -858,7 +858,7 @@ static int vm_dtb_init(vm_t *vm, const vm_config_t *vm_config)
     err = fdt_generate_memory_node(gen_dtb_buf, vm_config->ram.base,
                                    vm_config->ram.size);
     if (err) {
-        ZF_LOGE("Couldn't generate memory_node (%d)\n", err);
+        ZF_LOGE("Couldn't generate memory_node (%d)", err);
         return -1;
     }
 
@@ -922,7 +922,7 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
         err = fdt_generate_chosen_node(gen_dtb_buf, vm_config->kernel_stdout,
                                        vm_config->kernel_bootcmdline, NUM_VCPUS);
         if (err) {
-            ZF_LOGE("Couldn't generate chosen_node (%d)\n", err);
+            ZF_LOGE("Couldn't generate chosen_node (%d)", err);
             return -1;
         }
     }
@@ -942,7 +942,7 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
                                                           vm_config->initrd_addr,
                                                           initrd_image.size);
             if (err) {
-                ZF_LOGE("Couldn't generate chosen_node_with_initrd_info (%d)\n", err);
+                ZF_LOGE("Couldn't generate chosen_node_with_initrd_info (%d)", err);
                 return -1;
             }
         }
@@ -953,7 +953,7 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
                    "provide_dtb and generate_dtb are both set. The provided dtb will NOT be loaded");
         err = vm_dtb_finalize(vm, vm_config);
         if (err) {
-            ZF_LOGE("Couldn't generate DTB (%d)\n", err);
+            ZF_LOGE("Couldn't generate DTB (%d)", err);
             return -1;
         }
         printf("Loading Generated DTB\n");
@@ -1050,7 +1050,7 @@ static int alloc_vm_device_cap(uintptr_t addr, vm_t *vm, vm_frame_t *frame_resul
     cspacepath_t frame;
     err = vka_cspace_alloc_path(vm->vka, &frame);
     if (err) {
-        ZF_LOGE("Failed to allocate cslot\n");
+        ZF_LOGE("Failed to allocate cslot");
         return -1;
     }
     seL4_Word cookie;
@@ -1261,7 +1261,7 @@ static int main_continued(void)
     /* Install devices */
     err = install_vm_devices(&vm, &vm_config);
     if (err) {
-        ZF_LOGE("Error: Failed to install VM devices\n");
+        ZF_LOGE("Error: Failed to install VM devices");
         seL4_DebugHalt();
         return -1;
     }
@@ -1269,7 +1269,7 @@ static int main_continued(void)
     /* Load system images */
     err = load_vm_images(&vm, &vm_config);
     if (err) {
-        ZF_LOGE("Failed to load VM image\n");
+        ZF_LOGE("Failed to load VM image");
         seL4_DebugHalt();
         return -1;
     }

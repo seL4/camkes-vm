@@ -6,7 +6,11 @@
 
 #pragma once
 
+#ifdef CONFIG_ZYNQMP_PETALINUX_AXI
+#define GIC_NODE_PATH "/axi/interrupt-controller@f9010000"
+#else
 #define GIC_NODE_PATH "/amba_apu@0/interrupt-controller@f9010000"
+#endif
 
 static const int linux_pt_irqs[] = {};
 

@@ -39,6 +39,7 @@ function(DeclareCAmkESVM init_component)
         sel4allocman
         sel4vm
         sel4vmmplatsupport
+        sel4vmmplatsupport_Config
         sel4_autoconf
         camkes_vmm_Config
         virtqueue

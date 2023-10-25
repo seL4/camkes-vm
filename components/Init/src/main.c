@@ -859,7 +859,7 @@ void *main_continued(void *arg)
     error = vm_ram_find_largest_free_region(&vm, &kernel_load_addr, &kernel_region_size);
     ZF_LOGF_IF(error, "Unable to find ram region for loading kernel image");
     guest_kernel_image_t guest_kernel_image;
-    guest_kernel_image.kernel_image_arch.is_reloc_enabled = true;
+    guest_kernel_image.kernel_image_arch.is_reloc_enabled = !(strcmp(kernel_relocs, "") == 0);
     guest_kernel_image.kernel_image_arch.relocs_file = kernel_relocs;
     error =  vm_load_guest_kernel(&vm, kernel_image, kernel_load_addr, BIT(PAGE_BITS_4M), &guest_kernel_image);
     ZF_LOGF_IF(error, "Failed to load guest kernel file");

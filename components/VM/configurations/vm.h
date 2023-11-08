@@ -13,7 +13,6 @@
 /* For all the async sources on the intready endpoint the high bit
  * is set to indicate that an async event occured, and the low bits
  * indicate which async events */
-
 #define VM_PIC_BADGE_IRQ_0 134217730 /* BIT(27) | BIT(1) */
 #define VM_PIC_BADGE_IRQ_1 134217732 /* BIT(27) | BIT(2) */
 #define VM_PIC_BADGE_IRQ_2 134217736 /* BIT(27) | BIT(3) */
@@ -30,6 +29,15 @@
 #define VM_PIC_BADGE_IRQ_13 134234112 /* BIT(27) | BIT(14) */
 #define VM_PIC_BADGE_IRQ_14 134250496 /* BIT(27) | BIT(15) */
 #define VM_PIC_BADGE_IRQ_15 134283264 /* BIT(27) | BIT(16) */
+
+/* Only support 4 APIC interrupts for now, we are limited by the number of bits
+ * in a notification badge, so this is just being conservative. */
+#define VM_APIC_BADGE_IRQ_16 134348800 /* BIT(27) | BIT(17) */
+#define VM_APIC_BADGE_IRQ_17 134479872 /* BIT(27) | BIT(18) */
+#define VM_APIC_BADGE_IRQ_18 134742016 /* BIT(27) | BIT(19) */
+#define VM_APIC_BADGE_IRQ_19 135266304 /* BIT(27) | BIT(20) */
+
+#define VM_NUM_IRQS 20
 
 /* Base definition of the Init component. This gets
  * extended in the per Vm configuration */
@@ -102,7 +110,7 @@
     vm##num.serial_getchar_shmem_size = 0x1000; \
     vm##num.simple = true; \
     vm##num.asid_pool = true; \
-    vm##num.global_endpoint_mask = 0x1fffffff & ~0x1fffe; \
+    vm##num.global_endpoint_mask = 0x1fffffff & ~0x1ffffe; \
     vm##num.global_endpoint_base = 1 << 27; \
     VM_MAYBE_ZONE_DMA(num) \
     /**/
@@ -130,7 +138,7 @@
 
 #define VM_CONFIGURATION_DEF() \
     fserv.heap_size = 0x30000; \
-    time_server.timers_per_client = 9; \
+    time_server.timers_per_client = 10; \
     /* Put the entire time server at the highest priority */ \
     time_server.priority = 255; \
     /* The timer server runs better if it can get the true tsc frequency from the kernel */ \

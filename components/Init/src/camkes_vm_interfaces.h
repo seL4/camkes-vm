@@ -39,6 +39,7 @@ int guest_mappings_num_guestmaps();
 int guest_mappings_get_guest_map(int num, uint64_t *frame, uint64_t *size);
 seL4_CPtr guest_mappings_get_mapping_mem_frame(uintptr_t paddr);
 
-int irqs_num_irqs();
-const char *irqs_get_irq(int irq, seL4_CPtr *irq_handler, uint8_t *ioapic, uint8_t *source, int *level_trig,
-                         int *active_low, uint8_t *dest);
+int irqs_ioapic_num_irqs(void);
+int irqs_msi_num_irqs(void);
+const char * irqs_ioapic_get_irq(int i, seL4_CPtr *irq_handler, uint8_t *ioapic, uint8_t *source, int *level_trig, int *active_low, uint8_t *dest);
+const char * irqs_msi_get_irq(int i, seL4_CPtr *irq_handler, uint8_t* irq, uint8_t *dest);

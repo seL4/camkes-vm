@@ -22,7 +22,7 @@ jobs:
       xml: ${{ steps.repo.outputs.xml }}
     steps:
     - id: repo
-      uses: seL4/ci-actions/repo-checkout@master
+      uses: chrisguikema/ci-actions/repo-checkout@zcu102_ci
       with:
         manifest_repo: camkes-vm-examples-manifest
         manifest: master.xml
@@ -37,7 +37,7 @@ jobs:
       matrix:
         march: [nehalem, armv7a, armv8a]
     steps:
-    - uses: seL4/ci-actions/camkes-vm@master
+    - uses: chrisguikema/ci-actions/camkes-vm@zcu102_ci
       with:
         xml: ${{ needs.code.outputs.xml }}
         march: ${{ matrix.march }}
@@ -75,7 +75,7 @@ jobs:
         with:
           name: images-${{ matrix.march }}
       - name: Run
-        uses: seL4/ci-actions/camkes-vm-hw@master
+        uses: chrisguikema/ci-actions/camkes-vm-hw@zcu102_ci
         with:
           march: ${{ matrix.march }}
           index: $${{ strategy.job-index }}

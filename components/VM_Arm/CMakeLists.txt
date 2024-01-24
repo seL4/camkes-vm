@@ -142,6 +142,7 @@ config_choice(
     ZYNQMP_PETALINUX_VERSION
     "The version of Petalinux to use"
     "2021_1;VmZynqmpPetalinux2021_1;ZYNQMP_PETALINUX_2021_1;KernelPlatformZynqmp"
+    "2022_1;VmZynqmpPetalinux2022_1;ZYNQMP_PETALINUX_2022_1;KernelPlatformZynqmp"
 )
 
 add_config_library(arm_vm "${configure_string}")

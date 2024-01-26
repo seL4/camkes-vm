@@ -42,7 +42,7 @@ config_option(
     VM_VIRTIO_NET_ARPING
     "Enable virtio net arping module"
     DEPENDS
-    "KernelPlatformExynos5410 OR KernelPlatformExynos5422 OR KernelPlatformTx2 OR KernelPlatformQEMUArmVirt;VmPCISupport"
+    "KernelPlatformExynos5410 OR KernelPlatformExynos5422 OR KernelPlatformTx2 OR KernelPlatformQEMUArmVirt OR KernelPlatformZynqmp;VmPCISupport"
     DEFAULT
     OFF
 )
@@ -140,7 +140,9 @@ config_option(
 config_choice(
     VmZynqmpPetalinuxVersion
     ZYNQMP_PETALINUX_VERSION
-    "The version of Petalinux to use"
+    "The version of Petalinux to use. Default is 2018.3, which will images compatible \
+    with the seL4 device tree"
+    "2018_3;VmZynqmpPetalinux2018_3;ZYNQMP_PETALINUX_2018_3;KernelPlatformZynqmp"
     "2021_1;VmZynqmpPetalinux2021_1;ZYNQMP_PETALINUX_2021_1;KernelPlatformZynqmp"
 )
 

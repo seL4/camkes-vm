@@ -137,6 +137,13 @@ config_option(
     "KernelPlatformExynos5410 OR KernelPlatformExynos5422 OR KernelPlatformZynqmp"
 )
 
+config_choice(
+    VmZynqmpPetalinuxVersion
+    ZYNQMP_PETALINUX_VERSION
+    "The version of Petalinux to use"
+    "2021_1;VmZynqmpPetalinux2021_1;ZYNQMP_PETALINUX_2021_1;KernelPlatformZynqmp"
+)
+
 add_config_library(arm_vm "${configure_string}")
 
 DeclareCAmkESARMVM(VM)

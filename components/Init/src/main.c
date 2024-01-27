@@ -34,6 +34,7 @@
 #include <sel4vm/arch/ioports.h>
 #include <sel4vm/guest_irq_controller.h>
 
+#include <sel4vmmplatsupport/gen_config.h>
 #include <sel4vmmplatsupport/guest_memory_util.h>
 #include <sel4vmmplatsupport/ioports.h>
 #include <sel4vmmplatsupport/drivers/pci.h>
@@ -55,6 +56,10 @@
 #include "virtio_net_vswitch.h"
 #include "virtio_con.h"
 #include "virtio_vsock.h"
+
+#ifdef CONFIG_VMM_USE_HPET
+#include "hpet.h"
+#endif
 
 #define BRK_VIRTUAL_SIZE 400000000
 #define ALLOCMAN_VIRTUAL_SIZE 400000000
@@ -439,6 +444,10 @@ void pit_timer_interrupt(void);
 void rtc_timer_interrupt(uint32_t);
 void serial_timer_interrupt(uint32_t);
 
+#ifdef CONFIG_VMM_USE_HPET
+void hpet_timer_interrupt(uint32_t);
+#endif
+
 static seL4_Word irq_badges[16] = {
     VM_PIC_BADGE_IRQ_0,
     VM_PIC_BADGE_IRQ_1,
@@ -483,6 +492,11 @@ static int handle_async_event(vm_t *vm, seL4_Word badge, UNUSED seL4_MessageInfo
                                  TIMER_MORE_CHARS))) {
                 serial_timer_interrupt(completed);
             }
+#ifdef CONFIG_VMM_USE_HPET
+            if (completed & (BIT(TIMER_HPET0) | BIT(TIMER_HPET1) | BIT(TIMER_HPET2))) {
+                hpet_timer_interrupt(completed);
+            }
+#endif
         }
         if ((badge & serial_getchar_notification_badge()) == serial_getchar_notification_badge()) {
             serial_character_interrupt();
@@ -697,6 +711,16 @@ void *main_continued(void *arg)
 
     ZF_LOGI("RTC pre init");
     rtc_pre_init();
+
+#ifdef CONFIG_VMM_USE_HPET
+    ZF_LOGI("HPET pre init\n");
+    uint64_t tsc_frequency = init_timer_tsc_frequency();
+    hpet_pre_init(tsc_frequency,
+                  TIMER_HPET0,
+                  init_timer_oneshot_relative,
+                  init_timer_stop);
+    vm_create_hpet(&vm);
+#endif
 
     error = vmm_io_port_init(&io_ports, FREE_IOPORT_START);
     if (error) {

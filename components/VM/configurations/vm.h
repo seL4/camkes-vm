@@ -130,7 +130,7 @@
 
 #define VM_CONFIGURATION_DEF() \
     fserv.heap_size = 0x30000; \
-    time_server.timers_per_client = 9; \
+    time_server.timers_per_client = 12; \
     /* Put the entire time server at the highest priority */ \
     time_server.priority = 255; \
     /* The timer server runs better if it can get the true tsc frequency from the kernel */ \

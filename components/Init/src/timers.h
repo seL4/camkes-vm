@@ -24,3 +24,8 @@
 #define TIMER_TRANSMIT_TIMER 6
 #define TIMER_MODEM_STATUS_TIMER 7
 #define TIMER_MORE_CHARS 8
+
+/* hpet timer */
+#define TIMER_HPET0 9
+#define TIMER_HPET1 10
+#define TIMER_HPET2 11

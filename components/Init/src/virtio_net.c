@@ -85,7 +85,14 @@ static int emul_raw_tx(struct eth_driver *driver, unsigned int num, uintptr_t *p
 
 static void emul_raw_handle_irq(struct eth_driver *driver, int irq)
 {
-    vm_inject_irq(emul_vm->vcpus[BOOT_VCPU], VIRTIO_NET_IRQ);
+    vm_vcpu_t *vcpu = vm_get_default_intr_vcpu(emul_vm)
+    if (!vcpu) {
+        ZF_LOGE("failed to get default interrupt injection VCPU, drop irq %d",
+                irq);
+        return;
+    }
+
+    vm_inject_irq(vcpu, VIRTIO_NET_IRQ);
 }
 
 static void emul_low_level_init(struct eth_driver *driver, uint8_t *mac, int *mtu)

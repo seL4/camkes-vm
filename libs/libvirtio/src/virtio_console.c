@@ -34,7 +34,14 @@ static void console_handle_irq(void *cookie)
         ZF_LOGE("NULL virtio cookie given to raw irq handler");
         return;
     }
-    int err = vm_inject_irq(virtio_cookie->vm->vcpus[BOOT_VCPU], VIRTIO_CON_PLAT_INTERRUPT_LINE);
+
+    vm_vcpu_t *vcpu = vm_get_default_intr_vcpu(virtio_cookie->vm, VIRTIO_CON_PLAT_INTERRUPT_LINE);
+    if (!vcpu) {
+        ZF_LOGE("failed to get default interrupt injection VCPU");
+        return NULL;
+    }
+
+    int err = vm_inject_irq(vcpu, VIRTIO_CON_PLAT_INTERRUPT_LINE);
     if (err) {
         ZF_LOGE("Failed to inject irq");
         return;
@@ -65,7 +72,14 @@ virtio_con_t *virtio_console_init(vm_t *vm, console_putchar_fn_t putchar,
                                         VIRTIO_INTERRUPT_PIN, VIRTIO_CON_PLAT_INTERRUPT_LINE, backend);
     console_cookie->virtio_con = virtio_con;
     console_cookie->vm = vm;
-    err =  vm_register_irq(vm->vcpus[BOOT_VCPU], VIRTIO_CON_PLAT_INTERRUPT_LINE, &virtio_console_ack, NULL);
+
+    vm_vcpu_t *vcpu = vm_get_default_intr_vcpu(vm, VIRTIO_NET_PLAT_INTERRUPT_LINE);
+    if (!vcpu) {
+        ZF_LOGE("failed to get default interrupt injection VCPU");
+        return NULL;
+    }
+
+    err = vm_register_irq(vcpu, VIRTIO_CON_PLAT_INTERRUPT_LINE, &virtio_console_ack, NULL);
     if (err) {
         ZF_LOGE("Failed to register console irq");
         free(console_cookie);

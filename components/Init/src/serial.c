@@ -277,11 +277,10 @@ static void serial_update_irq(SerialState *s)
     s->iir = tmp_iir | (s->iir & 0xF0);
 
     if (tmp_iir != UART_IIR_NO_INT) {
-
-        vm_set_irq_level(vm.vcpus[BOOT_VCPU], TTYS0_IRQ, 1);
+        serial_vm_set_irq_level(1);
 //        qemu_irq_raise(s->irq);
     } else {
-        vm_set_irq_level(vm.vcpus[BOOT_VCPU], TTYS0_IRQ, 0);
+        serial_vm_set_irq_level(0);
 //        qemu_irq_lower(s->irq);
     }
 }
@@ -328,6 +327,18 @@ static void serial_update_parameters(SerialState *s)
 
     DPRINTF("speed=%d parity=%c data=%d stop=%d\n",
             speed, parity, data_bits, stop_bits);
+}
+
+static void serial_vm_set_irq_level(int level) {
+    vm_vcpu_t *vcpu = vm_get_default_intr_vcpu(&vm)
+    if (!vcpu) {
+        /* This is not supposed top happen. The VM should not start at all if
+         * there is not default VCPU for interrupt handling.
+         */
+        ZF_LOGE("failed to get default interrupt injection VCPU");
+        return;
+    }
+    vm_set_irq_level(vcpu, TTYS0_IRQ, level);
 }
 
 static void serial_update_msl(SerialState *s)

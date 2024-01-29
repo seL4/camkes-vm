@@ -38,15 +38,23 @@ static void (*get_mac_addr_callback)(uint8_t *mac) = NULL;
 static void emul_raw_handle_irq(struct eth_driver *driver, int irq)
 {
     virtio_net_cookie_t *virtio_cookie = (virtio_net_cookie_t *)driver->eth_data;
-    if (!virtio_cookie) {
-        ZF_LOGE("NULL virtio cookie given to raw irq handler");
+    if (!virtio_cookie || !virtio_cookie->vm) {
+        ZF_LOGE("invalid cookie given to raw irq handler");
         return;
     }
-    int err = vm_inject_irq(virtio_cookie->vm->vcpus[BOOT_VCPU], VIRTIO_NET_PLAT_INTERRUPT_LINE);
+
+    vm_vcpu_t *vcpu = vm_get_intr_vcpu(virtio_cookie->vm, VIRTIO_NET_PLAT_INTERRUPT_LINE);
+    if (!vcpu) {
+        ZF_LOGE("failed to get default interrupt injection VCPU");
+        return NULL;
+    }
+
+    int err = vm_inject_irq(vcpu, VIRTIO_NET_PLAT_INTERRUPT_LINE);
     if (err) {
         ZF_LOGE("Failed to inject irq");
         return;
     }
+
     if (virtio_cookie->callbacks.irq_callback) {
         virtio_cookie->callbacks.irq_callback(irq, virtio_cookie->virtio_net);
     }
@@ -134,7 +142,14 @@ virtio_net_t *virtio_net_init(vm_t *vm, virtio_net_callbacks_t *callbacks,
     }
     driver_cookie->virtio_net = virtio_net;
     driver_cookie->vm = vm;
-    int err =  vm_register_irq(vm->vcpus[BOOT_VCPU], VIRTIO_NET_PLAT_INTERRUPT_LINE, &virtio_net_ack, NULL);
+
+    vm_vcpu_t *vcpu = vm_get_intr_vcpu(vm, VIRTIO_NET_PLAT_INTERRUPT_LINE);
+    if (!vcpu) {
+        ZF_LOGE("failed to get default interrupt injection VCPU");
+        return NULL;
+    }
+
+    int err = vm_register_irq(vcpu, VIRTIO_NET_PLAT_INTERRUPT_LINE, &virtio_net_ack, NULL);
     if (callbacks) {
         driver_cookie->callbacks.tx_callback = callbacks->tx_callback;
         driver_cookie->callbacks.irq_callback = callbacks->irq_callback;

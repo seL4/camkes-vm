@@ -137,6 +137,24 @@ int get_crossvm_irq_num(void)
     return free_plat_interrupts[0];
 }
 
+/* The VGIC interface expects a VCPU for interrupt injection. Since most code
+ * just deals with a VM, it has no clue which VCPU to use. This function
+ * provides the VCPU for interrupt injection, so no guesses have to be made.
+ */
+vm_vcpu_t *vm_get_intr_vcpu(vm_t *vm, int irq)
+{
+    /* We assume, that all interrupt handling happens on BOOT_VCPU. Actually,
+     * the interrupt has been registered with a VCPU and we could make the GIC
+     * look it up dynamically. If this is too slow, the caller should not call
+     * this function at all, but remember the VCPU and use it for injection.
+     */
+    UNUSED_PARAMETER(irq);
+    assert(BOOT_VCPU <= ARRAY_SIZE(vm.vcpus));
+    vm_vcpu_t *vcpu = vm.vcpus[BOOT_VCPU];
+    assert(vcpu) /* VMs never start if there are issues with the boot VCPU */
+    return vcpu;
+}
+
 static int _dma_morecore(size_t min_size, int cached, struct dma_mem_descriptor *dma_desc)
 {
     static uint32_t _vaddr = DMA_VSTART;

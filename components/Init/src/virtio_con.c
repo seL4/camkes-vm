@@ -199,7 +199,14 @@ static void console_handle_irq(void *cookie)
         return;
     }
 
-    int err = vm_inject_irq(virtio_cookie->vm->vcpus[BOOT_VCPU], VIRTIO_CON_IRQ);
+    vm_vcpu_t *vcpu = vm_get_default_intr_vcpu(virtio_cookie->vm)
+    if (!vcpu) {
+        ZF_LOGE("failed to get default interrupt injection VCPU, drop IRQ %d",
+                irq);
+        return -1;
+    }
+
+    int err = vm_inject_irq(vcpu, VIRTIO_CON_IRQ);
     if (err) {
         ZF_LOGE("Failed to inject irq");
         return;

@@ -98,6 +98,18 @@ static PITCommonState pit_state;
 
 extern vm_t vm;
 
+static void pit_vm_set_irq_level(int level) {
+    vm_vcpu_t *vcpu = vm_get_default_intr_vcpu(&vm)
+    if (!vcpu) {
+        /* This is not supposed top happen. The VM should not start at all if
+         * there is not default VCPU for interrupt handling.
+         */
+        ZF_LOGE("failed to get default interrupt injection VCPU");
+        return;
+    }
+    vm_set_irq_level(vcpu, TIMER_IRQ, level);
+}
+
 static void pit_irq_timer_update(PITChannelState *s, int64_t current_time);
 
 static uint64_t tsc_frequency = 0;
@@ -463,8 +475,10 @@ static void pit_irq_timer_update(PITChannelState *s, int64_t current_time)
     }
     expire_time = pit_get_next_transition_time(s, current_time);
     irq_level = pit_get_out(s, current_time);
+
     //qemu_set_irq(s->irq, irq_level);
-    vm_set_irq_level(vm.vcpus[BOOT_VCPU], TIMER_IRQ, irq_level);
+    pit_vm_set_irq_level(irq_level);
+
 #ifdef DEBUG_PIT
     printf("irq_level=%d next_delay=%f\n",
            irq_level,

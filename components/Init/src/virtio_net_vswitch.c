@@ -269,7 +269,13 @@ static int make_vswitch_net(void)
 
 static void emul_raw_handle_irq(struct eth_driver *driver, int irq)
 {
-    vm_inject_irq(emul_vm->vcpus[BOOT_VCPU], VIRTIO_NET_IRQ);
+    vm_vcpu_t *vcpu = vm_get_default_intr_vcpu(emul_vm->vm)
+    if (!vcpu) {
+        ZF_LOGE("can get default interrupt injection VCPU, drop IRQ %d", irq);
+        return -1;
+    }
+
+    vm_inject_irq(vcpu, VIRTIO_NET_IRQ);
 }
 
 void make_virtio_net_vswitch(vm_t *vm, vmm_pci_space_t *pci, vmm_io_port_list_t *io_ports)

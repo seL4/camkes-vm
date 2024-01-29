@@ -142,7 +142,13 @@ static int virtio_blk_emul_transfer(struct disk_driver *driver, uint8_t directio
  */
 static void emul_raw_handle_irq(struct disk_driver *driver, int irq)
 {
-    vm_inject_irq(emul_vm->vcpus[BOOT_VCPU], VIRTIO_BLK_IRQ);
+    vm_vcpu_t *vcpu = vm_get_default_intr_vcpu(emul_vm->vm)
+    if (!vcpu) {
+        ZF_LOGE("can get default interrupt injection VCPU, drop IRQ %d", irq);
+        return -1;
+    }
+
+    vm_inject_irq(vcpu, VIRTIO_BLK_IRQ);
 }
 
 /*

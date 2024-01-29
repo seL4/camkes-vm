@@ -501,11 +501,18 @@ static int handle_async_event(vm_t *vm, seL4_Word badge, UNUSED seL4_MessageInfo
         if ((badge & serial_getchar_notification_badge()) == serial_getchar_notification_badge()) {
             serial_character_interrupt();
         }
-        for (int i = 0; i < 16; i++) {
-            if ((badge & irq_badges[i]) == irq_badges[i]) {
-                vm_inject_irq(vm->vcpus[BOOT_VCPU], i);
+
+        vm_vcpu_t *vcpu = vm_get_default_intr_vcpu(vm)
+        if (!vcpu) {
+            ZF_LOGE("failed to get default interrupt injection VCPU");
+        } else {
+            for (int i = 0; i < 16; i++) {
+                if ((badge & irq_badges[i]) == irq_badges[i]) {
+                    vm_inject_irq(vcpu, i);
+                }
             }
         }
+
         for (int i = 0; i < device_notify_list_len; i++) {
             uint32_t device_badge = device_notify_list[i].badge;
             if ((badge & device_badge) == device_badge) {
@@ -584,7 +591,9 @@ static void init_irqs(vm_t *vm)
         ZF_LOGF_IF(error, "Failed to set notification for irq handler");
         error = seL4_IRQHandler_Ack(irq_handler);
         ZF_LOGF_IF(error, "Failed to ack irq handler");
-        error = vm_register_irq(vm->vcpus[BOOT_VCPU], dest, irq_ack_hw_irq_handler, (void *)irq_handler);
+        vm_vcpu_t *vcpu = vm_get_default_intr_vcpu(virtio_cookie->vm)
+        ZF_LOGF_IF(!vcpu, "Failed to get default interrupt injection VCPU");
+        error = vm_register_irq(vcpu, dest, irq_ack_hw_irq_handler, (void *)irq_handler);
         ZF_LOGF_IF(error, "Failed to register irq ack handler");
     }
 }

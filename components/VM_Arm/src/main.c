@@ -78,7 +78,6 @@ extern void *fs_buf;
 int start_extra_frame_caps;
 
 int VM_PRIO = 100;
-int NUM_VCPUS = 1;
 
 #define IRQSERVER_PRIO      (VM_PRIO + 1)
 #define IRQ_MESSAGE_LABEL   0xCAFE
@@ -137,21 +136,48 @@ int get_crossvm_irq_num(void)
     return free_plat_interrupts[0];
 }
 
+static vm_vcpu_t *vm_get_boot_vcpu(vm_t *vm, const vm_config_t *vm_config)
+{
+    unsignded int vcpu_boot = vm_config->vcpus.boot;
+
+    /* The boot VCPU must be valid */
+    if (vcpu_boot >= vm_config->vcpus.num) {
+        ZF_LOGE("boot VCPU (%u) exceeds number of VCPUs (%u)",
+                vcpu_boot, vm_config->vcpus.num);
+        return NULL;
+    }
+
+    /* The boot VCPU must be one of the statically configured VCPUs */
+    if (vcpu_boot >= ARRAY_SIZE(vm->vcpus))) {
+        ZF_LOGE("boot VCPU (%u) invalid", vcpu_boot);
+        return NULL;
+    }
+
+    vm_vcpu_t *vcpu = vm->vcpus[vcpu_boot];
+    if (!vcpu) {
+        ZF_LOGE("boot VCPU (%u) is not initialized", vcpu_boot);
+        return NULL;
+    }
+
+    return vcpu
+}
+
 /* The VGIC interface expects a VCPU for interrupt injection. Since most code
  * just deals with a VM, it has no clue which VCPU to use. This function
  * provides the VCPU for interrupt injection, so no guesses have to be made.
  */
 vm_vcpu_t *vm_get_intr_vcpu(vm_t *vm, int irq)
 {
-    /* We assume, that all interrupt handling happens on BOOT_VCPU. Actually,
-     * the interrupt has been registered with a VCPU and we could make the GIC
-     * look it up dynamically. If this is too slow, the caller should not call
-     * this function at all, but remember the VCPU and use it for injection.
+    /* We assume, that all interrupt handling happens on primary VCPU. Actually,
+     * each interrupt has been registered with a VCPU, so we could make the GIC
+     * look it up dynamically. This could take some time, if the caller can't
+     * accept this, it must not call this function at all, but remember the
+     * VCPU where the interrupt was registered and use it for the injection
+     * direclty.
      */
     UNUSED_PARAMETER(irq);
-    assert(BOOT_VCPU <= ARRAY_SIZE(vm.vcpus));
-    vm_vcpu_t *vcpu = vm.vcpus[BOOT_VCPU];
-    assert(vcpu) /* VMs never start if there are issues with the boot VCPU */
+    vm_vcpu_t *vcpu =  vm_get_boot_vcpu();
+    assert(vcpu); /* VMs never start if there are issues with the boot VCPU */
     return vcpu;
 }
 
@@ -690,10 +716,15 @@ static void irq_handler(void *data, ps_irq_acknowledge_fn_t acknowledge_fn, void
     /* Fill in the rest of the details */
     token->acknowledge_fn = acknowledge_fn;
     token->ack_data = ack_data;
-    int err;
-    err = vm_inject_irq(token->vm->vcpus[BOOT_VCPU], token->virq);
+    vm_vcpu_t *vcpu_boot = vm_get_boot_vcpu(token->vm, &vm_config);
+    if (!vcpu_boot) {
+        ZF_LOGE("Could not find boot VCPU, IRQ %d Dropped", token->virq);
+        return
+    }
+    int err = vm_inject_irq(vcpu_boot, token->virq);
     if (err) {
         ZF_LOGW("IRQ %d Dropped", token->virq);
+        return
     }
 }
 
@@ -943,7 +974,8 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
     /* generate a chosen node */
     if (vm_config->generate_dtb) {
         err = fdt_generate_chosen_node(gen_dtb_buf, vm_config->kernel_stdout,
-                                       vm_config->kernel_bootcmdline, NUM_VCPUS);
+                                       vm_config->kernel_bootcmdline,
+                                       vm_config->num_vcpus);
         if (err) {
             ZF_LOGE("Couldn't generate chosen_node (%d)", err);
             return -1;
@@ -1001,7 +1033,13 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
     }
 
     /* Set boot arguments */
-    err = vcpu_set_bootargs(vm->vcpus[BOOT_VCPU], entry, MACH_TYPE, dtb);
+    vm_vcpu_t *vcpu_boot = vm_get_boot_vcpu(vm, vm_config);
+    if (!vcpu_boot) {
+        ZF_LOGE("Could not find boot VCPU");
+        return -1;
+    }
+
+    err = vcpu_set_bootargs(vcpu_boot, entry, MACH_TYPE, dtb);
     if (err) {
         printf("Error: Failed to set boot arguments\n");
         return -1;
@@ -1276,7 +1314,7 @@ static int main_continued(void)
 #endif
 
     /* Create CPUs and DTB node */
-    for (int i = 0; i < NUM_VCPUS; i++) {
+    for (int i = 0; i < vm_config.num_vcpus; i++) {
         vm_vcpu_t *new_vcpu = create_vmm_plat_vcpu(&vm, VM_PRIO - 1);
         assert(new_vcpu);
     }
@@ -1288,14 +1326,19 @@ static int main_continued(void)
         }
     }
 
-    vm_vcpu_t *vm_vcpu = vm.vcpus[BOOT_VCPU];
-    err = vm_assign_vcpu_target(vm_vcpu, 0);
+    vm_vcpu_t *vcpu_boot = vm_get_boot_vcpu(&vm, &vm_config);
+    if (!vcpu_boot) {
+        ZF_LOGE("Couldn't get boot VCPU");
+        return -1;
+    }
+
+    err = vm_assign_vcpu_target(vcpu_boot, 0);
     if (err) {
         return -1;
     }
 
     /* Route IRQs */
-    err = route_irqs(vm_vcpu, _irq_server);
+    err = route_irqs(vcpu_boot, _irq_server);
     if (err) {
         return -1;
     }
@@ -1316,7 +1359,7 @@ static int main_continued(void)
         return -1;
     }
 
-    err = vcpu_start(vm_vcpu);
+    err = vcpu_start(vcpu_boot);
     if (err) {
         ZF_LOGE("Failed to start Boot VCPU");
         return -1;
@@ -1334,9 +1377,8 @@ static int main_continued(void)
     return 0;
 }
 
-/* base_prio and num_vcpus are optional attributes of the VM component. */
+/* base_prio is an optional attribute of the VM component. */
 extern const int __attribute__((weak)) base_prio;
-extern const int __attribute__((weak)) num_vcpus;
 
 int run(void)
 {
@@ -1344,17 +1386,23 @@ int run(void)
     if (&base_prio != NULL) {
         VM_PRIO = base_prio;
     }
-    /* if the num_vcpus attribute is set, try to use it */
-    if (&num_vcpus != NULL) {
-        if (num_vcpus > CONFIG_MAX_NUM_NODES) {
-            ZF_LOGE("Invalid 'num_vcpus' attribute setting: Exceeds maximum number of supported nodes. Capping value to CONFIG_MAX_NUM_NODES (%d)",
-                    CONFIG_MAX_NUM_NODES);
-            NUM_VCPUS = CONFIG_MAX_NUM_NODES;
-        } else if (num_vcpus <= 0) {
-            ZF_LOGE("Invalid 'num_vcpus' attribute setting: Can't have 0 or negative amount of vcpus. Capping value to 1 vcpu (default value)");
-        } else {
-            NUM_VCPUS = num_vcpus;
-        }
+
+    /* The number of VCPUs is not supposed to exceed the number of physical
+     * cores. It will work find, but this is likely a configuration issues that
+     * to look into.
+     */
+    if (vm_config.vcpus.num > CONFIG_MAX_NUM_NODES) {
+        ZF_LOGW("Number of VCPUs (%u) exceeds CONFIG_MAX_NUM_NODES (%u)",
+                vm_config.vcpus.num, CONFIG_MAX_NUM_NODES);
+    }
+
+    /* There are still hard-coded assumption in various libs that use BOOT_VCPU,
+     * so we instead have to stop here until this is updated everywhere
+     */
+    if (vm_config->vcpus.boot != BOOT_VCPU) {
+        ZF_LOGE("boot VCPU %u must match BOOT_VCPU (%u)",
+                vm_config->vcpus.boot, BOOT_VCPU);
+        return NULL;
     }
 
     return main_continued();

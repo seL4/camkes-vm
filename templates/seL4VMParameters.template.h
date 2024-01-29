@@ -14,6 +14,11 @@
 typedef struct {
 
     struct {
+        unsigned int num;
+        unsigned int boot;
+    } vcpus
+
+    struct {
         uintptr_t phys_base;
         uintptr_t base;
         size_t size;

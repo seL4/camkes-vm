@@ -144,6 +144,7 @@ config_choice(
     compatible with the seL4 kernel device tree"
     "2018_3;VmZynqmpPetalinux2018_3;ZYNQMP_PETALINUX_2018_3;KernelPlatformZynqmp"
     "2021_1;VmZynqmpPetalinux2021_1;ZYNQMP_PETALINUX_2021_1;KernelPlatformZynqmp"
+    "2022_1;VmZynqmpPetalinux2022_1;ZYNQMP_PETALINUX_2022_1;KernelPlatformZynqmp"
 )
 
 add_config_library(arm_vm "${configure_string}")

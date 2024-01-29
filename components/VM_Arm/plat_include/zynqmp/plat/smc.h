@@ -55,6 +55,7 @@
 #define SMC_PM_CLOCK_PLL_GETPARAM           0xC2000030
 #define SMC_PM_REGISTER_ACCESS              0xC2000034
 #define SMC_PM_EFUSE_ACCESS                 0xC2000035
+#define SMC_PM_ADD_SUBSYSTEM                0xC2000036
 #define SMC_PM_FEATURE_CHECK                0xC200003F
 #define SMC_PM_API_MAX                      0xC2000040
 

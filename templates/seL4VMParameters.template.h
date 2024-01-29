@@ -47,3 +47,5 @@ typedef struct {
 } vm_config_t;
 
 extern const vm_config_t vm_config;
+
+int get_instance_size_pcpus_list(void);

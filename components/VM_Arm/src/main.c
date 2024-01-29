@@ -1314,9 +1314,14 @@ static int main_continued(void)
 #endif
 
     /* Create CPUs and DTB node */
+    int pcpu_list_size = get_instance_size_pcpus_list();
     for (int i = 0; i < vm_config.num_vcpus; i++) {
         vm_vcpu_t *new_vcpu = create_vmm_plat_vcpu(&vm, VM_PRIO - 1);
         assert(new_vcpu);
+        if (i < pcpu_list_size) {
+            /* Assign VCPU to explicit physical CPU */
+            new_vcpu->target_cpu = pcpus[i];
+        }
     }
     if (vm_config.generate_dtb) {
         err = fdt_generate_plat_vcpu_node(&vm, gen_dtb_buf);
@@ -1332,8 +1337,12 @@ static int main_continued(void)
         return -1;
     }
 
-    err = vm_assign_vcpu_target(vcpu_boot, 0);
+    /* Use affinity as boot core if pcpus are not specified */
+    err = vm_assign_vcpu_target(vcpu_boot,
+                                (0 == pcpu_list_size) ? get_instance_affinity()
+                                : vm_vcpu->target_cpu);
     if (err) {
+        ZF_LOGE("Error: Failed to assign boot vcpu");
         return -1;
     }
 

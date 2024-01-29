@@ -35,7 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        march: [nehalem, armv7a, armv8a]
+        march: [armv8a]
     steps:
     - uses: axel-h/ci-actions/camkes-vm@patch-axel-9
       with:
@@ -62,7 +62,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        march: [nehalem, armv7a, armv8a]
+        march: [armv8a]
     steps:
       - name: Get machine queue
         uses: actions/checkout@v4

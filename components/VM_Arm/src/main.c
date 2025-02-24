@@ -17,7 +17,9 @@
 #include <fcntl.h>
 
 #include <allocman/allocman.h>
-#include <allocman/bootstrap.h>
+#include <allocman/cspace/single_level.h>
+#include <allocman/utspace/split.h>
+#include <allocman/mspace/malloc.h>
 #include <allocman/vka.h>
 #include <vka/capops.h>
 #include <vka/object.h>
@@ -92,7 +94,10 @@ int NUM_VCPUS = 1;
 vka_t _vka;
 simple_t _simple;
 vspace_t _vspace;
+cspace_single_level_t _cspace;
+utspace_split_t _utspace;
 sel4utils_alloc_data_t _alloc_data;
+allocman_t _allocman;
 allocman_t *allocman;
 seL4_CPtr _fault_endpoint;
 irq_server_t *_irq_server;
@@ -458,6 +463,57 @@ static bool add_uts(const vm_config_t *vm_config, vka_t *vka, seL4_CPtr cap,
                                     ut_type);
 }
 
+static allocman_t *init_vmm_allocman(seL4_CPtr root_cnode, size_t cnode_size, seL4_CPtr start_slot, seL4_CPtr end_slot) {
+    // Create an allocman using malloc as the backing heap allocator (for bookkeeping data)
+    int error = allocman_create(&_allocman, mspace_malloc_interface);
+    if (error) {
+        return NULL;
+    }
+
+    // Create a cspace single level allocator in the existing cspace
+    error = cspace_single_level_create(&_allocman, &_cspace, (struct cspace_single_level_config){
+        .cnode = root_cnode,
+        .cnode_size_bits = cnode_size,
+        .cnode_guard_bits = seL4_WordBits - cnode_size,
+        .first_slot = start_slot,
+        .end_slot = end_slot
+    });
+    if (error) {
+        return NULL;
+    }
+
+    // Attach the cspace to the allocator
+    error = allocman_attach_cspace(&_allocman, cspace_single_level_make_interface(&_cspace));
+    if (error) {
+        goto free_cspace;
+    }
+
+    // Create and attach a utspace allocator
+    utspace_split_create(&_utspace);
+    error = allocman_attach_utspace(&_allocman, utspace_split_make_interface(&_utspace));
+    if (error) {
+        goto free_cspace;
+    }
+
+    // Configure allocman reserved pool (taken from bootstrap.c)
+    if (allocman_configure_max_freed_slots(&_allocman, 10) ||
+        allocman_configure_max_freed_memory_chunks(&_allocman, 20) ||
+        allocman_configure_max_freed_untyped_chunks(&_allocman, 10) ||
+        allocman_configure_cspace_reserve(&_allocman, 30)
+        ) {
+        ZF_LOGE("Error encountered when setting reserve configuration.");
+        ZF_LOGE("Some heap memory may be leaked due to this failure.");
+        goto free_cspace;
+
+    }
+    return &_allocman;
+
+free_cspace:
+    // Clean up memory allocated by single level cspace
+    cspace_single_level_destroy(&_allocman, &_cspace);
+    return NULL;
+}
+
 static int vmm_init(const vm_config_t *vm_config)
 {
     vka_object_t fault_ep_obj;
@@ -483,13 +539,12 @@ static int vmm_init(const vm_config_t *vm_config)
     start_extra_frame_caps = simple_last_valid_cap(simple) + 1;
 
     /* Initialize allocator */
-    allocman = bootstrap_use_current_1level(
+    allocman = init_vmm_allocman(
                    simple_get_cnode(simple),
                    simple_get_cnode_size_bits(simple),
                    simple_last_valid_cap(simple) + 1 + num_extra_frame_caps,
-                   BIT(simple_get_cnode_size_bits(simple)),
-                   get_allocator_mempool_size(), get_allocator_mempool()
-               );
+                   BIT(simple_get_cnode_size_bits(simple))
+                   );
     assert(allocman);
 
     allocman_make_vka(vka, allocman);

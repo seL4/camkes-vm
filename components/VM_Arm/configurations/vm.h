@@ -67,7 +67,7 @@
     attribute int num_vcpus = 1; \
     attribute int num_extra_frame_caps; \
     attribute int extra_frame_map_address; \
-    attribute int heap_size = 0x300000; \
+    attribute int heap_size = 0x5300000; \
     attribute { \
         string ram_base; \
         string ram_paddr_base; \

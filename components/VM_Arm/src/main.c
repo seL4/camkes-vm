@@ -87,10 +87,6 @@ int NUM_VCPUS = 1;
 #define IRQSERVER_PRIO      (VM_PRIO + 1)
 #define IRQ_MESSAGE_LABEL   0xCAFE
 
-#ifndef DEBUG_BUILD
-#define seL4_DebugHalt() do{ printf("Halting...\n"); while(1); } while(0)
-#endif
-
 vka_t _vka;
 simple_t _simple;
 vspace_t _vspace;
@@ -1136,7 +1132,6 @@ static int main_continued(void)
     err = install_vm_devices(&vm, &vm_config);
     if (err) {
         ZF_LOGE("Error: Failed to install VM devices");
-        seL4_DebugHalt();
         return -1;
     }
 
@@ -1144,7 +1139,6 @@ static int main_continued(void)
     err = load_vm_images(&vm, &vm_config);
     if (err) {
         ZF_LOGE("Failed to load VM image");
-        seL4_DebugHalt();
         return -1;
     }
 
@@ -1158,7 +1152,6 @@ static int main_continued(void)
         err = vm_run(&vm);
         if (err) {
             ZF_LOGE("Failed to run VM");
-            seL4_DebugHalt();
             return -1;
         }
     }

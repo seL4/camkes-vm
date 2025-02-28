@@ -17,7 +17,9 @@
 #include <fcntl.h>
 
 #include <allocman/allocman.h>
-#include <allocman/bootstrap.h>
+#include <allocman/cspace/single_level.h>
+#include <allocman/utspace/split.h>
+#include <allocman/mspace/malloc.h>
 #include <allocman/vka.h>
 #include <vka/capops.h>
 #include <vka/object.h>
@@ -57,7 +59,9 @@
 #include <elf/elf.h>
 
 #include <camkes.h>
+#include <camkes/io.h>
 #include <camkes/tls.h>
+#include <camkes/dma.h>
 #include <camkes/dataport.h>
 
 #include <vmlinux.h>
@@ -83,16 +87,13 @@ int NUM_VCPUS = 1;
 #define IRQSERVER_PRIO      (VM_PRIO + 1)
 #define IRQ_MESSAGE_LABEL   0xCAFE
 
-#define DMA_VSTART  0x40000000
-
-#ifndef DEBUG_BUILD
-#define seL4_DebugHalt() do{ printf("Halting...\n"); while(1); } while(0)
-#endif
-
 vka_t _vka;
 simple_t _simple;
 vspace_t _vspace;
+cspace_single_level_t _cspace;
+utspace_split_t _utspace;
 sel4utils_alloc_data_t _alloc_data;
+allocman_t _allocman;
 allocman_t *allocman;
 seL4_CPtr _fault_endpoint;
 irq_server_t *_irq_server;
@@ -137,216 +138,12 @@ int get_crossvm_irq_num(void)
     return free_plat_interrupts[0];
 }
 
-static int _dma_morecore(size_t min_size, int cached, struct dma_mem_descriptor *dma_desc)
-{
-    static uint32_t _vaddr = DMA_VSTART;
-    struct seL4_ARM_Page_GetAddress getaddr_ret;
-    seL4_CPtr frame;
-    seL4_CPtr pd;
-    vka_t *vka;
-    int err;
-
-    pd = simple_get_pd(&_simple);
-    vka = &_vka;
-
-    /* Create a frame */
-    frame = vka_alloc_frame_leaky(vka, seL4_PageBits);
-    assert(frame);
-    if (!frame) {
-        return -1;
-    }
-
-    /* Try to map the page */
-    err = seL4_ARM_Page_Map(frame, pd, _vaddr, seL4_AllRights, 0);
-    if (err) {
-        seL4_CPtr pt;
-        /* Allocate a page table */
-        pt = vka_alloc_page_table_leaky(vka);
-        if (!pt) {
-            printf("Failed to create page table\n");
-            return -1;
-        }
-        /* Map the page table */
-        err = seL4_ARM_PageTable_Map(pt, pd, _vaddr, 0);
-        if (err) {
-            printf("Failed to map page table\n");
-            return -1;
-        }
-        /* Try to map the page again */
-        err = seL4_ARM_Page_Map(frame, pd, _vaddr, seL4_AllRights, 0);
-        if (err) {
-            printf("Failed to map page\n");
-            return -1;
-        }
-
-    }
-
-    /* Find the physical address of the page */
-    getaddr_ret = seL4_ARM_Page_GetAddress(frame);
-    assert(!getaddr_ret.error);
-    /* Setup dma memory description */
-    dma_desc->vaddr = _vaddr;
-    dma_desc->paddr = getaddr_ret.paddr;
-    dma_desc->cached = 0;
-    dma_desc->size_bits = seL4_PageBits;
-    dma_desc->alloc_cookie = (void *)frame;
-    dma_desc->cookie = NULL;
-    /* Advance the virtual address marker */
-    _vaddr += SIZE_BITS_TO_BYTES(seL4_PageBits);
-    return 0;
-}
-
-typedef struct vm_io_cookie {
-    simple_t simple;
-    vka_t vka;
-    vspace_t vspace;
-} vm_io_cookie_t;
-
-static void *vm_map_paddr_with_page_size(vm_io_cookie_t *io_mapper, uintptr_t paddr, size_t size, int page_size_bits,
-                                         int cached)
-{
-
-    vka_t *vka = &io_mapper->vka;
-    vspace_t *vspace = &io_mapper->vspace;
-    simple_t *simple = &io_mapper->simple;
-
-    /* search at start of page */
-    int page_size = BIT(page_size_bits);
-    uintptr_t start = ROUND_DOWN(paddr, page_size);
-    uintptr_t offset = paddr - start;
-    size += offset;
-
-    /* calculate number of pages */
-    unsigned int num_pages = ROUND_UP(size, page_size) >> page_size_bits;
-    assert(num_pages << page_size_bits >= size);
-    seL4_CPtr frames[num_pages];
-    seL4_Word cookies[num_pages];
-
-    /* get all of the physical frame caps */
-    for (unsigned int i = 0; i < num_pages; i++) {
-        /* allocate a cslot */
-        int error = vka_cspace_alloc(vka, &frames[i]);
-        if (error) {
-            ZF_LOGE("cspace alloc failed");
-            assert(error == 0);
-            /* we don't clean up as everything has gone to hell */
-            return NULL;
-        }
-
-        /* create a path */
-        cspacepath_t path;
-        vka_cspace_make_path(vka, frames[i], &path);
-
-        error = vka_utspace_alloc_at(vka, &path, kobject_get_type(KOBJECT_FRAME, page_size_bits), page_size_bits,
-                                     start + (i * page_size), &cookies[i]);
-
-        if (error) {
-            cookies[i] = -1;
-            error = simple_get_frame_cap(simple, (void *)start + (i * page_size), page_size_bits, &path);
-            if (error) {
-                /* free this slot, and then do general cleanup of the rest of the slots.
-                 * this avoids a needless seL4_CNode_Delete of this slot, as there is no
-                 * cap in it */
-                vka_cspace_free(vka, frames[i]);
-                num_pages = i;
-                goto error;
-            }
-        }
-
-    }
-
-    /* Now map the frames in */
-    void *vaddr = vspace_map_pages(vspace, frames, NULL, seL4_AllRights, num_pages, page_size_bits, cached);
-    if (vaddr) {
-        return vaddr + offset;
-    }
-error:
-    for (unsigned int i = 0; i < num_pages; i++) {
-        cspacepath_t path;
-        vka_cspace_make_path(vka, frames[i], &path);
-        vka_cnode_delete(&path);
-        if (cookies[i] != -1) {
-            vka_utspace_free(vka, kobject_get_type(KOBJECT_FRAME, page_size_bits), page_size_bits, cookies[i]);
-        }
-        vka_cspace_free(vka, frames[i]);
-    }
-    return NULL;
-}
-
 /* Force the _dataport_frames  section to be created even if no modules are defined. */
 static USED SECTION("_dataport_frames") struct {} dummy_dataport_frame;
 /* Definitions so that we can find the exposed dataport frames */
 extern dataport_frame_t __start__dataport_frames[];
 extern dataport_frame_t __stop__dataport_frames[];
 
-static void *find_dataport_frame(uintptr_t paddr, uintptr_t size)
-{
-    for (dataport_frame_t *frame = __start__dataport_frames;
-         frame < __stop__dataport_frames; frame++) {
-        if (frame->paddr == paddr) {
-            if (frame->size == size) {
-                return (void *) frame->vaddr;
-            } else {
-                ZF_LOGF("ERROR: found mapping for %p, wrong size %zu, expected %zu", (void *) paddr, frame->size, size);
-            }
-        }
-    }
-    return NULL;
-}
-
-static void *vm_map_paddr(void *cookie, uintptr_t paddr, size_t size, int cached, ps_mem_flags_t flags)
-{
-    void *vaddr = find_dataport_frame(paddr, size);
-    if (vaddr) {
-        return vaddr;
-    }
-    vm_io_cookie_t *io_mapper = (vm_io_cookie_t *)cookie;
-
-    int frame_size_index = 0;
-    /* find the largest reasonable frame size */
-    while (frame_size_index + 1 < SEL4_NUM_PAGE_SIZES) {
-        if (size >> sel4_page_sizes[frame_size_index + 1] == 0) {
-            break;
-        }
-        frame_size_index++;
-    }
-
-    /* try mapping in this and all smaller frame sizes until something works */
-    for (int i = frame_size_index; i >= 0; i--) {
-        void *result = vm_map_paddr_with_page_size(io_mapper, paddr, size, sel4_page_sizes[i], cached);
-        if (result) {
-            return result;
-        }
-    }
-    ZF_LOGE("Failed to map address %p", (void *)paddr);
-    return NULL;
-}
-
-static void vm_unmap_vaddr(void *cookie, void *vaddr, size_t size)
-{
-    ZF_LOGF("Not unmapping vaddr %p", vaddr);
-}
-
-static int vm_new_io_mapper(simple_t simple, vspace_t vspace, vka_t vka, ps_io_mapper_t *io_mapper)
-{
-    vm_io_cookie_t *cookie;
-    cookie = (vm_io_cookie_t *)malloc(sizeof(*cookie));
-    if (!cookie) {
-        ZF_LOGE("Failed to allocate %zu bytes", sizeof(*cookie));
-        return -1;
-    }
-    *cookie = (vm_io_cookie_t) {
-        .vspace = vspace,
-        .simple = simple,
-        .vka = vka
-    };
-    *io_mapper = (ps_io_mapper_t) {
-        .cookie = cookie,
-        .io_map_fn = vm_map_paddr,
-        .io_unmap_fn = vm_unmap_vaddr
-    };
-    return 0;
-}
 
 static seL4_Error vm_simple_get_irq(void *data, int irq, seL4_CNode cnode, seL4_Word index, uint8_t depth)
 {
@@ -458,6 +255,57 @@ static bool add_uts(const vm_config_t *vm_config, vka_t *vka, seL4_CPtr cap,
                                     ut_type);
 }
 
+static allocman_t *init_vmm_allocman(seL4_CPtr root_cnode, size_t cnode_size, seL4_CPtr start_slot, seL4_CPtr end_slot) {
+    // Create an allocman using malloc as the backing heap allocator (for bookkeeping data)
+    int error = allocman_create(&_allocman, mspace_malloc_interface);
+    if (error) {
+        return NULL;
+    }
+
+    // Create a cspace single level allocator in the existing cspace
+    error = cspace_single_level_create(&_allocman, &_cspace, (struct cspace_single_level_config){
+        .cnode = root_cnode,
+        .cnode_size_bits = cnode_size,
+        .cnode_guard_bits = seL4_WordBits - cnode_size,
+        .first_slot = start_slot,
+        .end_slot = end_slot
+    });
+    if (error) {
+        return NULL;
+    }
+
+    // Attach the cspace to the allocator
+    error = allocman_attach_cspace(&_allocman, cspace_single_level_make_interface(&_cspace));
+    if (error) {
+        goto free_cspace;
+    }
+
+    // Create and attach a utspace allocator
+    utspace_split_create(&_utspace);
+    error = allocman_attach_utspace(&_allocman, utspace_split_make_interface(&_utspace));
+    if (error) {
+        goto free_cspace;
+    }
+
+    // Configure allocman reserved pool (taken from bootstrap.c)
+    if (allocman_configure_max_freed_slots(&_allocman, 10) ||
+        allocman_configure_max_freed_memory_chunks(&_allocman, 20) ||
+        allocman_configure_max_freed_untyped_chunks(&_allocman, 10) ||
+        allocman_configure_cspace_reserve(&_allocman, 30)
+        ) {
+        ZF_LOGE("Error encountered when setting reserve configuration.");
+        ZF_LOGE("Some heap memory may be leaked due to this failure.");
+        goto free_cspace;
+
+    }
+    return &_allocman;
+
+free_cspace:
+    // Clean up memory allocated by single level cspace
+    cspace_single_level_destroy(&_allocman, &_cspace);
+    return NULL;
+}
+
 static int vmm_init(const vm_config_t *vm_config)
 {
     vka_object_t fault_ep_obj;
@@ -483,13 +331,12 @@ static int vmm_init(const vm_config_t *vm_config)
     start_extra_frame_caps = simple_last_valid_cap(simple) + 1;
 
     /* Initialize allocator */
-    allocman = bootstrap_use_current_1level(
+    allocman = init_vmm_allocman(
                    simple_get_cnode(simple),
                    simple_get_cnode_size_bits(simple),
                    simple_last_valid_cap(simple) + 1 + num_extra_frame_caps,
-                   BIT(simple_get_cnode_size_bits(simple)),
-                   get_allocator_mempool_size(), get_allocator_mempool()
-               );
+                   BIT(simple_get_cnode_size_bits(simple))
+                   );
     assert(allocman);
 
     allocman_make_vka(vka, allocman);
@@ -535,8 +382,7 @@ static int vmm_init(const vm_config_t *vm_config)
     assert(!err);
 
     /* Initialise device support */
-    err = vm_new_io_mapper(*simple, *vspace, *vka,
-                           &_io_ops.io_mapper);
+    err = camkes_io_mapper(&_io_ops.io_mapper);
     assert(!err);
 
     /* Initialise MUX subsystem for platforms that need it */
@@ -546,7 +392,7 @@ static int vmm_init(const vm_config_t *vm_config)
 #endif
 
     /* Initialise DMA */
-    err = dma_dmaman_init(&_dma_morecore, NULL, &_io_ops.dma_manager);
+    err = camkes_dma_manager(&_io_ops.dma_manager);
     assert(!err);
 
     /* Allocate an endpoint for listening to events */
@@ -554,7 +400,7 @@ static int vmm_init(const vm_config_t *vm_config)
     assert(!err);
     _fault_endpoint = fault_ep_obj.cptr;
 
-    err = sel4platsupport_new_malloc_ops(&_io_ops.malloc_ops);
+    err = camkes_ps_malloc_ops(&_io_ops.malloc_ops);
     assert(!err);
 
     /* Create an IRQ server */
@@ -1286,7 +1132,6 @@ static int main_continued(void)
     err = install_vm_devices(&vm, &vm_config);
     if (err) {
         ZF_LOGE("Error: Failed to install VM devices");
-        seL4_DebugHalt();
         return -1;
     }
 
@@ -1294,7 +1139,6 @@ static int main_continued(void)
     err = load_vm_images(&vm, &vm_config);
     if (err) {
         ZF_LOGE("Failed to load VM image");
-        seL4_DebugHalt();
         return -1;
     }
 
@@ -1308,7 +1152,6 @@ static int main_continued(void)
         err = vm_run(&vm);
         if (err) {
             ZF_LOGE("Failed to run VM");
-            seL4_DebugHalt();
             return -1;
         }
     }

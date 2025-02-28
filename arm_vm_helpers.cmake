@@ -131,10 +131,8 @@ function(DeclareCAmkESARMVM init_component)
         C_FLAGS
         ${VM_COMP_EXTRA_C_FLAGS}
         TEMPLATE_SOURCES
-        seL4AllocatorMempool.template.c
         seL4VMParameters.template.c
         TEMPLATE_HEADERS
-        seL4AllocatorMempool.template.h
         seL4VMParameters.template.h
     )
 

@@ -14,6 +14,12 @@
 typedef struct {
 
     struct {
+        uint8_t vmm;
+        uint8_t irqserver;
+        uint8_t vcpu;
+    } priority;
+
+    struct {
         uintptr_t phys_base;
         uintptr_t base;
         size_t size;

@@ -30,9 +30,7 @@ assembly {
         vm.cnode_size_bits = 23;
         vm.simple_untyped24_pool = 12;
 
-        vm.base_prio = 100;
-
-        vm._priority = 101;
+        vm._priority = 101; /* priority of VM component's main thread */
         vm.sem_value = 0;
 
     }

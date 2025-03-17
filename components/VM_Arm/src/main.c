@@ -38,12 +38,8 @@
 #include <sel4vm/guest_irq_controller.h>
 
 #include <sel4vmmplatsupport/drivers/virtio_con.h>
-
-#include <sel4vmmplatsupport/arch/vusb.h>
-#include <sel4vmmplatsupport/arch/vpci.h>
 #include <sel4vmmplatsupport/guest_image.h>
-#include <sel4vmmplatsupport/drivers/pci_helper.h>
-#include <sel4vmmplatsupport/drivers/cross_vm_connection.h>
+#include <sel4vmmplatsupport/arch/vusb.h>
 #include <sel4vmmplatsupport/arch/guest_boot_init.h>
 #include <sel4vmmplatsupport/arch/guest_reboot.h>
 #include <sel4vmmplatsupport/arch/guest_vcpu_fault.h>
@@ -97,7 +93,6 @@ allocman_t *allocman;
 seL4_CPtr _fault_endpoint;
 irq_server_t *_irq_server;
 
-vmm_pci_space_t *pci;
 vmm_io_port_list_t *io_ports;
 reboot_hooks_list_t reboot_hooks_list;
 
@@ -687,17 +682,6 @@ extern vmm_module_t __stop__vmm_module[];
 
 static int install_vm_devices(vm_t *vm, const vm_config_t *vm_config)
 {
-    int err;
-
-    /* Install virtual devices */
-    if (config_set(CONFIG_VM_PCI_SUPPORT)) {
-        err = vm_install_vpci(vm, io_ports, pci);
-        if (err) {
-            ZF_LOGE("Failed to install VPCI device");
-            return -1;
-        }
-    }
-
     int max_vmm_modules = (int)(__stop__vmm_module - __start__vmm_module);
     int num_vmm_modules = 0;
     for (vmm_module_t *i = __start__vmm_module; i < __stop__vmm_module; i++) {
@@ -707,7 +691,6 @@ static int install_vm_devices(vm_t *vm, const vm_config_t *vm_config)
     }
 
     return 0;
-
 }
 
 static int route_irq(int irq_num, vm_vcpu_t *vcpu, irq_server_t *irq_server)
@@ -875,22 +858,11 @@ static int vm_dtb_finalize(vm_t *vm, const vm_config_t *vm_config)
     assert(vm_config->generate_dtb);
 
     if (config_set(CONFIG_VM_PCI_SUPPORT)) {
-        /* Modules can add PCI devices, so the PCI device tree node can be
-         * created only after all modules have been set up.
-         */
-        int gic_offset = fdt_path_offset(fdt_ori, GIC_NODE_PATH);
-        if (gic_offset < 0) {
-            ZF_LOGE("Failed to find gic node from path: %s", GIC_NODE_PATH);
-            return -1;
-        }
-        int gic_phandle = fdt_get_phandle(fdt_ori, gic_offset);
-        if (0 == gic_phandle) {
-            ZF_LOGE("Failed to find phandle in gic node");
-            return -1;
-        }
-        int err = fdt_generate_vpci_node(vm, pci, gen_dtb_buf, gic_phandle);
+        extern int vpci_update_dtb(vm_t *vm, const vm_config_t *vm_config, void *dtb,
+                                   void *fdt, char const *gic_node);
+        int err = vpci_update_dtb(vm, vm_config, gen_dtb_buf, fdt_ori, GIC_NODE_PATH);
         if (err) {
-            ZF_LOGE("Couldn't generate vpci_node (%d)", err);
+            ZF_LOGE("Couldn't generate VPCI device tree node (%d)\n", err);
             return -1;
         }
     }
@@ -1189,12 +1161,6 @@ static int main_continued(void)
     if (err) {
         ZF_LOGE("Failed to init DTB (%d)", err);
         return -1;
-    }
-
-    err = vmm_pci_init(&pci);
-    if (err) {
-        ZF_LOGE("Failed to initialise vmm pci");
-        return err;
     }
 
     err = vmm_io_port_init(&io_ports, FREE_IOPORT_START);

@@ -124,3 +124,19 @@ const vm_config_t vm_config = {
 /*- endif -*/
 
 };
+
+/*- if 'pcpus' in config.keys() -*/
+    /*- for c in config.get('pcpus') -*/
+#if (/*? c ?*/  >= CONFIG_MAX_NUM_NODES)
+#error "Invalid CPU number /*? c ?*/ in PCPU list of /*? me.name ?*/"
+#endif
+    /*- endfor -*/
+/*- endif -*/
+
+int get_instance_size_pcpus_list(void) {
+/*- if 'pcpus' in config.keys() -*/
+    return /*? len(config.get('pcpus')) ?*/;
+/*- else -*/
+    return 0;
+/*- endif -*/
+}

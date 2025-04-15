@@ -147,6 +147,14 @@ config_choice(
     "2022_1;VmZynqmpPetalinux2022_1;ZYNQMP_PETALINUX_2022_1;KernelPlatformZynqmp"
 )
 
+config_option(
+    VmVirtPl011Vuart
+    VM_VIRT_PL011_VUART
+    "Option for virtualizing the console using a fully emulated Amba PL011 SBSA device"
+    DEFAULT
+    OFF
+)
+
 add_config_library(arm_vm "${configure_string}")
 
 DeclareCAmkESARMVM(VM)

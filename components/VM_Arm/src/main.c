@@ -49,6 +49,7 @@
 #include <sel4vmmplatsupport/arch/guest_vcpu_fault.h>
 #include <sel4vmmplatsupport/guest_vcpu_util.h>
 #include <sel4vmmplatsupport/arch/smc.h>
+#include <sel4vmmplatsupport/arch/pl011_vuart.h>
 
 #include <sel4utils/process.h>
 #include <sel4utils/irq_server.h>
@@ -873,28 +874,38 @@ static int vm_dtb_init(vm_t *vm, const vm_config_t *vm_config)
 static int vm_dtb_finalize(vm_t *vm, const vm_config_t *vm_config)
 {
     assert(vm_config->generate_dtb);
-
-    if (config_set(CONFIG_VM_PCI_SUPPORT)) {
-        /* Modules can add PCI devices, so the PCI device tree node can be
-         * created only after all modules have been set up.
-         */
+    if(config_set(CONFIG_VM_PCI_SUPPORT) || config_set(CONFIG_VM_VIRT_PL011_VUART)) {
         int gic_offset = fdt_path_offset(fdt_ori, GIC_NODE_PATH);
         if (gic_offset < 0) {
             ZF_LOGE("Failed to find gic node from path: %s", GIC_NODE_PATH);
             return -1;
         }
+
         int gic_phandle = fdt_get_phandle(fdt_ori, gic_offset);
         if (0 == gic_phandle) {
             ZF_LOGE("Failed to find phandle in gic node");
             return -1;
         }
-        int err = fdt_generate_vpci_node(vm, pci, gen_dtb_buf, gic_phandle);
-        if (err) {
-            ZF_LOGE("Couldn't generate vpci_node (%d)", err);
-            return -1;
+
+        if (config_set(CONFIG_VM_PCI_SUPPORT)) {
+            /* Modules can add PCI devices, so the PCI device tree node can be
+             * created only after all modules have been set up.
+             */
+            int err = fdt_generate_vpci_node(vm, pci, gen_dtb_buf, gic_phandle);
+            if (err) {
+                ZF_LOGE("Couldn't generate vpci_node (%d)", err);
+                return -1;
+            }
+        }
+
+        if(config_set(CONFIG_VM_VIRT_PL011_VUART)) {
+            int err = fdt_generate_vuart_node(vm, gen_dtb_buf, gic_phandle);
+            if(err) {
+                ZF_LOGE("Couldn't generate vuart node (%d) ", err);
+                return -1;
+            }
         }
     }
-
     fdt_pack(gen_dtb_buf);
     return 0;
 }

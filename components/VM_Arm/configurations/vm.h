@@ -47,6 +47,21 @@
 #define DEF_KERNELARMPLATFORM_EXYNOS5410
 #endif
 
+#if VMVIRTPL011VUART
+#define DEF_VMVIRTPL011VUART                                                     \
+consumes Dummy vuart_serial;                                                     \
+emits Dummy dummy_src;                                                           \
+composition{                                                                     \
+        connection seL4DTBHardware serial_conn(from dummy_src, to vuart_serial); \
+}                                                                                \
+                                                                                 \
+configuration{                                                                   \
+        vuart_serial.dtb = dtb({ "chosen" : "stdout-path" });                    \
+        vuart_serial.generate_interrupts = 1;                                    \
+}
+#else
+#define DEF_VMVIRTPL011VUART
+#endif
 #define VM_INIT_DEF() \
     control; \
     uses FileServerInterface fs; \
@@ -109,6 +124,7 @@
         int send_id; \
         int recv_id; \
     } serial_layout[] = []; \
+    DEF_VMVIRTPL011VUART \
 
 
 #define VM_COMPONENT_DEF(num) \

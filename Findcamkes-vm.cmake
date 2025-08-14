@@ -4,9 +4,18 @@
 # SPDX-License-Identifier: BSD-2-Clause
 #
 
-set(CAMKES_VM_DIR "${CMAKE_CURRENT_LIST_DIR}" CACHE STRING "")
-set(CAMKES_VM_HELPERS_PATH "${CMAKE_CURRENT_LIST_DIR}/camkes_vm_helpers.cmake" CACHE STRING "")
-set(CAMKES_VM_SETTINGS_PATH "${CMAKE_CURRENT_LIST_DIR}/camkes_vm_settings.cmake" CACHE STRING "")
+set(CAMKES_VM_DIR
+    "${CMAKE_CURRENT_LIST_DIR}"
+    CACHE STRING ""
+)
+set(CAMKES_VM_HELPERS_PATH
+    "${CMAKE_CURRENT_LIST_DIR}/camkes_vm_helpers.cmake"
+    CACHE STRING ""
+)
+set(CAMKES_VM_SETTINGS_PATH
+    "${CMAKE_CURRENT_LIST_DIR}/camkes_vm_settings.cmake"
+    CACHE STRING ""
+)
 mark_as_advanced(CAMKES_VM_DIR CAMKES_VM_HELPERS_PATH CAMKES_VM_SETTINGS_PATH)
 
 macro(camkes_x86_vm_setup_x86_vm_environment)
@@ -25,9 +34,5 @@ endmacro()
 
 include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(
-    camkes-vm
-    DEFAULT_MSG
-    CAMKES_VM_DIR
-    CAMKES_VM_HELPERS_PATH
-    CAMKES_VM_SETTINGS_PATH
+    camkes-vm DEFAULT_MSG CAMKES_VM_DIR CAMKES_VM_HELPERS_PATH CAMKES_VM_SETTINGS_PATH
 )

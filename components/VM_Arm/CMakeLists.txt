@@ -12,20 +12,27 @@ set(configure_string "")
 
 # ARM VM Configuration Options
 config_option(
-    VmOnDemandDeviceInstall
-    VM_ONDEMAND_DEVICE_INSTALL
-    "Allow the VMM to install arbitrary devices into the VM as they are accessed."
-    DEFAULT
-    ON
+    VmOnDemandDeviceInstall VM_ONDEMAND_DEVICE_INSTALL
+    "Allow the VMM to install arbitrary devices into the VM as they are accessed." DEFAULT ON
 )
 
-config_option(VmEmmc2NoDMA VM_EMMC2_NODMA "SD access control to prevent DMA \
+config_option(
+    VmEmmc2NoDMA VM_EMMC2_NODMA "SD access control to prevent DMA \
     Installs SD card into the VM with read only access. Write access is \
-    trapped and emulated to ensure that DMA is not used." DEFAULT OFF)
+    trapped and emulated to ensure that DMA is not used." DEFAULT OFF
+)
 
-config_option(VmVUSB VM_VUSB "Para-virtual USB driver \
+config_option(
+    VmVUSB
+    VM_VUSB
+    "Para-virtual USB driver \
     Selects the device tree which enables the para virtual USB driver and \
-    installs the device into the VM." DEPENDS "KernelPlatformExynos5410" DEFAULT OFF)
+    installs the device into the VM."
+    DEPENDS
+    "KernelPlatformExynos5410"
+    DEFAULT
+    OFF
+)
 
 config_option(
     VmPCISupport
@@ -112,19 +119,13 @@ config_option(
 )
 
 config_option(
-    VmInitRdFile
-    VM_INITRD_FILE
-    "Enables the option for the VM to open and load a seperate initrd file"
-    DEFAULT
-    OFF
+    VmInitRdFile VM_INITRD_FILE
+    "Enables the option for the VM to open and load a seperate initrd file" DEFAULT OFF
 )
 
 config_option(
-    VmDtbFile
-    VM_DTB_FILE
-    "Enables the option for the VM to open and load a seperate dtb file"
-    DEFAULT
-    OFF
+    VmDtbFile VM_DTB_FILE "Enables the option for the VM to open and load a seperate dtb file"
+    DEFAULT OFF
 )
 
 config_option(

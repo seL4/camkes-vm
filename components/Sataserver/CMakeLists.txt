@@ -11,11 +11,8 @@ project(Sataserver C)
 set(configure_string "")
 
 config_option(
-    SataserverUseAHCI
-    SATASERVER_USE_AHCI
-    "Enables the use of SATA AHCI interface for the Sataserver."
-    DEFAULT
-    OFF
+    SataserverUseAHCI SATASERVER_USE_AHCI
+    "Enables the use of SATA AHCI interface for the Sataserver." DEFAULT OFF
 )
 
 add_config_library(sataserver "${configure_string}")

@@ -9,11 +9,7 @@ cmake_minimum_required(VERSION 3.16.0)
 set(configure_string "")
 
 config_option(
-    CAmkESVMGuestDMAIommu
-    CAMKES_VM_GUEST_DMA_IOMMU
-    "Enable DMA through the IOMMU"
-    DEFAULT
-    ON
+    CAmkESVMGuestDMAIommu CAMKES_VM_GUEST_DMA_IOMMU "Enable DMA through the IOMMU" DEFAULT ON
 )
 
 # Create VMM configuration library
@@ -35,22 +31,10 @@ add_subdirectory(libs/libvirtio camkes-arm-vm/libs/libvirtio)
 
 # Declare connectors with templates.
 # We can rely on the naming scheme being consistent to allow for easier declaration.
-foreach(
-    connector
-    IN
-    ITEMS
-    seL4UDPSend
-    seL4UDPRecv
-    seL4PicoUDPSend
-    seL4PicoUDPRecv
-    seL4MultiSharedData
-    seL4Sataserver
+foreach(connector IN ITEMS seL4UDPSend seL4UDPRecv seL4PicoUDPSend seL4PicoUDPRecv
+                           seL4MultiSharedData seL4Sataserver
 )
     DeclareCAmkESConnector(
-        ${connector}
-        FROM
-        ${connector}-from.template.c
-        TO
-        ${connector}-to.template.c
+        ${connector} FROM ${connector}-from.template.c TO ${connector}-to.template.c
     )
 endforeach()

@@ -5,7 +5,10 @@
 #
 
 cmake_minimum_required(VERSION 3.16.0)
-set(ARM_VM_PROJECT_DIR "${CMAKE_CURRENT_LIST_DIR}" CACHE INTERNAL "")
+set(ARM_VM_PROJECT_DIR
+    "${CMAKE_CURRENT_LIST_DIR}"
+    CACHE INTERNAL ""
+)
 
 # Function appends a given list of CMake config variables as CAmkES CPP flags
 # 'configure_string': The variable to append the CPP flags onto
@@ -28,21 +31,19 @@ function(AddCamkesCPPFlag configure_string)
         endif()
     endforeach()
     # Update the configure_string value
-    set(${configure_string} "${${configure_string}}" PARENT_SCOPE)
+    set(${configure_string}
+        "${${configure_string}}"
+        PARENT_SCOPE
+    )
 endfunction(AddCamkesCPPFlag)
 
 function(DeclareCAmkESARMVM init_component)
     cmake_parse_arguments(
-        PARSE_ARGV
-        1
-        VM_COMP
-        ""
-        ""
+        PARSE_ARGV 1 VM_COMP "" ""
         "EXTRA_SOURCES;EXTRA_INCLUDES;EXTRA_LIBS;EXTRA_C_FLAGS;EXTRA_LD_FLAGS"
     )
 
-    set(
-        vm_src
+    set(vm_src
         ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/main.c
         ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/fdt_manipulation.c
         ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/crossvm.c
@@ -55,15 +56,14 @@ function(DeclareCAmkESARMVM init_component)
     endif()
 
     if(Tk1DeviceFwd)
-        list(
-            APPEND vm_src ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/plat/tk1/device_fwd.c
+        list(APPEND vm_src
+             ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/plat/tk1/device_fwd.c
         )
     endif()
 
     # A module that is expected to exist for each platform but not required.
     # It should provide basic device intialisation required for every vm configuratoin
-    set(
-        platform_module
+    set(platform_module
         ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/plat/${KernelPlatform}/init.c
     )
     if(EXISTS ${platform_module})
@@ -76,8 +76,8 @@ function(DeclareCAmkESARMVM init_component)
     endif()
 
     if(VmVirtioNetVirtqueue)
-        list(
-            APPEND vm_src ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/virtio_net_virtqueue.c
+        list(APPEND vm_src
+             ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/virtio_net_virtqueue.c
         )
     endif()
 
@@ -86,8 +86,8 @@ function(DeclareCAmkESARMVM init_component)
     endif()
 
     if(KernelPlatformExynos5410)
-        list(
-            APPEND vm_src ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/plat/exynos5410/init.c
+        list(APPEND vm_src
+             ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/plat/exynos5410/init.c
         )
         set(vm_plat_include "${ARM_VM_PROJECT_DIR}/components/VM_Arm/plat_include/exynos5410")
     elseif(KernelPlatformExynos5422)
@@ -95,8 +95,7 @@ function(DeclareCAmkESARMVM init_component)
     elseif(KernelPlatformZynqmpUltra96v2)
         set(vm_plat_include "${ARM_VM_PROJECT_DIR}/components/VM_Arm/plat_include/ultra96v2")
     else()
-        set(
-            vm_plat_include
+        set(vm_plat_include
             "${ARM_VM_PROJECT_DIR}/components/VM_Arm/plat_include/${KernelPlatform}"
         )
     endif()
@@ -138,7 +137,10 @@ function(DeclareCAmkESARMVM init_component)
         seL4VMParameters.template.h
     )
 
-    if(VmVirtioNetArping OR VmVirtioNetVirtqueue OR VmVirtioConsole)
+    if(VmVirtioNetArping
+       OR VmVirtioNetVirtqueue
+       OR VmVirtioConsole
+    )
         DeclareCAmkESComponent(${init_component} LIBS virtioarm vswitch)
     endif()
 

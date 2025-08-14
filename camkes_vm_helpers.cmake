@@ -6,7 +6,10 @@
 
 cmake_minimum_required(VERSION 3.16.0)
 
-set(VM_PROJECT_DIR "${CMAKE_CURRENT_LIST_DIR}" CACHE INTERNAL "")
+set(VM_PROJECT_DIR
+    "${CMAKE_CURRENT_LIST_DIR}"
+    CACHE INTERNAL ""
+)
 
 # Function for declaring a CAmkESVM. This is called for each Init component in the applications
 # camkes config.
@@ -15,11 +18,7 @@ set(VM_PROJECT_DIR "${CMAKE_CURRENT_LIST_DIR}" CACHE INTERNAL "")
 # the SOURCES, INCLUDES, LIBS, LD_FLAGS and C_FLAGS arguments.
 function(DeclareCAmkESVM init_component)
     cmake_parse_arguments(
-        PARSE_ARGV
-        1
-        VM_COMP
-        ""
-        ""
+        PARSE_ARGV 1 VM_COMP "" ""
         "EXTRA_SOURCES;EXTRA_INCLUDES;EXTRA_LIBS;EXTRA_C_FLAGS;EXTRA_LD_FLAGS"
     )
     # Retrieve sources for Init component
@@ -133,7 +132,11 @@ function(DefineCAmkESVMFileServer)
     foreach(element IN LISTS PARAM_DEPENDS)
         foreach(item IN LISTS element)
             if(item)
-                set_property(TARGET ${FSRV_TARGET} APPEND PROPERTY DEPS ${item})
+                set_property(
+                    TARGET ${FSRV_TARGET}
+                    APPEND
+                    PROPERTY DEPS ${item}
+                )
             endif()
         endforeach()
     endforeach()
@@ -141,13 +144,7 @@ function(DefineCAmkESVMFileServer)
     foreach(element IN LISTS PARAM_FILES)
         foreach(item IN LISTS element) # [<CPIO_NAME>:]<FILENAME>
             if(item)
-                string(
-                    REGEX
-                        MATCH
-                        "^([^:]+)(:([^:]+))?$"
-                        cpio_item
-                        "${item}"
-                )
+                string(REGEX MATCH "^([^:]+)(:([^:]+))?$" cpio_item "${item}")
                 if(NOT cpio_item)
                     message(FATAL_ERROR "invalid parameter format: '${item}'")
                 endif()
@@ -179,13 +176,7 @@ function(DefineCAmkESVMFileServer)
 
     set(CPIO_FILES "")
     foreach(item IN LISTS files) # <CPIO_NAME>:<FILENAME>
-        string(
-            REGEX
-                MATCH
-                "^([^:]+):([^:]+)$"
-                cpio_item
-                "${item}"
-        )
+        string(REGEX MATCH "^([^:]+):([^:]+)$" cpio_item "${item}")
         if(NOT cpio_item)
             message(FATAL_ERROR "invalid CPIO file format: '${item}'")
         endif()
@@ -195,8 +186,7 @@ function(DefineCAmkESVMFileServer)
         add_custom_command(
             OUTPUT "${CPIO_FILE}"
             COMMENT "copy: ${FILE_NAME} -> ${CPIO_FILE}"
-            COMMAND
-                ${CMAKE_COMMAND} -E copy "${FILE_NAME}" "${CPIO_FILE}"
+            COMMAND ${CMAKE_COMMAND} -E copy "${FILE_NAME}" "${CPIO_FILE}"
             VERBATIM
             DEPENDS ${FILE_NAME} ${deps}
         )
@@ -248,12 +238,8 @@ function(DeclareCAmkESVMRootServer camkes_config)
     get_absolute_source_or_binary(config_file "${camkes_config}")
     # Declare CAmkES root server
     DeclareCAmkESRootserver(
-        ${config_file}
-        CPP_FLAGS
-        ${CAMKES_ROOT_VM_CPP_FLAGS}
-        CPP_INCLUDES
-        "${VM_PROJECT_DIR}/components/VM"
-        ${CAMKES_ROOT_VM_CPP_INCLUDES}
+        ${config_file} CPP_FLAGS ${CAMKES_ROOT_VM_CPP_FLAGS} CPP_INCLUDES
+        "${VM_PROJECT_DIR}/components/VM" ${CAMKES_ROOT_VM_CPP_INCLUDES}
     )
 endfunction(DeclareCAmkESVMRootServer)
 
@@ -306,10 +292,18 @@ function(AddToFileServer filename_pref file_dest)
         add_custom_target(${FSRV_TARGET})
     endif()
 
-    set_property(TARGET ${FSRV_TARGET} APPEND PROPERTY FILES "${filename_pref}:${file_dest}")
+    set_property(
+        TARGET ${FSRV_TARGET}
+        APPEND
+        PROPERTY FILES "${filename_pref}:${file_dest}"
+    )
 
     if(PARAM_DEPENDS)
-        set_property(TARGET ${FSRV_TARGET} APPEND PROPERTY DEPS ${PARAM_DEPENDS})
+        set_property(
+            TARGET ${FSRV_TARGET}
+            APPEND
+            PROPERTY DEPS ${PARAM_DEPENDS}
+        )
     endif()
 
 endfunction(AddToFileServer)
@@ -339,12 +333,11 @@ function(DecompressLinuxKernel decompress_target decompressed_kernel_image compr
     )
     # Create custom target for extraction
     add_custom_target(
-        ${decompress_target}
-        DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/decomp/${kernel_basename}"
+        ${decompress_target} DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/decomp/${kernel_basename}"
     )
     # Set parameter to tell the caller location of decompressed kernel image
-    set(
-        ${decompressed_kernel_image} ${CMAKE_CURRENT_BINARY_DIR}/decomp/${kernel_basename}
+    set(${decompressed_kernel_image}
+        ${CMAKE_CURRENT_BINARY_DIR}/decomp/${kernel_basename}
         PARENT_SCOPE
     )
 endfunction(DecompressLinuxKernel)

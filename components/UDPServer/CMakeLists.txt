@@ -8,4 +8,13 @@ cmake_minimum_required(VERSION 3.16.0)
 
 project(UDPServer C)
 
-DeclareCAmkESComponent(UDPServer SOURCES src/udpserver.c LIBS sel4camkes ethdrivers lwip sel4vspace)
+DeclareCAmkESComponent(
+    UDPServer
+    SOURCES
+    src/udpserver.c
+    LIBS
+    sel4camkes
+    ethdrivers
+    lwip
+    sel4vspace
+)

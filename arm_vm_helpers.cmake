@@ -48,7 +48,6 @@ function(DeclareCAmkESARMVM init_component)
         ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/fdt_manipulation.c
         ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/crossvm.c
         ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/map_frame_hack.c
-        ${ARM_VM_PROJECT_DIR}/components/VM_Arm/src/modules/init_ram.c
     )
 
     if(VmVirtUart)

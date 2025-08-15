@@ -57,6 +57,9 @@ function(DeclareCAmkESVM init_component)
         seL4GuestMaps.template.c
         seL4VMIRQs.template.c
         seL4VMPCIDevices.template.c
+        seL4AllocmanVirtualSize.template.c
+        TEMPLATE_HEADERS
+        seL4AllocmanVirtualSize.template.h
     )
 endfunction(DeclareCAmkESVM)
 

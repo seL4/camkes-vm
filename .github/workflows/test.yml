@@ -90,6 +90,6 @@ jobs:
         uses: seL4/ci-actions/camkes-vm-hw@master
         with:
           march: ${{ matrix.march }}
-          index: $${{ strategy.job-index }}
+          index: ${{ strategy.job-index }}
         env:
           HW_SSH: ${{ secrets.HW_SSH }}

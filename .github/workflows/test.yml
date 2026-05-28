@@ -55,7 +55,7 @@ jobs:
         xml: ${{ needs.code.outputs.xml }}
         march: ${{ matrix.march }}
     - name: Upload images
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: images-${{ matrix.march }}
         path: '*-images.tar.gz'
@@ -78,12 +78,12 @@ jobs:
         march: [nehalem, armv7a, armv8a]
     steps:
       - name: Get machine queue
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: seL4/machine_queue
           path: machine_queue
       - name: Download image
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: images-${{ matrix.march }}
       - name: Run

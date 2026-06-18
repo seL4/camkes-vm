@@ -39,7 +39,7 @@ config_option(
     VM_PCI_SUPPORT
     "Enable virtual pci device support"
     DEPENDS
-    "KernelPlatformExynos5410 OR KernelPlatformExynos5422 OR KernelPlatformTx2 OR KernelPlatformQEMUArmVirt OR KernelPlatformOdroidc2 OR KernelPlatformZynqmp"
+    "KernelPlatformExynos5410 OR KernelPlatformExynos5422 OR KernelPlatformTx2 OR KernelPlatformQEMUArmVirt OR KernelPlatformOdroidc2 OR KernelPlatformZynqmp OR KernelPlatformMP2"
     DEFAULT
     OFF
 )

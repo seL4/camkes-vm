@@ -99,7 +99,7 @@ const vm_config_t vm_config = {
     .generate_dtb = 1,
 #endif
 
-#if defined(CONFIG_PLAT_EXYNOS5) || defined(CONFIG_PLAT_QEMU_ARM_VIRT) || defined(CONFIG_PLAT_TX2)
+#if defined(CONFIG_PLAT_EXYNOS5) || defined(CONFIG_PLAT_QEMU_ARM_VIRT) || defined(CONFIG_PLAT_TX2) || defined(CONFIG_PLAT_STM32MP2)
     .map_one_to_one = 1,
 #else
     .map_one_to_one = 0,

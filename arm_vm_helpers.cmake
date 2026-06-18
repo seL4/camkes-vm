@@ -94,6 +94,8 @@ function(DeclareCAmkESARMVM init_component)
         set(vm_plat_include "${ARM_VM_PROJECT_DIR}/components/VM_Arm/plat_include/exynos5422")
     elseif(KernelPlatformZynqmpUltra96v2)
         set(vm_plat_include "${ARM_VM_PROJECT_DIR}/components/VM_Arm/plat_include/ultra96v2")
+    elseif(KernelPlatformMP2)
+        set(vm_plat_include "${ARM_VM_PROJECT_DIR}/components/VM_Arm/plat_include/stm32mp2")
     else()
         set(vm_plat_include
             "${ARM_VM_PROJECT_DIR}/components/VM_Arm/plat_include/${KernelPlatform}"

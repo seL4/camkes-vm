@@ -39,6 +39,10 @@ typedef struct {
     char const *kernel_bootcmdline;
     char const *kernel_stdout;
 
+    uintptr_t kernel_size;
+    uintptr_t initrd_size;
+    uintptr_t ram_page_bits;
+    bool remap_initrd;
 } vm_config_t;
 
 extern const vm_config_t vm_config;

@@ -341,3 +341,59 @@ function(DecompressLinuxKernel decompress_target decompressed_kernel_image compr
         PARENT_SCOPE
     )
 endfunction(DecompressLinuxKernel)
+
+# Function for adding kernel image (and filesystem) to CapDL loader application
+# for image frame remapping
+#
+# Parameters:
+#     inst: name of destination vm instance (required)
+#     kernel: path/name to kernel image (required)
+#     rootfs: path/name to rootfs image (optional)
+function(AddRemapImagesToCapDLLoaderApp inst kernel)
+    get_filename_component(kernel_path "${kernel}" ABSOLUTE)
+    set(rootfs_region_s "")
+
+    if(ARGC GREATER 2)
+        get_filename_component(rootfs_path "${ARGV2}" ABSOLUTE)
+        set(rootfs_region_s
+"X.globl _${inst}_remap_rootfs, _${inst}_remap_rootfs_end, _${inst}_remap_rootfs_region_end\
+X_${inst}_remap_rootfs:\
+X.incbin \"${rootfs_path}\"\
+X_${inst}_remap_rootfs_end:\
+X.balign 0x200000\
+X_${inst}_remap_rootfs_region_end:"
+        )
+    endif()
+
+    if(ARGC GREATER 3)
+        message(FATAL_ERROR "AddRemapImagesToCapDLLoaderApp: too many arguments")
+    endif()
+
+    set(remap_images_obj "${CMAKE_BINARY_DIR}/${inst}_remap_images.o")
+    add_custom_command(
+        OUTPUT ${remap_images_obj}
+        COMMAND
+            sh -c
+            "echo '\
+X.section ._${inst}_remap_images,\"aw\"\
+X.balign 0x200000\
+X.globl _${inst}_remap_kernel, _${inst}_remap_kernel_end, _${inst}_remap_kernel_region_end\
+X_${inst}_remap_kernel:\
+X.incbin \"${kernel_path}\"\
+X_${inst}_remap_kernel_end:\
+X.balign 0x200000\
+X_${inst}_remap_kernel_region_end:\
+${rootfs_region_s}\
+X' | tr X '\\n'"
+            > ${remap_images_obj}.S
+        COMMAND
+            ${CMAKE_C_COMPILER} -c -o ${remap_images_obj} ${remap_images_obj}.S
+        DEPENDS ${kernel_path} ${rootfs_path}
+        VERBATIM
+        BYPRODUCTS
+            ${remap_images_obj}.S
+        COMMENT "Generate ${remap_images_obj}"
+    )
+
+    add_custom_target(${inst}_remap_images_target DEPENDS ${remap_images_obj})
+endfunction(AddRemapImagesToCapDLLoaderApp)

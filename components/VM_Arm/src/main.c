@@ -132,6 +132,10 @@ seL4_CPtr camkes_get_smmu_sid_cap();
 seL4_CPtr camkes_get_smc_cap(seL4_Word smc_call);
 #endif
 
+#ifdef CONFIG_VM_IMAGE_REMAP
+unsigned int vm_image_remap_get_cnode_slot_start(void);
+#endif
+
 int get_crossvm_irq_num(void)
 {
     return free_plat_interrupts[0];
@@ -860,8 +864,18 @@ static int vm_dtb_init(vm_t *vm, const vm_config_t *vm_config)
     /* Now the DTB is in gen_dtb_buf and all manipulation must happen there. */
 
     /* generate a memory node */
+#ifdef CONFIG_VM_IMAGE_REMAP
+    size_t initrd_region_size = 0;
+    if (vm_config->remap_initrd)
+    {
+        initrd_region_size = ROUND_UP(vm_config->initrd_size, PAGE_SIZE_2M);
+    }
+    size_t extend = ROUND_UP(vm_config->kernel_size, PAGE_SIZE_2M) + initrd_region_size;
+    err = fdt_generate_memory_node(gen_dtb_buf, vm_config->ram.base, vm_config->ram.size + extend);
+#else
     err = fdt_generate_memory_node(gen_dtb_buf, vm_config->ram.base,
                                    vm_config->ram.size);
+#endif
     if (err) {
         ZF_LOGE("Couldn't generate memory_node (%d)", err);
         return -1;
@@ -991,6 +1005,184 @@ static int load_vm_images(vm_t *vm, const vm_config_t *vm_config)
 
     return 0;
 }
+
+#ifdef CONFIG_VM_IMAGE_REMAP
+typedef struct {
+    seL4_CPtr *caps;
+    size_t num_caps;
+    size_t frame_size_bits;
+} image_remap_frame_pool_t;
+
+image_remap_frame_pool_t _image_remap_pool;
+
+static vm_frame_t image_remap_frame_pool_itr(uintptr_t addr, void *cookie)
+{
+    image_remap_frame_pool_t *pool = cookie;
+    int idx = pool->num_caps - 1;
+    vm_frame_t frame = { .cptr = seL4_CapNull };
+
+    if (idx < 0)
+    {
+        return frame;
+    }
+
+    frame.cptr = pool->caps[idx];
+    frame.rights = seL4_ReadWrite;
+    frame.size_bits = pool->frame_size_bits;
+    frame.vaddr = addr;
+
+    pool->num_caps--;
+
+    return frame;
+}
+
+static int vm_image_remap(vm_t *vm, const vm_config_t *vm_config)
+{
+    int ret;
+    const int cacheable = 1;
+    seL4_CPtr cnode_slot_start = vm_image_remap_get_cnode_slot_start();
+
+    /* Linker aligns regions to 2M; kernel allocates 4K frames */
+    unsigned int kernel_region_size = ROUND_UP(vm_config->kernel_size, PAGE_SIZE_2M);
+    unsigned int num_reserved_kernel_frames = kernel_region_size / PAGE_SIZE_4K;
+
+    /* Create frame cap array to pass vspace_map_pages later */
+    seL4_CPtr *reserved_kernel_frame_caps = malloc(sizeof(seL4_CPtr) * num_reserved_kernel_frames);
+    ZF_LOGF_IF(reserved_kernel_frame_caps == NULL, "Failed malloc for reserved_kernel_frame_caps");
+    for (unsigned int i = 0; i < num_reserved_kernel_frames; i++)
+    {
+        reserved_kernel_frame_caps[i] = cnode_slot_start + i;
+    }
+
+    unsigned int rootfs_region_size = 0;
+    unsigned int num_reserved_rootfs_frames = 0;
+    seL4_CPtr *reserved_rootfs_frame_caps = NULL;
+    if (vm_config->remap_initrd)
+    {
+        /* Linker aligns regions to 2M; kernel allocates 4K frames */
+        rootfs_region_size = ROUND_UP(vm_config->initrd_size, PAGE_SIZE_2M);
+        num_reserved_rootfs_frames = rootfs_region_size / PAGE_SIZE_4K;
+
+        /* Create frame cap array to pass vspace_map_pages later */
+        reserved_rootfs_frame_caps = malloc(sizeof(seL4_CPtr) * num_reserved_rootfs_frames);
+        ZF_LOGF_IF(reserved_rootfs_frame_caps == NULL, "Failed malloc for reserved_rootfs_frame_caps");
+        for (unsigned int i = 0; i < num_reserved_rootfs_frames; i++)
+        {
+            reserved_rootfs_frame_caps[i] = cnode_slot_start + num_reserved_kernel_frames + i;
+        }
+    }
+
+    /* Number of frames that will be unmapped from vspace and then appended */
+    unsigned int num_guest_ram_kernel_frames = kernel_region_size /
+        SIZE_BITS_TO_BYTES(vm_config->ram_page_bits);
+    unsigned int num_guest_ram_rootfs_frames = rootfs_region_size /
+        SIZE_BITS_TO_BYTES(vm_config->ram_page_bits);
+
+    /* Setup pool to record each frame cap we unmap from guest RAM */
+    _image_remap_pool.caps = malloc(sizeof(seL4_CPtr) *
+        (num_guest_ram_kernel_frames + num_guest_ram_rootfs_frames));
+    ZF_LOGF_IF(_image_remap_pool.caps == NULL, "Failed malloc for _image_remap_pool.caps");
+    _image_remap_pool.num_caps = 0;
+    _image_remap_pool.frame_size_bits = vm_config->ram_page_bits;
+
+    /* Add caps to frames that are about to be replaced to the pool */
+    /* Note: paddrs decrease as vaddr increase - resulting in fragmentation */
+    for (unsigned int i = 0; i < num_guest_ram_kernel_frames; i++)
+    {
+        seL4_CPtr frame_cap = vspace_get_cap(&vm->mem.vm_vspace,
+            (void *)(vm_config->ram.base + (BIT(vm_config->ram_page_bits) * i)));
+        _image_remap_pool.caps[_image_remap_pool.num_caps++] = frame_cap;
+    }
+
+    /* Unmap default kernel vm vspace pages */
+    vspace_unmap_pages(&vm->mem.vm_vspace, (void *)vm_config->ram.base, num_guest_ram_kernel_frames,
+        vm_config->ram_page_bits, (vka_t *)VSPACE_PRESERVE);
+    /* Map in reserved kernel frames */
+    vspace_map_pages_at_vaddr_no_res(&vm->mem.vm_vspace, reserved_kernel_frame_caps, NULL,
+        (void *)vm_config->ram.base, num_reserved_kernel_frames, PAGE_BITS_4K, seL4_ReadWrite,
+        cacheable);
+    free(reserved_kernel_frame_caps);
+
+    if (vm_config->remap_initrd)
+    {
+        /* Add caps to frames that are about to be replaced to the pool */
+        for (unsigned int i = 0; i < num_guest_ram_rootfs_frames; i++)
+        {
+            seL4_CPtr frame_cap = vspace_get_cap(&vm->mem.vm_vspace,
+                (void *)(vm_config->initrd_addr + (BIT(vm_config->ram_page_bits) * i)));
+            _image_remap_pool.caps[_image_remap_pool.num_caps++] = frame_cap;
+        }
+        /* Unmap default rootfs vm vspace pages */
+        vspace_unmap_pages(&vm->mem.vm_vspace, (void *)vm_config->initrd_addr,
+            num_guest_ram_rootfs_frames, vm_config->ram_page_bits, (vka_t *)VSPACE_PRESERVE);
+        /* Map in reserved rootfs frames */
+        vspace_map_pages_at_vaddr_no_res(&vm->mem.vm_vspace, reserved_rootfs_frame_caps, NULL,
+            (void *)vm_config->initrd_addr, num_reserved_rootfs_frames, PAGE_BITS_4K, seL4_ReadWrite,
+            cacheable);
+        free(reserved_rootfs_frame_caps);
+    }
+
+    /* Register unmapped guest frames at end of current ram region */
+    uintptr_t extend_start = vm_config->ram.base + vm_config->ram.size;
+    size_t extend_size = kernel_region_size + rootfs_region_size;
+    printf("Extending guest ram region at 0x%lx of size 0x%lx\n", extend_start, extend_size);
+    ret = vm_ram_register_at_custom_iterator(vm, extend_start, extend_size,
+        image_remap_frame_pool_itr, &_image_remap_pool);
+    if (ret)
+    {
+        ZF_LOGE("Failed to register extended ram region (%d)", ret);
+        return -1;
+    }
+    free(_image_remap_pool.caps);
+
+    /* Generate dtb; image remap precludes a provided dtb since fileserver is removed */
+    ret = fdt_generate_chosen_node(gen_dtb_buf, vm_config->kernel_stdout,
+        vm_config->kernel_bootcmdline, NUM_VCPUS);
+    if (ret)
+    {
+        ZF_LOGE("Failed to fdt_generate_chosen_node() (%d)", ret);
+        return -1;
+    }
+
+    if (vm_config->remap_initrd)
+    {
+        ret = fdt_append_chosen_node_with_initrd_info(gen_dtb_buf, vm_config->initrd_addr,
+            vm_config->initrd_size);
+        if (ret)
+        {
+            ZF_LOGE("Failed to fdt_append_chosen_node_with_initrd_info() (%d)", ret);
+            return -1;
+        }
+    }
+
+    ret = vm_dtb_finalize(vm, vm_config);
+    if (ret)
+    {
+        ZF_LOGE("Failed to vm_dtb_finalize() (%d)", ret);
+        return -1;
+    }
+
+    printf("Loading generated dtb into guest ram\n");
+    vm_ram_mark_allocated(vm, vm_config->dtb_addr, sizeof(gen_dtb_buf));
+    ret = vm_ram_touch(vm, vm_config->dtb_addr, sizeof(gen_dtb_buf), load_generated_dtb,
+        gen_dtb_buf);
+    if (ret)
+    {
+        ZF_LOGE("Failed to copy generated dtb into guest ram (%d)", ret);
+        return -1;
+    }
+
+    ret = vcpu_set_bootargs(vm->vcpus[BOOT_VCPU], vm_config->ram.base, MACH_TYPE,
+        vm_config->dtb_addr);
+    if (ret)
+    {
+        ZF_LOGE("Failed to vcpu_set_bootargs() (%d)", ret);
+        return -1;
+    }
+
+    return 0;
+}
+#endif
 
 /* Async event handling registration implementation */
 typedef struct async_event_handler {
@@ -1176,9 +1368,11 @@ static int main_continued(void)
     restart_tcb = camkes_get_tls()->tcb_cap;
     int ret UNUSED = restart_event_reg_callback(restart_event, NULL);
 
+#ifndef CONFIG_VM_IMAGE_REMAP
     /* install custom open/close/read implementations to redirect I/O from the VMM to
      * our file server */
     install_fileserver(FILE_SERVER_INTERFACE(fs));
+#endif
     err = seL4_TCB_BindNotification(camkes_get_tls()->tcb_cap, notification_ready_notification());
     assert(!err);
 
@@ -1290,6 +1484,15 @@ static int main_continued(void)
         return -1;
     }
 
+#ifdef CONFIG_VM_IMAGE_REMAP
+    err = vm_image_remap(&vm, &vm_config);
+    if (err)
+    {
+        ZF_LOGE("Failed to remap VM images");
+        seL4_DebugHalt();
+        return -1;
+    }
+#else
     /* Load system images */
     err = load_vm_images(&vm, &vm_config);
     if (err) {
@@ -1297,6 +1500,7 @@ static int main_continued(void)
         seL4_DebugHalt();
         return -1;
     }
+#endif
 
     err = vcpu_start(vm_vcpu);
     if (err) {

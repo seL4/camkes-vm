@@ -153,4 +153,12 @@ function(DeclareCAmkESARMVM init_component)
         DeclareCAmkESComponent(${init_component} TEMPLATE_SOURCES seL4SMMUV2.template.c)
     endif()
 
+    if(VmImageRemap)
+        DeclareCAmkESComponent(
+            ${init_component}
+            TEMPLATE_SOURCES
+            seL4VMImageRemap.template.c
+        )
+    endif()
+
 endfunction()

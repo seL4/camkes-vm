@@ -123,4 +123,10 @@ const vm_config_t vm_config = {
 
 /*- endif -*/
 
+#ifdef CONFIG_VM_IMAGE_REMAP
+    .kernel_size = /*? config.get('image_remap_kernel_size') ?*/,
+    .initrd_size = /*? config.get('image_remap_rootfs_size', 0) ?*/,
+    .ram_page_bits = /*? config.get('image_remap_frame_size_bits') ?*/,
+    .remap_initrd = /*? config.get('image_remap_provide_rootfs') ?*/,
+#endif
 };
